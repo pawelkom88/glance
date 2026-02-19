@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { isTauri } from '@tauri-apps/api/core';
+import { startTransition } from 'react';
 import { parseMarkdown } from '../lib/markdown';
 import {
   createSession,
@@ -149,7 +150,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         }
       }
 
-      set({ sessions, shortcutWarning, initialized: true });
+      startTransition(() => {
+        set({ sessions, shortcutWarning, initialized: true });
+      });
       if (shortcutWarning) {
         get().showToast(shortcutWarning);
       }
@@ -163,7 +166,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       try {
         const newSession = await createSession(name);
         const sessions = await listSessions();
-        set({ sessions });
+        startTransition(() => {
+          set({ sessions });
+        });
         await get().openSession(newSession.id);
         get().showToast(`Created "${newSession.title}"`);
       } catch (error) {
@@ -176,7 +181,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       try {
         const copied = await duplicateSession(id);
         const sessions = await listSessions();
-        set({ sessions });
+        startTransition(() => {
+          set({ sessions });
+        });
         await get().openSession(copied.id);
         get().showToast(`Duplicated "${copied.title}"`);
       } catch (error) {
@@ -191,7 +198,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         const sessions = await listSessions();
         const activeSessionId = get().activeSessionId;
 
-        set({ sessions });
+        startTransition(() => {
+          set({ sessions });
+        });
 
         if (activeSessionId === id) {
           if (sessions.length > 0) {
@@ -222,7 +231,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       try {
         const imported = await createSessionFromMarkdown(name, markdown);
         const sessions = await listSessions();
-        set({ sessions });
+        startTransition(() => {
+          set({ sessions });
+        });
         await get().openSession(imported.id);
         get().showToast(`Imported "${imported.title}"`);
       } catch (error) {
@@ -289,7 +300,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         const nextMeta = buildSessionMeta(state);
         await saveSession(state.activeSessionId, state.markdown, nextMeta);
         const sessions = await listSessions();
-        set({ sessions, activeSessionMeta: nextMeta, activeSessionTitle: nextMeta.title });
+        startTransition(() => {
+          set({ sessions, activeSessionMeta: nextMeta, activeSessionTitle: nextMeta.title });
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to save session';
         get().showToast(message);

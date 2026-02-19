@@ -35,6 +35,31 @@ function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 7h10v10H7z" />
+    </svg>
+  );
+}
+
+function RestartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 8.5h5v-5" />
+      <path d="M7.4 13.2A5.5 5.5 0 1 0 10.8 7" />
+    </svg>
+  );
+}
+
 export function OverlayPrompter() {
   const markdown = useAppStore((state) => state.markdown);
   const playbackState = useAppStore((state) => state.playbackState);
@@ -433,15 +458,13 @@ export function OverlayPrompter() {
             setScrollPosition(0);
           }}
         >
-          Start Over
+          <RestartIcon />
+          <span>Restart</span>
         </button>
-        <button type="button" className="control-button" onClick={() => togglePlayback()}>
-          {playbackState === 'running' ? 'Pause' : 'Play'}
+        <button type="button" className="control-button overlay-primary-button" onClick={() => togglePlayback()}>
+          {playbackState === 'running' ? <StopIcon /> : <PlayIcon />}
+          <span>{playbackState === 'running' ? 'Stop' : 'Play'}</span>
         </button>
-
-        <span className={`status-indicator ${playbackState === 'running' ? 'running' : 'paused'}`}>
-          {playbackState === 'running' ? '🟢 Running' : '🔴 Paused'}
-        </span>
 
         <div className="speed-control speed-control-compact">
           <input

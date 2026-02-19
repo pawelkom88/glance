@@ -481,6 +481,23 @@ select {
   pointer-events: none;
 }
 
+@supports (view-transition-name: none) {
+  @media (prefers-reduced-motion: no-preference) {
+    ::view-transition-group(.session-row-update) {
+      animation-duration: 220ms;
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    ::view-transition-old(.session-row-enter),
+    ::view-transition-new(.session-row-enter),
+    ::view-transition-old(.session-row-exit),
+    ::view-transition-new(.session-row-exit) {
+      animation-duration: 170ms;
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+}
+
 .session-row-top {
   display: flex;
   align-items: flex-start;
@@ -861,7 +878,7 @@ select {
   animation: toast-in .3s ease-in-out;
   font-weight: 500;
   font-size: 1.2rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 @keyframes fade-in {
@@ -1181,16 +1198,34 @@ select {
   padding: 0 14px;
 }
 
-.control-button {
-  background: #d9e3ff;
-  color: #101524;
-  min-height: 38px;
-  font-weight: 700;
+.overlay-secondary-button,
+.overlay-primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.status-indicator {
-  min-width: 108px;
-  font-weight: 600;
+.overlay-secondary-button svg,
+.overlay-primary-button svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.overlay-primary-button svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.control-button {
+  background: var(--accent);
+  color: var(--text-soft);
+  min-height: 38px;
+  font-weight: 700;
 }
 
 .speed-control {
@@ -1217,14 +1252,6 @@ select {
   color: var(--text-muted);
   text-align: center;
   line-height: 1;
-}
-
-.status-indicator.running {
-  color: #2e7d32;
-}
-
-.status-indicator.paused {
-  color: #b23a2f;
 }
 
 @media (max-width: 1024px) {

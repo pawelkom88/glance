@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ReactViewTransition } from './react-view-transition';
 import type { SessionSummary } from '../types';
 
 interface LibraryViewProps {
@@ -338,17 +339,17 @@ export function LibraryView(props: LibraryViewProps) {
             className="primary-button"
             aria-expanded={isCreatingSession}
             onClick={() => {
-              setIsCreatingSession((previous) => {
-                const next = !previous;
-                if (next) {
-                  closeMenu(false);
-                  setIsComposerClosing(false);
-                  setDraftSessionName(defaultSessionName());
-                  setShowComposer(true);
-                } else {
-                  closeComposer(true);
-                }
-                return next;
+              if (isCreatingSession) {
+                closeComposer(true);
+                return;
+              }
+
+              startTransition(() => {
+                closeMenu(false);
+                setIsComposerClosing(false);
+                setDraftSessionName(defaultSessionName());
+                setShowComposer(true);
+                setIsCreatingSession(true);
               });
             }}
           >
@@ -393,64 +394,73 @@ export function LibraryView(props: LibraryViewProps) {
 
       <div className="session-list">
         {sessions.map((session) => (
-          <article
+          <ReactViewTransition
             key={session.id}
-            className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''}`}
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              if (exitingSessionIds.has(session.id)) {
-                return;
-              }
-              onSelect(session.id);
-              closeMenu(false);
-            }}
-            onDoubleClick={() => {
-              if (exitingSessionIds.has(session.id)) {
-                return;
-              }
-              onOpen(session.id);
-            }}
-            onKeyDown={(event) => {
-              if (exitingSessionIds.has(session.id)) {
-                return;
-              }
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                onOpen(session.id);
-                return;
-              }
-
-              if (event.key === ' ') {
-                event.preventDefault();
-                onSelect(session.id);
-              }
-            }}
+            name={`session-row-${session.id}`}
+            update="session-row-update"
+            enter="session-row-enter"
+            exit="session-row-exit"
           >
-            <div className="session-row-top">
-              <div>
-                <p className="session-title">{session.title}</p>
-                <p className="session-meta">Updated {new Date(session.updatedAt).toLocaleString()}</p>
-              </div>
+            <article
+              className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (exitingSessionIds.has(session.id)) {
+                  return;
+                }
+                onSelect(session.id);
+                closeMenu(false);
+              }}
+              onDoubleClick={() => {
+                if (exitingSessionIds.has(session.id)) {
+                  return;
+                }
+                onOpen(session.id);
+              }}
+              onKeyDown={(event) => {
+                if (exitingSessionIds.has(session.id)) {
+                  return;
+                }
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  onOpen(session.id);
+                  return;
+                }
 
-              <div className="session-row-menu-wrap">
-                <button
-                  type="button"
-                  className="row-menu-button"
-                  aria-label={`Delete ${session.title}`}
-                  disabled={exitingSessionIds.has(session.id)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setIsDeleteDialogClosing(false);
-                    modalRestoreFocusRef.current = event.currentTarget;
-                    setDeleteCandidateId(session.id);
-                  }}
-                >
-                  <TrashIcon />
-                </button>
+                if (event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(session.id);
+                }
+              }}
+            >
+              <div className="session-row-top">
+                <div>
+                  <p className="session-title">{session.title}</p>
+                  <p className="session-meta">Updated {new Date(session.updatedAt).toLocaleString()}</p>
+                </div>
+
+                <div className="session-row-menu-wrap">
+                  <button
+                    type="button"
+                    className="row-menu-button"
+                    aria-label={`Delete ${session.title}`}
+                    disabled={exitingSessionIds.has(session.id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startTransition(() => {
+                        setIsDeleteDialogClosing(false);
+                        setDeleteCandidateId(session.id);
+                      });
+                      modalRestoreFocusRef.current = event.currentTarget;
+                    }}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </ReactViewTransition>
         ))}
 
         {sessions.length === 0 ? <p className="empty-state">No sessions yet. Create one to begin.</p> : null}
