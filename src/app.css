@@ -7,7 +7,7 @@
   --bg-canvas-1: #E7E7E7;
   --bg-canvas-2: #fff;
   --bg-card: yellow;
-  --bg-card-strong: red;
+  --bg-card-strong: #050505;
   --bg-card-muted: #ffffff12;
 
   --sidebar-bg: #050505;
@@ -326,7 +326,8 @@ select {
 .session-card {
   border: 1px solid var(--line-faint);
   border-radius: var(--radius-lg);
-  background: rgba(16, 22, 35, 0.74);
+  background: var(--bg-card-strong);
+  color: var(--text-soft);
   padding: 16px;
 }
 
