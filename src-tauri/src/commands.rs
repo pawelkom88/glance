@@ -41,10 +41,17 @@ pub struct ShowOverlayResult {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ShortcutEventPayload {
+pub struct ShortcutAction {
   action: String,
   index: Option<usize>,
   delta: Option<i8>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShortcutBinding {
+  pub action: String,
+  pub accelerator: String,
 }
 
 #[tauri::command]
@@ -140,7 +147,7 @@ pub fn show_overlay_window(request: ShowOverlayRequest, app: AppHandle) -> Resul
     let current_size = overlay
       .outer_size()
       .map_err(|error| error.to_string())
-      .unwrap_or(PhysicalSize::new(980, 620));
+      .unwrap_or(PhysicalSize::new(980, 310));
     let width = current_size.width as i32;
     let height = current_size.height as i32;
     let monitor_position = target_monitor.position();
@@ -200,25 +207,42 @@ pub fn show_main_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn register_default_shortcuts(app: AppHandle) -> Result<(), String> {
+pub fn register_shortcuts(
+  bindings: Vec<ShortcutBinding>,
+  app: AppHandle,
+  state: State<'_, AppState>,
+) -> Result<(), String> {
   let manager = app.global_shortcut();
   manager.unregister_all().map_err(|error| error.to_string())?;
 
-  let toggle = Shortcut::from_str("CmdOrCtrl+Shift+S").map_err(|error| error.to_string())?;
-  manager.register(toggle).map_err(to_conflict_error)?;
+  let mut action_map = std::collections::HashMap::<String, ShortcutAction>::new();
 
-  let speed_up = Shortcut::from_str("CmdOrCtrl+Up").map_err(|error| error.to_string())?;
-  manager.register(speed_up).map_err(to_conflict_error)?;
+  for binding in bindings {
+    let shortcut = Shortcut::from_str(&binding.accelerator)
+      .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
+    manager.register(shortcut.clone()).map_err(|error| {
+      format!(
+        "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
+        binding.action, binding.accelerator, error
+      )
+    })?;
 
-  let speed_down = Shortcut::from_str("CmdOrCtrl+Down").map_err(|error| error.to_string())?;
-  manager.register(speed_down).map_err(to_conflict_error)?;
+    let mapped = binding_to_shortcut_action(&binding.action)?;
+    action_map.insert(normalize_shortcut_text(&shortcut.to_string()), mapped);
+  }
 
-  (1..=9)
-    .map(|index| Shortcut::from_str(&format!("CmdOrCtrl+{index}")))
-    .collect::<Result<Vec<_>, _>>()
-    .map_err(|error| error.to_string())?
-    .into_iter()
-    .try_for_each(|shortcut| manager.register(shortcut).map_err(to_conflict_error))
+  let mut locked = state
+    .shortcut_actions
+    .lock()
+    .map_err(|_| String::from("Unable to update shortcut mappings"))?;
+  *locked = action_map;
+
+  Ok(())
+}
+
+#[tauri::command]
+pub fn register_default_shortcuts(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+  register_shortcuts(default_shortcut_bindings(), app, state)
 }
 
 #[tauri::command]
@@ -273,7 +297,7 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
   let overlay_size = overlay
     .outer_size()
     .map_err(|error| error.to_string())
-    .unwrap_or(PhysicalSize::new(980, 620));
+    .unwrap_or(PhysicalSize::new(980, 310));
   let width = overlay_size.width as i32;
   let height = overlay_size.height as i32;
   let monitor_position = monitor.position();
@@ -313,64 +337,13 @@ pub fn export_session_to_path(
 }
 
 pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
-  let normalized = shortcut_text.to_lowercase();
-
-  if normalized.ends_with("+shift+s") {
-    let _ = app.emit(
-      "shortcut-event",
-      ShortcutEventPayload {
-        action: String::from("toggle-play"),
-        index: None,
-        delta: None,
-      },
-    );
-    return;
-  }
-
-  if normalized.ends_with("+up") {
-    let _ = app.emit(
-      "shortcut-event",
-      ShortcutEventPayload {
-        action: String::from("speed-change"),
-        index: None,
-        delta: Some(4),
-      },
-    );
-    return;
-  }
-
-  if normalized.ends_with("+down") {
-    let _ = app.emit(
-      "shortcut-event",
-      ShortcutEventPayload {
-        action: String::from("speed-change"),
-        index: None,
-        delta: Some(-4),
-      },
-    );
-    return;
-  }
-
-  for index in 1..=9 {
-    if normalized.ends_with(&format!("+{index}")) {
-      let _ = app.emit(
-        "shortcut-event",
-        ShortcutEventPayload {
-          action: String::from("jump-section"),
-          index: Some(index - 1),
-          delta: None,
-        },
-      );
+  let normalized = normalize_shortcut_text(shortcut_text);
+  if let Ok(locked) = app.state::<AppState>().shortcut_actions.lock() {
+    if let Some(action) = locked.get(&normalized).cloned() {
+      let _ = app.emit("shortcut-event", action);
       return;
     }
   }
-}
-
-fn to_conflict_error(error: tauri_plugin_global_shortcut::Error) -> String {
-  format!(
-    "Shortcut registration conflict: {}. Another app may already use this key combination.",
-    error
-  )
 }
 
 fn monitor_label(monitor: &Monitor) -> String {
@@ -430,4 +403,117 @@ fn apply_overlay_bounds(overlay: &tauri::WebviewWindow, bounds: &OverlayBounds) 
       bounds.y.round() as i32,
     )))
     .map_err(|error| error.to_string())
+}
+
+fn normalize_shortcut_text(value: &str) -> String {
+  value.to_lowercase().replace(' ', "")
+}
+
+fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
+  if action == "toggle-play" {
+    return Ok(ShortcutAction {
+      action: String::from("toggle-play"),
+      index: None,
+      delta: None,
+    });
+  }
+
+  if action == "speed-up" {
+    return Ok(ShortcutAction {
+      action: String::from("speed-change"),
+      index: None,
+      delta: Some(2),
+    });
+  }
+
+  if action == "speed-down" {
+    return Ok(ShortcutAction {
+      action: String::from("speed-change"),
+      index: None,
+      delta: Some(-2),
+    });
+  }
+
+  if action == "start-over" {
+    return Ok(ShortcutAction {
+      action: String::from("start-over"),
+      index: None,
+      delta: None,
+    });
+  }
+
+  if let Some(value) = action.strip_prefix("jump-") {
+    let parsed = value
+      .parse::<usize>()
+      .map_err(|_| format!("Unsupported shortcut action '{}'", action))?;
+
+    if !(1..=9).contains(&parsed) {
+      return Err(format!("Unsupported shortcut action '{}'", action));
+    }
+
+    return Ok(ShortcutAction {
+      action: String::from("jump-section"),
+      index: Some(parsed - 1),
+      delta: None,
+    });
+  }
+
+  Err(format!("Unsupported shortcut action '{}'", action))
+}
+
+fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
+  vec![
+    ShortcutBinding {
+      action: String::from("toggle-play"),
+      accelerator: String::from("CmdOrCtrl+Shift+S"),
+    },
+    ShortcutBinding {
+      action: String::from("start-over"),
+      accelerator: String::from("CmdOrCtrl+Shift+R"),
+    },
+    ShortcutBinding {
+      action: String::from("speed-up"),
+      accelerator: String::from("CmdOrCtrl+Up"),
+    },
+    ShortcutBinding {
+      action: String::from("speed-down"),
+      accelerator: String::from("CmdOrCtrl+Down"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-1"),
+      accelerator: String::from("CmdOrCtrl+1"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-2"),
+      accelerator: String::from("CmdOrCtrl+2"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-3"),
+      accelerator: String::from("CmdOrCtrl+3"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-4"),
+      accelerator: String::from("CmdOrCtrl+4"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-5"),
+      accelerator: String::from("CmdOrCtrl+5"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-6"),
+      accelerator: String::from("CmdOrCtrl+6"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-7"),
+      accelerator: String::from("CmdOrCtrl+7"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-8"),
+      accelerator: String::from("CmdOrCtrl+8"),
+    },
+    ShortcutBinding {
+      action: String::from("jump-9"),
+      accelerator: String::from("CmdOrCtrl+9"),
+    },
+  ]
 }

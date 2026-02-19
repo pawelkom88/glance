@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isTauri } from '@tauri-apps/api/core';
 import { parseMarkdown } from '../lib/markdown';
 import {
   createSession,
@@ -8,9 +9,10 @@ import {
   exportSessionToPath,
   listSessions,
   loadSession,
-  registerDefaultShortcuts,
+  registerShortcuts,
   saveSession
 } from '../lib/tauri';
+import { loadShortcutConfig, toShortcutBindings } from '../lib/shortcuts';
 import type { ParseWarning, SessionMeta, SessionSummary } from '../types';
 
 type PlaybackState = 'paused' | 'running';
@@ -43,6 +45,7 @@ interface AppStoreState {
   readonly setScrollSpeed: (value: number) => void;
   readonly changeScrollSpeedBy: (delta: number) => void;
   readonly jumpToSectionByIndex: (index: number) => void;
+  readonly setShortcutWarning: (value: string | null) => void;
   readonly showToast: (message: string) => void;
   readonly clearToast: () => void;
 }
@@ -135,13 +138,21 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const sessions = await listSessions();
       let shortcutWarning: string | null = null;
 
-      try {
-        await registerDefaultShortcuts();
-      } catch (error) {
-        shortcutWarning = error instanceof Error ? error.message : 'Shortcut registration failed';
+      if (!isTauri()) {
+        shortcutWarning = 'Global shortcuts are unavailable in browser preview.';
+      } else {
+        try {
+          const shortcutConfig = loadShortcutConfig();
+          await registerShortcuts(toShortcutBindings(shortcutConfig));
+        } catch (error) {
+          shortcutWarning = error instanceof Error ? error.message : 'Shortcut registration failed';
+        }
       }
 
       set({ sessions, shortcutWarning, initialized: true });
+      if (shortcutWarning) {
+        get().showToast(shortcutWarning);
+      }
 
       if (sessions.length > 0) {
         await get().openSession(sessions[0].id);
@@ -336,6 +347,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
       const lineHeight = 54;
       get().setScrollPosition(target.lineIndex * lineHeight);
+    },
+
+    setShortcutWarning: (value: string | null) => {
+      set({ shortcutWarning: value });
     },
 
     showToast: (message: string) => {

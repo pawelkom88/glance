@@ -3,11 +3,14 @@
 mod commands;
 mod sessions;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 pub struct AppState {
   pub sessions_root: PathBuf,
+  pub shortcut_actions: Mutex<HashMap<String, commands::ShortcutAction>>,
 }
 
 fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
@@ -22,7 +25,7 @@ fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String
     .decorations(false)
     .resizable(true)
     .skip_taskbar(true)
-    .inner_size(980.0, 620.0)
+    .inner_size(980.0, 310.0)
     .build()
     .map_err(|error| error.to_string())?;
 
@@ -44,7 +47,10 @@ fn main() {
       let sessions_root = app_data_dir.join("sessions");
       sessions::ensure_storage(&sessions_root)?;
 
-      app.manage(AppState { sessions_root });
+      app.manage(AppState {
+        sessions_root,
+        shortcut_actions: Mutex::new(HashMap::new()),
+      });
       create_overlay_window_if_missing(app.handle())?;
 
       Ok(())
@@ -62,6 +68,7 @@ fn main() {
       commands::hide_overlay_window,
       commands::hide_main_window,
       commands::show_main_window,
+      commands::register_shortcuts,
       commands::register_default_shortcuts,
       commands::set_overlay_always_on_top,
       commands::list_monitors,

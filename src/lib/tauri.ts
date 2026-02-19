@@ -2,6 +2,7 @@ import { LogicalSize } from '@tauri-apps/api/dpi';
 import { listen } from '@tauri-apps/api/event';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import type { ShortcutBinding } from './shortcuts';
 import type {
   MonitorInfo,
   OverlayBounds,
@@ -144,6 +145,10 @@ export async function registerDefaultShortcuts(): Promise<void> {
   await invoke('register_default_shortcuts');
 }
 
+export async function registerShortcuts(bindings: readonly ShortcutBinding[]): Promise<void> {
+  await invoke('register_shortcuts', { bindings });
+}
+
 export async function setOverlayAlwaysOnTop(enabled: boolean): Promise<void> {
   await invoke('set_overlay_always_on_top', { enabled });
 }
@@ -163,7 +168,7 @@ export async function resetOverlayPosition(): Promise<void> {
     return;
   }
 
-  await existing.setSize(new LogicalSize(960, 620));
+  await existing.setSize(new LogicalSize(960, 310));
   await existing.center();
   window.localStorage.removeItem(overlayLayoutStorageKey);
   clearLastOverlayMonitorName();

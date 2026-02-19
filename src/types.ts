@@ -52,7 +52,7 @@ export interface DisplayLine {
 }
 
 export interface ShortcutEventPayload {
-  readonly action: 'toggle-play' | 'jump-section' | 'speed-change';
+  readonly action: 'toggle-play' | 'jump-section' | 'speed-change' | 'start-over';
   readonly index?: number;
   readonly delta?: number;
 }

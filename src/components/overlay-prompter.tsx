@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
@@ -16,6 +16,9 @@ const lineHeight = 54;
 const fadeDurationMs = 140;
 const rulerHeight = 56;
 const rulerPadding = 34;
+const baseSpeed = 42;
+const minSpeed = 21;
+const maxSpeed = 63;
 
 interface RulerStyle {
   readonly left: number;
@@ -57,12 +60,23 @@ export function OverlayPrompter() {
   const contentRef = useRef<HTMLElement | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
+  const [isOpening, setIsOpening] = useState(true);
   const [rulerStyle, setRulerStyle] = useState<RulerStyle>({
     left: 16,
     top: 0,
     width: 260,
     visible: false
   });
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsOpening(false);
+    }, 8);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   useEffect(() => {
     speedRef.current = scrollSpeed;
@@ -123,6 +137,11 @@ export function OverlayPrompter() {
       if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
         changeScrollSpeedBy(payload.delta);
       }
+
+      if (payload.action === 'start-over') {
+        setPlaybackState('paused');
+        setScrollPosition(0);
+      }
     }).then((fn) => {
       unlisten = fn;
     });
@@ -130,7 +149,7 @@ export function OverlayPrompter() {
     return () => {
       unlisten();
     };
-  }, [changeScrollSpeedBy, jumpToSectionByIndex, togglePlayback]);
+  }, [changeScrollSpeedBy, jumpToSectionByIndex, setPlaybackState, setScrollPosition, togglePlayback]);
 
   const requestCloseOverlay = useCallback(() => {
     if (isClosing) {
@@ -176,12 +195,12 @@ export function OverlayPrompter() {
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        changeScrollSpeedBy(4);
+        changeScrollSpeedBy(2);
       }
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        changeScrollSpeedBy(-4);
+        changeScrollSpeedBy(-2);
       }
     };
 
@@ -266,6 +285,20 @@ export function OverlayPrompter() {
     };
   }, []);
 
+  const normalizedSpeed = Math.max(0.5, Math.min(1.5, scrollSpeed / baseSpeed));
+
+  const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button, input, select, textarea, a')) {
+      return;
+    }
+
+    const draggableWindow = getCurrentWindow() as unknown as { startDragging?: () => Promise<void> };
+    if (typeof draggableWindow.startDragging === 'function') {
+      void draggableWindow.startDragging();
+    }
+  }, []);
+
   useEffect(() => {
     const updateRuler = () => {
       const contentElement = contentRef.current;
@@ -337,25 +370,23 @@ export function OverlayPrompter() {
 
   return (
     <main
-      className={`overlay-root ${isClosing ? 'overlay-closing' : ''}`}
+      className={`overlay-root ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
       role="application"
       aria-label="Glance overlay"
     >
-      <header className="hint-bar">
-        <div className="hint-drag-region" data-tauri-drag-region>
-          <div className="hint-items" role="tablist" aria-label="Section shortcuts">
-            {sections.slice(0, 9).map((section, index) => (
-              <button
-                key={section.id}
-                type="button"
-                className="hint-item"
-                onClick={() => jumpToSectionByIndex(index)}
-              >
-                [{platformModifier()}{index + 1}] {section.title}
-              </button>
-            ))}
-            {sections.length > 9 ? <span className="hint-overflow">+{sections.length - 9} more</span> : null}
-          </div>
+      <header className="hint-bar" data-tauri-drag-region onMouseDown={handleDragMouseDown}>
+        <div className="hint-items" role="tablist" aria-label="Section shortcuts">
+          {sections.slice(0, 9).map((section, index) => (
+            <button
+              key={section.id}
+              type="button"
+              className="hint-item"
+              onClick={() => jumpToSectionByIndex(index)}
+            >
+              {platformModifier()}{index + 1} {section.title}
+            </button>
+          ))}
+          {sections.length > 9 ? <span className="hint-overflow">+{sections.length - 9} more</span> : null}
         </div>
         <button
           type="button"
@@ -394,6 +425,16 @@ export function OverlayPrompter() {
       </section>
 
       <footer className="overlay-controls">
+        <button
+          type="button"
+          className="ghost-button overlay-secondary-button"
+          onClick={() => {
+            setPlaybackState('paused');
+            setScrollPosition(0);
+          }}
+        >
+          Start Over
+        </button>
         <button type="button" className="control-button" onClick={() => togglePlayback()}>
           {playbackState === 'running' ? 'Pause' : 'Play'}
         </button>
@@ -402,17 +443,17 @@ export function OverlayPrompter() {
           {playbackState === 'running' ? '🟢 Running' : '🔴 Paused'}
         </span>
 
-        <div className="speed-control">
-          <span>Turtle</span>
+        <div className="speed-control speed-control-compact">
           <input
             type="range"
-            min={10}
-            max={140}
+            min={minSpeed}
+            max={maxSpeed}
+            step={1}
             value={scrollSpeed}
             onChange={(event) => setScrollSpeed(Number(event.target.value))}
             aria-label="Scroll speed"
           />
-          <span>Rabbit</span>
+          <span className="speed-value-label">{normalizedSpeed.toFixed(2)}x</span>
         </div>
       </footer>
     </main>

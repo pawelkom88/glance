@@ -15,7 +15,7 @@ function shortcutLabel(index: number): string {
 }
 
 export function EditorView(props: EditorViewProps) {
-  const { markdown, sections, warnings, onChange, onLaunchOverlay, onCloseOverlay, onSave } = props;
+  const { markdown, sections, warnings, onChange, onLaunchOverlay, onSave } = props;
   const hasSections = sections.length > 0;
 
   return (
@@ -28,9 +28,6 @@ export function EditorView(props: EditorViewProps) {
         <div className="header-actions">
           <button type="button" className="ghost-button" onClick={onSave}>
             Save
-          </button>
-          <button type="button" className="ghost-button" onClick={onCloseOverlay}>
-            Close Prompter
           </button>
           <button
             type="button"

@@ -83,6 +83,7 @@ export default function App() {
   const [mainWindowTransition, setMainWindowTransition] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
+  const fadeInFrameRef = useRef<number | null>(null);
 
   const initialized = useAppStore((state) => state.initialized);
   const sessions = useAppStore((state) => state.sessions);
@@ -93,7 +94,6 @@ export default function App() {
   const toastMessage = useAppStore((state) => state.toastMessage);
   const loadInitialState = useAppStore((state) => state.loadInitialState);
   const createSessionWithName = useAppStore((state) => state.createSessionWithName);
-  const duplicateSessionById = useAppStore((state) => state.duplicateSessionById);
   const deleteSessionById = useAppStore((state) => state.deleteSessionById);
   const importMarkdown = useAppStore((state) => state.importMarkdown);
   const exportSessionById = useAppStore((state) => state.exportSessionById);
@@ -172,14 +172,21 @@ export default function App() {
 
     void listenForMainWindowShown(() => {
       setMainWindowTransition('fade-in');
-      window.setTimeout(() => {
+      if (fadeInFrameRef.current !== null) {
+        window.cancelAnimationFrame(fadeInFrameRef.current);
+      }
+      fadeInFrameRef.current = window.requestAnimationFrame(() => {
         setMainWindowTransition('idle');
-      }, windowFadeDurationMs + 20);
+        fadeInFrameRef.current = null;
+      });
     }).then((fn) => {
       unlisten = fn;
     });
 
     return () => {
+      if (fadeInFrameRef.current !== null) {
+        window.cancelAnimationFrame(fadeInFrameRef.current);
+      }
       unlisten();
     };
   }, []);
@@ -200,9 +207,6 @@ export default function App() {
           onCreate={(name) => {
             void createSessionWithName(name);
             setActiveTab('editor');
-          }}
-          onDuplicate={(id) => {
-            void duplicateSessionById(id);
           }}
           onDelete={(id) => {
             void deleteSessionById(id);
@@ -281,7 +285,6 @@ export default function App() {
     activeTab,
     createSessionWithName,
     deleteSessionById,
-    duplicateSessionById,
     exportSessionById,
     markdown,
     openSession,

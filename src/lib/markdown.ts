@@ -64,38 +64,81 @@ export function parseSections(markdown: string): readonly SectionItem[] {
   return parseMarkdown(markdown).sections;
 }
 
+function wrapWords(text: string, maxChars: number): string[] {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) {
+    return [trimmed];
+  }
+
+  const words = trimmed.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    const candidate = current.length === 0 ? word : `${current} ${word}`;
+    if (candidate.length > maxChars && current.length > 0) {
+      lines.push(current);
+      current = word;
+      continue;
+    }
+    current = candidate;
+  }
+
+  if (current.length > 0) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
 export function markdownToDisplayLines(markdown: string): readonly DisplayLine[] {
-  return markdown
-    .split('\n')
-    .map((line, lineIndex) => {
-      if (line.startsWith('# ')) {
-        return {
-          id: `heading-${lineIndex}`,
-          kind: 'heading' as const,
-          text: line.replace(/^#\s+/, '')
-        };
-      }
+  const output: DisplayLine[] = [];
+  const maxChars = 56;
 
-      if (line.startsWith('- ')) {
-        return {
-          id: `bullet-${lineIndex}`,
-          kind: 'bullet' as const,
-          text: line.replace(/^-+\s*/, '')
-        };
-      }
+  markdown.split('\n').forEach((line, lineIndex) => {
+    if (line.startsWith('# ')) {
+      output.push({
+        id: `heading-${lineIndex}`,
+        kind: 'heading',
+        text: line.replace(/^#\s+/, '').trim()
+      });
+      return;
+    }
 
-      if (line.trim().length === 0) {
-        return {
-          id: `empty-${lineIndex}`,
-          kind: 'empty' as const,
-          text: ''
-        };
-      }
+    if (line.startsWith('- ')) {
+      const wrapped = wrapWords(line.replace(/^-+\s*/, ''), maxChars);
+      wrapped.forEach((wrappedLine, wrappedIndex) => {
+        output.push({
+          id: `bullet-${lineIndex}-${wrappedIndex}`,
+          kind: wrappedIndex === 0 ? 'bullet' : 'text',
+          text: wrappedLine
+        });
+      });
+      return;
+    }
 
-      return {
-        id: `text-${lineIndex}`,
-        kind: 'text' as const,
-        text: line
-      };
+    if (line.trim().length === 0) {
+      const previous = output[output.length - 1];
+      if (previous?.kind === 'empty') {
+        return;
+      }
+      output.push({
+        id: `empty-${lineIndex}`,
+        kind: 'empty',
+        text: ''
+      });
+      return;
+    }
+
+    const wrapped = wrapWords(line, maxChars);
+    wrapped.forEach((wrappedLine, wrappedIndex) => {
+      output.push({
+        id: `text-${lineIndex}-${wrappedIndex}`,
+        kind: 'text',
+        text: wrappedLine
+      });
     });
+  });
+
+  return output;
 }

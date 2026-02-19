@@ -8,17 +8,9 @@ interface LibraryViewProps {
   readonly onSelect: (id: string) => void;
   readonly onOpen: (id: string) => void;
   readonly onCreate: (name: string) => void;
-  readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onImport: () => void;
   readonly onExportSession: (id: string) => void;
-}
-
-interface SessionMenuState {
-  readonly kind: 'session';
-  readonly sessionId: string;
-  readonly top: number;
-  readonly left: number;
 }
 
 interface FileMenuState {
@@ -26,8 +18,6 @@ interface FileMenuState {
   readonly top: number;
   readonly left: number;
 }
-
-type MenuState = SessionMenuState | FileMenuState;
 
 const menuWidth = 220;
 
@@ -43,8 +33,35 @@ function buildMenuPosition(trigger: HTMLElement): { top: number; left: number } 
     Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding)
   );
   const top = Math.min(rect.bottom + 8, window.innerHeight - 160);
-
   return { top, left };
+}
+
+function FileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 4h10.5L20 8.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm9.5 1.5V9H18" />
+      <path d="M8 13h8M8 16h8" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <path d="M42,3H28a2,2,0,0,0-2-2H22a2,2,0,0,0-2,2H6A2,2,0,0,0,6,7H42a2,2,0,0,0,0-4Z" />
+      <path d="M39,9a2,2,0,0,0-2,2V43H11V11a2,2,0,0,0-4,0V45a2,2,0,0,0,2,2H39a2,2,0,0,0,2-2V11A2,2,0,0,0,39,9Z" />
+      <path d="M21,37V19a2,2,0,0,0-4,0V37a2,2,0,0,0,4,0Z" />
+      <path d="M31,37V19a2,2,0,0,0-4,0V37a2,2,0,0,0,4,0Z" />
+    </svg>
+  );
 }
 
 export function LibraryView(props: LibraryViewProps) {
@@ -54,7 +71,6 @@ export function LibraryView(props: LibraryViewProps) {
     onSelect,
     onOpen,
     onCreate,
-    onDuplicate,
     onDelete,
     onImport,
     onExportSession
@@ -62,15 +78,22 @@ export function LibraryView(props: LibraryViewProps) {
 
   const [draftSessionName, setDraftSessionName] = useState(defaultSessionName());
   const [isCreatingSession, setIsCreatingSession] = useState(false);
-  const [menuState, setMenuState] = useState<MenuState | null>(null);
+  const [showComposer, setShowComposer] = useState(false);
+  const [isComposerClosing, setIsComposerClosing] = useState(false);
+  const [menuState, setMenuState] = useState<FileMenuState | null>(null);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
+  const [isDeleteDialogClosing, setIsDeleteDialogClosing] = useState(false);
+  const [exitingSessionIds, setExitingSessionIds] = useState<Set<string>>(new Set());
 
-  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const lastMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const closeMenuTimeoutRef = useRef<number | null>(null);
+  const deleteTimeoutsRef = useRef<Record<string, number>>({});
+  const closeDeleteDialogTimeoutRef = useRef<number | null>(null);
+  const closeComposerTimeoutRef = useRef<number | null>(null);
   const previousModalFocusRef = useRef<HTMLElement | null>(null);
+  const modalRestoreFocusRef = useRef<HTMLElement | null>(null);
   const newSessionButtonRef = useRef<HTMLButtonElement | null>(null);
   const composerInputRef = useRef<HTMLInputElement | null>(null);
   const cancelDeleteRef = useRef<HTMLButtonElement | null>(null);
@@ -92,32 +115,22 @@ export function LibraryView(props: LibraryViewProps) {
       setMenuState(null);
       setIsMenuClosing(false);
       closeMenuTimeoutRef.current = null;
-
       if (restoreFocus) {
         lastMenuTriggerRef.current?.focus();
       }
     }, 140);
   };
 
-  const openMenu = (nextMenuState: MenuState, trigger: HTMLElement) => {
+  const openFileMenu = (trigger: HTMLElement) => {
     if (closeMenuTimeoutRef.current !== null) {
       window.clearTimeout(closeMenuTimeoutRef.current);
       closeMenuTimeoutRef.current = null;
     }
 
+    const position = buildMenuPosition(trigger);
     lastMenuTriggerRef.current = trigger as HTMLButtonElement;
     setIsMenuClosing(false);
-    setMenuState(nextMenuState);
-  };
-
-  const openSessionMenu = (sessionId: string, trigger: HTMLElement) => {
-    const position = buildMenuPosition(trigger);
-    openMenu({ kind: 'session', sessionId, ...position }, trigger);
-  };
-
-  const openFileMenu = (trigger: HTMLElement) => {
-    const position = buildMenuPosition(trigger);
-    openMenu({ kind: 'file', ...position }, trigger);
+    setMenuState({ kind: 'file', ...position });
   };
 
   const createFromDraft = () => {
@@ -132,14 +145,28 @@ export function LibraryView(props: LibraryViewProps) {
   };
 
   const closeComposer = (restoreFocus: boolean = true) => {
-    setIsCreatingSession(false);
-    setDraftSessionName(defaultSessionName());
-
-    if (restoreFocus) {
-      window.setTimeout(() => {
-        newSessionButtonRef.current?.focus();
-      }, 0);
+    if (!isCreatingSession || isComposerClosing) {
+      return;
     }
+
+    setIsComposerClosing(true);
+    if (closeComposerTimeoutRef.current !== null) {
+      window.clearTimeout(closeComposerTimeoutRef.current);
+    }
+
+    closeComposerTimeoutRef.current = window.setTimeout(() => {
+      setIsCreatingSession(false);
+      setShowComposer(false);
+      setIsComposerClosing(false);
+      setDraftSessionName(defaultSessionName());
+      closeComposerTimeoutRef.current = null;
+
+      if (restoreFocus) {
+        window.setTimeout(() => {
+          newSessionButtonRef.current?.focus();
+        }, 0);
+      }
+    }, 150);
   };
 
   useEffect(() => {
@@ -155,7 +182,6 @@ export function LibraryView(props: LibraryViewProps) {
 
     const closeOnResize = () => closeMenu(false);
     const closeOnScroll = () => closeMenu(false);
-
     window.addEventListener('resize', closeOnResize);
     window.addEventListener('scroll', closeOnScroll, true);
 
@@ -171,8 +197,72 @@ export function LibraryView(props: LibraryViewProps) {
       if (closeMenuTimeoutRef.current !== null) {
         window.clearTimeout(closeMenuTimeoutRef.current);
       }
+      if (closeDeleteDialogTimeoutRef.current !== null) {
+        window.clearTimeout(closeDeleteDialogTimeoutRef.current);
+      }
+      if (closeComposerTimeoutRef.current !== null) {
+        window.clearTimeout(closeComposerTimeoutRef.current);
+      }
+
+      Object.values(deleteTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      deleteTimeoutsRef.current = {};
     };
   }, []);
+
+  const closeDeleteDialog = () => {
+    if (!deleteCandidateId || isDeleteDialogClosing) {
+      return;
+    }
+
+    setIsDeleteDialogClosing(true);
+    if (closeDeleteDialogTimeoutRef.current !== null) {
+      window.clearTimeout(closeDeleteDialogTimeoutRef.current);
+    }
+
+    closeDeleteDialogTimeoutRef.current = window.setTimeout(() => {
+      setDeleteCandidateId(null);
+      setIsDeleteDialogClosing(false);
+      closeDeleteDialogTimeoutRef.current = null;
+    }, 140);
+  };
+
+  useEffect(() => {
+    const liveIds = new Set(sessions.map((session) => session.id));
+    setExitingSessionIds((previous) => {
+      const next = new Set<string>();
+      previous.forEach((id) => {
+        if (liveIds.has(id)) {
+          next.add(id);
+        }
+      });
+      return next;
+    });
+  }, [sessions]);
+
+  const deleteWithTransition = (sessionId: string) => {
+    if (exitingSessionIds.has(sessionId)) {
+      return;
+    }
+
+    setExitingSessionIds((previous) => {
+      const next = new Set(previous);
+      next.add(sessionId);
+      return next;
+    });
+
+    deleteTimeoutsRef.current[sessionId] = window.setTimeout(() => {
+      onDelete(sessionId);
+      setExitingSessionIds((previous) => {
+        const next = new Set(previous);
+        next.delete(sessionId);
+        return next;
+      });
+      deleteTimeoutsRef.current[sessionId] = 0;
+      delete deleteTimeoutsRef.current[sessionId];
+    }, 180);
+  };
 
   useEffect(() => {
     if (!isCreatingSession) {
@@ -191,13 +281,14 @@ export function LibraryView(props: LibraryViewProps) {
 
   useEffect(() => {
     if (!deleteCandidate) {
-      if (previousModalFocusRef.current) {
+      const focusTarget = modalRestoreFocusRef.current ?? previousModalFocusRef.current;
+      if (focusTarget) {
         window.setTimeout(() => {
-          previousModalFocusRef.current?.focus();
+          focusTarget.focus();
           previousModalFocusRef.current = null;
+          modalRestoreFocusRef.current = null;
         }, 0);
       }
-
       return;
     }
 
@@ -228,7 +319,6 @@ export function LibraryView(props: LibraryViewProps) {
             aria-expanded={menuState?.kind === 'file'}
             onClick={(event) => {
               event.stopPropagation();
-
               if (menuState?.kind === 'file') {
                 closeMenu();
                 return;
@@ -238,7 +328,8 @@ export function LibraryView(props: LibraryViewProps) {
               openFileMenu(event.currentTarget);
             }}
           >
-            File
+            <FileIcon />
+            <span>File</span>
           </button>
 
           <button
@@ -251,20 +342,25 @@ export function LibraryView(props: LibraryViewProps) {
                 const next = !previous;
                 if (next) {
                   closeMenu(false);
+                  setIsComposerClosing(false);
                   setDraftSessionName(defaultSessionName());
+                  setShowComposer(true);
+                } else {
+                  closeComposer(true);
                 }
                 return next;
               });
             }}
           >
-            New Session
+            <PlusIcon />
+            <span>New Session</span>
           </button>
         </div>
       </header>
 
-      {isCreatingSession ? (
+      {showComposer ? (
         <form
-          className="new-session-composer"
+          className={`new-session-composer ${isComposerClosing ? 'is-closing' : ''}`}
           onSubmit={(event) => {
             event.preventDefault();
             createFromDraft();
@@ -288,13 +384,7 @@ export function LibraryView(props: LibraryViewProps) {
             <button type="submit" className="primary-button">
               Create
             </button>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => {
-                closeComposer(true);
-              }}
-            >
+            <button type="button" className="cancel-button" onClick={() => closeComposer(true)}>
               Cancel
             </button>
           </div>
@@ -305,25 +395,29 @@ export function LibraryView(props: LibraryViewProps) {
         {sessions.map((session) => (
           <article
             key={session.id}
-            className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''}`}
+            className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''}`}
             role="button"
             tabIndex={0}
             onClick={() => {
+              if (exitingSessionIds.has(session.id)) {
+                return;
+              }
               onSelect(session.id);
               closeMenu(false);
             }}
             onDoubleClick={() => {
+              if (exitingSessionIds.has(session.id)) {
+                return;
+              }
               onOpen(session.id);
             }}
             onKeyDown={(event) => {
+              if (exitingSessionIds.has(session.id)) {
+                return;
+              }
               if (event.key === 'Enter') {
                 event.preventDefault();
-                onSelect(session.id);
-
-                const trigger = menuButtonRefs.current[session.id];
-                if (trigger) {
-                  openSessionMenu(session.id, trigger);
-                }
+                onOpen(session.id);
                 return;
               }
 
@@ -341,27 +435,18 @@ export function LibraryView(props: LibraryViewProps) {
 
               <div className="session-row-menu-wrap">
                 <button
-                  ref={(node) => {
-                    menuButtonRefs.current[session.id] = node;
-                  }}
                   type="button"
                   className="row-menu-button"
-                  aria-label={`Actions for ${session.title}`}
-                  aria-haspopup="menu"
-                  aria-expanded={menuState?.kind === 'session' && menuState.sessionId === session.id}
+                  aria-label={`Delete ${session.title}`}
+                  disabled={exitingSessionIds.has(session.id)}
                   onClick={(event) => {
                     event.stopPropagation();
-
-                    if (menuState?.kind === 'session' && menuState.sessionId === session.id) {
-                      closeMenu();
-                      return;
-                    }
-
-                    setIsCreatingSession(false);
-                    openSessionMenu(session.id, event.currentTarget);
+                    setIsDeleteDialogClosing(false);
+                    modalRestoreFocusRef.current = event.currentTarget;
+                    setDeleteCandidateId(session.id);
                   }}
                 >
-                  •••
+                  <TrashIcon />
                 </button>
               </div>
             </div>
@@ -379,9 +464,7 @@ export function LibraryView(props: LibraryViewProps) {
                 className="floating-menu-backdrop"
                 aria-label="Close actions menu"
                 data-state={isMenuClosing ? 'closing' : 'open'}
-                onClick={() => {
-                  closeMenu();
-                }}
+                onClick={() => closeMenu()}
               />
               <div
                 className="floating-menu"
@@ -395,12 +478,30 @@ export function LibraryView(props: LibraryViewProps) {
                     return;
                   }
 
+                  if (event.key === 'Tab') {
+                    event.preventDefault();
+                    const items = menuItemRefs.current.filter(
+                      (item): item is HTMLButtonElement => item !== null && !item.disabled
+                    );
+                    if (items.length === 0) {
+                      return;
+                    }
+
+                    const currentIndex = items.findIndex((item) => item === document.activeElement);
+                    const delta = event.shiftKey ? -1 : 1;
+                    const fallbackIndex = event.shiftKey ? items.length - 1 : 0;
+                    const nextIndex = currentIndex === -1
+                      ? fallbackIndex
+                      : (currentIndex + delta + items.length) % items.length;
+                    items[nextIndex].focus();
+                    return;
+                  }
+
                   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                     event.preventDefault();
                     const items = menuItemRefs.current.filter(
                       (item): item is HTMLButtonElement => item !== null && !item.disabled
                     );
-
                     if (items.length === 0) {
                       return;
                     }
@@ -426,80 +527,44 @@ export function LibraryView(props: LibraryViewProps) {
 
                     if (event.key === 'Home') {
                       items[0].focus();
-                      return;
+                    } else {
+                      items[items.length - 1].focus();
                     }
-
-                    items[items.length - 1].focus();
                   }
                 }}
               >
-                {menuState.kind === 'file' ? (
-                  <>
-                    <button
-                      ref={(node) => {
-                        menuItemRefs.current[0] = node;
-                      }}
-                      type="button"
-                      className="menu-item"
-                      role="menuitem"
-                      onClick={() => {
-                        onImport();
-                        closeMenu();
-                      }}
-                    >
-                      Import Markdown…
-                    </button>
-                    <button
-                      ref={(node) => {
-                        menuItemRefs.current[1] = node;
-                      }}
-                      type="button"
-                      className="menu-item"
-                      role="menuitem"
-                      disabled={!activeSessionId}
-                      onClick={() => {
-                        if (!activeSessionId) {
-                          return;
-                        }
-                        onExportSession(activeSessionId);
-                        closeMenu();
-                      }}
-                    >
-                      Export Selected…
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      ref={(node) => {
-                        menuItemRefs.current[0] = node;
-                      }}
-                      type="button"
-                      className="menu-item"
-                      role="menuitem"
-                      onClick={() => {
-                        onDuplicate(menuState.sessionId);
-                        closeMenu();
-                      }}
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      ref={(node) => {
-                        menuItemRefs.current[1] = node;
-                      }}
-                      type="button"
-                      className="menu-item menu-item-danger"
-                      role="menuitem"
-                      onClick={() => {
-                        setDeleteCandidateId(menuState.sessionId);
-                        closeMenu(false);
-                      }}
-                    >
-                      Delete…
-                    </button>
-                  </>
-                )}
+                <button
+                  ref={(node) => {
+                    menuItemRefs.current[0] = node;
+                  }}
+                  type="button"
+                  className="menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    onImport();
+                    closeMenu();
+                  }}
+                >
+                  Import Markdown
+                </button>
+                <button
+                  ref={(node) => {
+                    menuItemRefs.current[1] = node;
+                  }}
+                  type="button"
+                  className="menu-item"
+                  role="menuitem"
+                  disabled={!activeSessionId}
+                  onClick={() => {
+                    if (!activeSessionId) {
+                      return;
+                    }
+                    onExportSession(activeSessionId);
+                    closeMenu();
+                  }}
+                >
+                  Export Selected
+                </button>
               </div>
             </>,
             document.body
@@ -509,24 +574,20 @@ export function LibraryView(props: LibraryViewProps) {
       {deleteCandidate ? (
         <div
           className="confirm-backdrop"
-          data-state="open"
-          onClick={() => {
-            setDeleteCandidateId(null);
-          }}
+          data-state={isDeleteDialogClosing ? 'closing' : 'open'}
+          onClick={() => closeDeleteDialog()}
         >
           <div
             className="confirm-sheet"
-            data-state="open"
+            data-state={isDeleteDialogClosing ? 'closing' : 'open'}
             role="dialog"
             aria-modal="true"
             aria-label="Delete session confirmation"
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
+            onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 event.preventDefault();
-                setDeleteCandidateId(null);
+                closeDeleteDialog();
                 return;
               }
 
@@ -552,9 +613,7 @@ export function LibraryView(props: LibraryViewProps) {
                 event.preventDefault();
                 const currentIndex = buttons.findIndex((item) => item === document.activeElement);
                 const delta = event.key === 'ArrowRight' ? 1 : -1;
-                const nextIndex = currentIndex === -1
-                  ? 0
-                  : (currentIndex + delta + buttons.length) % buttons.length;
+                const nextIndex = currentIndex === -1 ? 0 : (currentIndex + delta + buttons.length) % buttons.length;
                 buttons[nextIndex].focus();
               }
             }}
@@ -567,7 +626,7 @@ export function LibraryView(props: LibraryViewProps) {
                 type="button"
                 className="ghost-button"
                 onClick={() => {
-                  setDeleteCandidateId(null);
+                  closeDeleteDialog();
                 }}
               >
                 Cancel
@@ -577,8 +636,8 @@ export function LibraryView(props: LibraryViewProps) {
                 type="button"
                 className="danger-button"
                 onClick={() => {
-                  onDelete(deleteCandidate.id);
-                  setDeleteCandidateId(null);
+                  deleteWithTransition(deleteCandidate.id);
+                  closeDeleteDialog();
                 }}
               >
                 Delete
