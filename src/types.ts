@@ -1,0 +1,64 @@
+export interface SessionSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly lastOpenedAt: string;
+}
+
+export interface ScrollState {
+  readonly position: number;
+  readonly speed: number;
+  readonly running: boolean;
+}
+
+export interface SessionMeta {
+  readonly id: string;
+  readonly title: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly lastOpenedAt: string;
+  readonly scroll: ScrollState;
+}
+
+export interface SessionData {
+  readonly id: string;
+  readonly markdown: string;
+  readonly meta: SessionMeta;
+}
+
+export interface SectionItem {
+  readonly id: string;
+  readonly title: string;
+  readonly hotkeyIndex: number | null;
+  readonly lineIndex: number;
+}
+
+export interface ParseWarning {
+  readonly code: 'missing-h1' | 'duplicate-heading' | 'hotkeys-limited';
+  readonly message: string;
+  readonly lineIndex?: number;
+}
+
+export interface ParsedMarkdown {
+  readonly sections: readonly SectionItem[];
+  readonly warnings: readonly ParseWarning[];
+}
+
+export interface DisplayLine {
+  readonly id: string;
+  readonly kind: 'heading' | 'bullet' | 'text' | 'empty';
+  readonly text: string;
+}
+
+export interface ShortcutEventPayload {
+  readonly action: 'toggle-play' | 'jump-section' | 'speed-change';
+  readonly index?: number;
+  readonly delta?: number;
+}
+
+export interface MonitorInfo {
+  readonly name: string;
+  readonly size: string;
+  readonly primary: boolean;
+}
