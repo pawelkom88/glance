@@ -62,3 +62,21 @@ export interface MonitorInfo {
   readonly size: string;
   readonly primary: boolean;
 }
+
+export interface OverlayBounds {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export interface ShowOverlayRequest {
+  readonly savedMonitorName: string | null;
+  readonly savedBounds: OverlayBounds | null;
+  readonly preferTopCenter: boolean;
+}
+
+export interface ShowOverlayResult {
+  readonly monitorName: string;
+  readonly usedSavedBounds: boolean;
+}

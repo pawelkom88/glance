@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { listMonitors, moveOverlayToMonitor, resetOverlayPosition, setOverlayAlwaysOnTop } from '../lib/tauri';
+import {
+  clearLastOverlayMonitorName,
+  getLastOverlayMonitorName,
+  listMonitors,
+  moveOverlayToMonitor,
+  resetOverlayPosition,
+  setOverlayAlwaysOnTop
+} from '../lib/tauri';
 import type { MonitorInfo } from '../types';
 
 export function SettingsView() {
@@ -10,7 +17,7 @@ export function SettingsView() {
   useEffect(() => {
     void listMonitors().then((items) => {
       setMonitors(items);
-      const saved = window.localStorage.getItem('glance-last-monitor');
+      const saved = getLastOverlayMonitorName();
       if (saved && items.some((item) => item.name === saved)) {
         setSelectedMonitor(saved);
       }
@@ -51,14 +58,14 @@ export function SettingsView() {
               setSelectedMonitor(next);
 
               if (!next) {
-                window.localStorage.removeItem('glance-last-monitor');
+                clearLastOverlayMonitorName();
                 return;
               }
 
               await moveOverlayToMonitor(next);
             }}
           >
-            <option value="">Auto (primary)</option>
+            <option value="">Auto (main app display)</option>
             {monitors.map((monitor) => (
               <option key={monitor.name} value={monitor.name}>
                 {monitor.name} ({monitor.size}){monitor.primary ? ' • Primary' : ''}

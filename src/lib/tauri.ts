@@ -1,11 +1,103 @@
-import { invoke, isTauri } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalSize } from '@tauri-apps/api/dpi';
-import type { MonitorInfo, SessionData, SessionMeta, SessionSummary, ShortcutEventPayload } from '../types';
+import { listen } from '@tauri-apps/api/event';
+import { invoke, isTauri } from '@tauri-apps/api/core';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import type {
+  MonitorInfo,
+  OverlayBounds,
+  SessionData,
+  SessionMeta,
+  SessionSummary,
+  ShortcutEventPayload,
+  ShowOverlayRequest,
+  ShowOverlayResult
+} from '../types';
+
+interface OverlayLayoutEntry extends OverlayBounds {
+  readonly updatedAt: string;
+}
+
+type OverlayLayoutMap = Record<string, OverlayLayoutEntry>;
+
+const overlayLayoutStorageKey = 'glance-overlay-layout-v2';
+const overlayLastMonitorStorageKey = 'glance-overlay-last-monitor-v2';
 
 function inTauri(): boolean {
   return isTauri();
+}
+
+function readOverlayLayoutMap(): OverlayLayoutMap {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  const raw = window.localStorage.getItem(overlayLayoutStorageKey);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as OverlayLayoutMap;
+    return parsed ?? {};
+  } catch {
+    return {};
+  }
+}
+
+export function readSavedOverlayBounds(monitorName: string | null): OverlayBounds | null {
+  if (!monitorName) {
+    return null;
+  }
+
+  const layoutMap = readOverlayLayoutMap();
+  const entry = layoutMap[monitorName];
+  if (!entry) {
+    return null;
+  }
+
+  return {
+    x: entry.x,
+    y: entry.y,
+    width: entry.width,
+    height: entry.height
+  };
+}
+
+export function saveOverlayBoundsForMonitor(monitorName: string, bounds: OverlayBounds): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const layoutMap = readOverlayLayoutMap();
+  layoutMap[monitorName] = {
+    ...bounds,
+    updatedAt: new Date().toISOString()
+  };
+  window.localStorage.setItem(overlayLayoutStorageKey, JSON.stringify(layoutMap));
+}
+
+export function getLastOverlayMonitorName(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.localStorage.getItem(overlayLastMonitorStorageKey);
+}
+
+export function setLastOverlayMonitorName(name: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(overlayLastMonitorStorageKey, name);
+}
+
+export function clearLastOverlayMonitorName(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(overlayLastMonitorStorageKey);
 }
 
 export async function listSessions(): Promise<readonly SessionSummary[]> {
@@ -62,7 +154,7 @@ export async function listMonitors(): Promise<readonly MonitorInfo[]> {
 
 export async function moveOverlayToMonitor(monitorName: string): Promise<void> {
   await invoke('move_overlay_to_monitor', { monitorName });
-  window.localStorage.setItem('glance-last-monitor', monitorName);
+  setLastOverlayMonitorName(monitorName);
 }
 
 export async function resetOverlayPosition(): Promise<void> {
@@ -73,24 +165,31 @@ export async function resetOverlayPosition(): Promise<void> {
 
   await existing.setSize(new LogicalSize(960, 620));
   await existing.center();
+  window.localStorage.removeItem(overlayLayoutStorageKey);
+  clearLastOverlayMonitorName();
   window.localStorage.removeItem(`glance-overlay-bounds-${navigator.platform.toLowerCase()}`);
 }
 
-export async function openOverlayWindow(): Promise<void> {
+export async function openOverlayWindow(): Promise<ShowOverlayResult | null> {
   if (!inTauri()) {
-    return;
+    return null;
   }
 
-  const lastMonitor = window.localStorage.getItem('glance-last-monitor');
-  if (lastMonitor) {
-    try {
-      await moveOverlayToMonitor(lastMonitor);
-    } catch {
-      window.localStorage.removeItem('glance-last-monitor');
-    }
+  const savedMonitorName = getLastOverlayMonitorName();
+  const savedBounds = readSavedOverlayBounds(savedMonitorName);
+
+  const request: ShowOverlayRequest = {
+    savedMonitorName,
+    savedBounds,
+    preferTopCenter: true
+  };
+
+  const result = await invoke<ShowOverlayResult>('show_overlay_window', { request });
+  if (result.monitorName) {
+    setLastOverlayMonitorName(result.monitorName);
   }
 
-  await invoke('show_overlay_window');
+  return result;
 }
 
 export async function closeOverlayWindow(): Promise<void> {
@@ -98,6 +197,34 @@ export async function closeOverlayWindow(): Promise<void> {
     return;
   }
   await invoke('hide_overlay_window');
+}
+
+export async function hideMainWindow(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+  await invoke('hide_main_window');
+}
+
+export async function showMainWindow(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+  await invoke('show_main_window');
+}
+
+export async function listenForMainWindowShown(onShown: () => void): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen('main-window-shown', () => {
+    onShown();
+  });
+
+  return () => {
+    unlisten();
+  };
 }
 
 export async function listenForShortcutEvents(

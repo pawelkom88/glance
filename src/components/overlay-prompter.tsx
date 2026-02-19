@@ -1,13 +1,28 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
-import { listenForShortcutEvents } from '../lib/tauri';
+import {
+  closeOverlayWindow,
+  getLastOverlayMonitorName,
+  listenForShortcutEvents,
+  saveOverlayBoundsForMonitor,
+  setLastOverlayMonitorName,
+  showMainWindow
+} from '../lib/tauri';
 import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
 
 const lineHeight = 54;
-const boundsStorageKey = `glance-overlay-bounds-${navigator.platform.toLowerCase()}`;
+const fadeDurationMs = 140;
+const rulerHeight = 56;
+const rulerPadding = 34;
+
+interface RulerStyle {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly visible: boolean;
+}
 
 function platformModifier(): string {
   return navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+';
@@ -23,6 +38,7 @@ export function OverlayPrompter() {
   const scrollPosition = useAppStore((state) => state.scrollPosition);
   const scrollSpeed = useAppStore((state) => state.scrollSpeed);
   const togglePlayback = useAppStore((state) => state.togglePlayback);
+  const setPlaybackState = useAppStore((state) => state.setPlaybackState);
   const setScrollPosition = useAppStore((state) => state.setScrollPosition);
   const setScrollSpeed = useAppStore((state) => state.setScrollSpeed);
   const changeScrollSpeedBy = useAppStore((state) => state.changeScrollSpeedBy);
@@ -32,9 +48,21 @@ export function OverlayPrompter() {
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const sections = parsed.sections;
   const lines = useMemo(() => markdownToDisplayLines(markdown), [markdown]);
+
   const engineRef = useRef<ScrollEngine | null>(null);
   const speedRef = useRef(scrollSpeed);
   const initialSpeedToastSkippedRef = useRef(false);
+  const lineRefs = useRef<Array<HTMLParagraphElement | null>>([]);
+  const monitorNameRef = useRef<string | null>(getLastOverlayMonitorName());
+  const contentRef = useRef<HTMLElement | null>(null);
+
+  const [isClosing, setIsClosing] = useState(false);
+  const [rulerStyle, setRulerStyle] = useState<RulerStyle>({
+    left: 16,
+    top: 0,
+    width: 260,
+    visible: false
+  });
 
   useEffect(() => {
     speedRef.current = scrollSpeed;
@@ -104,10 +132,45 @@ export function OverlayPrompter() {
     };
   }, [changeScrollSpeedBy, jumpToSectionByIndex, togglePlayback]);
 
+  const requestCloseOverlay = useCallback(() => {
+    if (isClosing) {
+      return;
+    }
+
+    setPlaybackState('paused');
+    setIsClosing(true);
+
+    window.setTimeout(() => {
+      void (async () => {
+        try {
+          await closeOverlayWindow();
+          await showMainWindow();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to close prompter';
+          showToast(message);
+        } finally {
+          setIsClosing(false);
+        }
+      })();
+    }, fadeDurationMs);
+  }, [isClosing, setPlaybackState, showToast]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        requestCloseOverlay();
+        return;
+      }
+
       const withModifier = event.metaKey || event.ctrlKey;
       if (!withModifier) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'w') {
+        event.preventDefault();
+        requestCloseOverlay();
         return;
       }
 
@@ -126,7 +189,7 @@ export function OverlayPrompter() {
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [changeScrollSpeedBy]);
+  }, [changeScrollSpeedBy, requestCloseOverlay]);
 
   useEffect(() => {
     if (!initialSpeedToastSkippedRef.current) {
@@ -143,34 +206,51 @@ export function OverlayPrompter() {
     }
 
     const appWindow = getCurrentWindow();
-
-    const saved = window.localStorage.getItem(boundsStorageKey);
-    if (saved) {
-      try {
-        const parsedBounds = JSON.parse(saved) as { x: number; y: number; width: number; height: number };
-        void appWindow.setPosition(new LogicalPosition(parsedBounds.x, parsedBounds.y));
-        void appWindow.setSize(new LogicalSize(parsedBounds.width, parsedBounds.height));
-      } catch {
-        window.localStorage.removeItem(boundsStorageKey);
-      }
-    }
-
     let unlistenMoved: (() => void) | null = null;
     let unlistenResized: (() => void) | null = null;
+    const getRuntimeMonitorName = async (): Promise<string | null> => {
+      const monitorAwareWindow = appWindow as unknown as {
+        currentMonitor?: () => Promise<{ name?: string | null } | null>;
+      };
+
+      if (typeof monitorAwareWindow.currentMonitor !== 'function') {
+        return null;
+      }
+
+      try {
+        const monitor = await monitorAwareWindow.currentMonitor();
+        return monitor?.name ?? null;
+      } catch {
+        return null;
+      }
+    };
 
     const persistBounds = () => {
-      void Promise.all([appWindow.outerPosition(), appWindow.outerSize()]).then(([position, size]) => {
-        window.localStorage.setItem(
-          boundsStorageKey,
-          JSON.stringify({
+      void Promise.all([appWindow.outerPosition(), appWindow.outerSize(), getRuntimeMonitorName()]).then(
+        ([position, size, monitor]) => {
+          const monitorName = monitor ?? monitorNameRef.current ?? getLastOverlayMonitorName();
+          if (!monitorName) {
+            return;
+          }
+
+          monitorNameRef.current = monitorName;
+          setLastOverlayMonitorName(monitorName);
+          saveOverlayBoundsForMonitor(monitorName, {
             x: position.x,
             y: position.y,
             width: size.width,
             height: size.height
-          })
-        );
-      });
+          });
+        }
+      );
     };
+
+    void getRuntimeMonitorName().then((monitorName) => {
+      if (monitorName) {
+        monitorNameRef.current = monitorName;
+        setLastOverlayMonitorName(monitorName);
+      }
+    });
 
     void appWindow.onMoved(() => persistBounds()).then((fn) => {
       unlistenMoved = fn;
@@ -186,29 +266,126 @@ export function OverlayPrompter() {
     };
   }, []);
 
+  useEffect(() => {
+    const updateRuler = () => {
+      const contentElement = contentRef.current;
+      if (!contentElement || lines.length === 0) {
+        return;
+      }
+
+      const anchorOffset = scrollPosition + contentElement.clientHeight * 0.42;
+      const nextLineIndex = Math.max(0, Math.min(lines.length - 1, Math.floor(anchorOffset / lineHeight)));
+      const lineElement = lineRefs.current[nextLineIndex];
+      const line = lines[nextLineIndex];
+
+      if (!lineElement || line.kind === 'empty') {
+        setRulerStyle((previous) => ({ ...previous, visible: false }));
+        return;
+      }
+
+      const contentRect = contentElement.getBoundingClientRect();
+      const lineRect = lineElement.getBoundingClientRect();
+      const measuredWidth = lineElement.scrollWidth;
+      const minWidth = 220;
+      const maxWidth = Math.max(minWidth, contentRect.width - 44);
+      const nextWidth = Math.min(maxWidth, Math.max(minWidth, measuredWidth + rulerPadding));
+      const nextLeft = Math.max(
+        16,
+        Math.min(lineRect.left - contentRect.left - 16, contentRect.width - nextWidth - 16)
+      );
+      const nextTop = lineRect.top - contentRect.top + (lineRect.height - rulerHeight) / 2;
+
+      setRulerStyle((previous) => {
+        const roundedWidth = Math.round(nextWidth);
+        const roundedLeft = Math.round(nextLeft);
+        const roundedTop = Math.round(nextTop);
+
+        if (
+          previous.visible
+          && Math.abs(previous.width - roundedWidth) < 1
+          && Math.abs(previous.left - roundedLeft) < 1
+          && Math.abs(previous.top - roundedTop) < 1
+        ) {
+          return previous;
+        }
+
+        return {
+          width: roundedWidth,
+          left: roundedLeft,
+          top: roundedTop,
+          visible: true
+        };
+      });
+    };
+
+    const frameId = window.requestAnimationFrame(updateRuler);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [lines, scrollPosition]);
+
+  useEffect(() => {
+    const onResize = () => {
+      setRulerStyle((previous) => ({ ...previous, visible: false }));
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
   return (
-    <main className="overlay-root" role="application" aria-label="Glance overlay">
-      <header className="hint-bar" data-tauri-drag-region>
-        <div className="hint-items" role="tablist" aria-label="Section shortcuts">
-          {sections.slice(0, 9).map((section, index) => (
-            <button
-              key={section.id}
-              type="button"
-              className="hint-item"
-              onClick={() => jumpToSectionByIndex(index)}
-            >
-              [{platformModifier()}{index + 1}] {section.title}
-            </button>
-          ))}
-          {sections.length > 9 ? <span className="hint-overflow">+{sections.length - 9} more</span> : null}
+    <main
+      className={`overlay-root ${isClosing ? 'overlay-closing' : ''}`}
+      role="application"
+      aria-label="Glance overlay"
+    >
+      <header className="hint-bar">
+        <div className="hint-drag-region" data-tauri-drag-region>
+          <div className="hint-items" role="tablist" aria-label="Section shortcuts">
+            {sections.slice(0, 9).map((section, index) => (
+              <button
+                key={section.id}
+                type="button"
+                className="hint-item"
+                onClick={() => jumpToSectionByIndex(index)}
+              >
+                [{platformModifier()}{index + 1}] {section.title}
+              </button>
+            ))}
+            {sections.length > 9 ? <span className="hint-overflow">+{sections.length - 9} more</span> : null}
+          </div>
         </div>
+        <button
+          type="button"
+          className="overlay-close-button"
+          onClick={requestCloseOverlay}
+          aria-label="Close prompter"
+        >
+          Close
+        </button>
       </header>
 
-      <section className="overlay-content" aria-live="polite">
-        <div className="reading-ruler" aria-hidden="true" />
+      <section className="overlay-content" aria-live="polite" ref={contentRef}>
+        <div
+          className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
+          aria-hidden="true"
+          style={{
+            left: `${rulerStyle.left}px`,
+            top: `${rulerStyle.top}px`,
+            width: `${rulerStyle.width}px`
+          }}
+        />
         <div className="overlay-lines" style={{ transform: `translateY(${-scrollPosition}px)` }}>
-          {lines.map((line) => (
-            <p key={line.id} className={`overlay-line overlay-line-${line.kind}`}>
+          {lines.map((line, index) => (
+            <p
+              key={line.id}
+              ref={(node) => {
+                lineRefs.current[index] = node;
+              }}
+              className={`overlay-line overlay-line-${line.kind}`}
+            >
               {line.kind === 'bullet' ? '• ' : ''}
               {line.text || '\u00A0'}
             </p>

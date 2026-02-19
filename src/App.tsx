@@ -7,10 +7,16 @@ import { LibraryView } from './components/library-view';
 import { OverlayPrompter } from './components/overlay-prompter';
 import { SettingsView } from './components/settings-view';
 import { parseMarkdown } from './lib/markdown';
-import { closeOverlayWindow, openOverlayWindow } from './lib/tauri';
+import {
+  closeOverlayWindow,
+  hideMainWindow,
+  listenForMainWindowShown,
+  openOverlayWindow
+} from './lib/tauri';
 import { useAppStore } from './store/use-app-store';
 
 type MainTab = 'library' | 'editor' | 'settings' | 'help';
+const windowFadeDurationMs = 140;
 
 function LibraryIcon() {
   return (
@@ -74,6 +80,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('library');
   const [isOverlay] = useState<boolean>(isOverlayRoute);
   const [isTabSwitchAnimating, setIsTabSwitchAnimating] = useState(false);
+  const [mainWindowTransition, setMainWindowTransition] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
 
@@ -160,6 +167,23 @@ export default function App() {
     };
   }, [activeTab, initialized]);
 
+  useEffect(() => {
+    let unlisten: () => void = () => undefined;
+
+    void listenForMainWindowShown(() => {
+      setMainWindowTransition('fade-in');
+      window.setTimeout(() => {
+        setMainWindowTransition('idle');
+      }, windowFadeDurationMs + 20);
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => {
+      unlisten();
+    };
+  }, []);
+
   const activePanel = useMemo(() => {
     if (activeTab === 'library') {
       return (
@@ -221,10 +245,21 @@ export default function App() {
             void persistActiveSession();
           }}
           onLaunchOverlay={() => {
-            void openOverlayWindow().catch((error) => {
-              const message = error instanceof Error ? error.message : 'Failed to launch prompter';
-              showToast(message);
-            });
+            void (async () => {
+              try {
+                setMainWindowTransition('fade-out');
+                await new Promise((resolve) => {
+                  window.setTimeout(resolve, windowFadeDurationMs);
+                });
+                await openOverlayWindow();
+                await hideMainWindow();
+                setMainWindowTransition('idle');
+              } catch (error) {
+                setMainWindowTransition('idle');
+                const message = error instanceof Error ? error.message : 'Failed to launch prompter';
+                showToast(message);
+              }
+            })();
           }}
           onCloseOverlay={() => {
             void closeOverlayWindow().catch((error) => {
@@ -263,7 +298,7 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell main-window-transition-${mainWindowTransition}`}>
       <aside className="sidebar" aria-label="Primary navigation">
         <nav className="icon-nav">
           {tabs.map((tab) => (
