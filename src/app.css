@@ -8,7 +8,7 @@
   --bg-canvas-2: #fff;
   --bg-card: yellow;
   --bg-card-strong: red;
-  --bg-card-muted: green;
+  --bg-card-muted: #ffffff12;
 
   --sidebar-bg: #050505;
 
@@ -108,7 +108,7 @@ select {
   border: 1px solid rgba(255, 255, 255, 0.24);
   background: var(--sidebar-bg);
   backdrop-filter: blur(20px);
-  padding: 8px 6px;
+  padding: 12px 6px;
   display: flex;
   justify-content: center;
   width: 54px;
@@ -126,31 +126,16 @@ select {
 .nav-icon-button {
   position: relative;
   border: 0;
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   margin: 0 auto;
-  border-radius: 14px;
+  border-radius: 10px;
   background: transparent;
-  color: rgba(240, 242, 247, 0.86);
+  color: var(--text-soft);
   display: grid;
   place-items: center;
   cursor: pointer;
   transition: background 160ms ease, transform 180ms ease, color 160ms ease;
-}
-
-.nav-icon-button::before {
-  content: '';
-  position: absolute;
-  left: calc(100% + 6px);
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  transform: translateY(-50%) rotate(45deg) translateX(-3px);
-  background: #0f1521;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 140ms ease, transform 140ms ease;
 }
 
 .nav-icon-button::after {
@@ -159,8 +144,8 @@ select {
   left: calc(100% + 10px);
   top: 50%;
   transform: translateY(-50%) translateX(-4px);
-  background: #0f1521;
-  color: #f6f8ff;
+  background: var(--bg-canvas-2);
+  color: var(--text-strong);
   font-size: 0.78rem;
   line-height: 1;
   letter-spacing: 0.01em;
@@ -201,14 +186,13 @@ select {
 }
 
 .nav-icon-button:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--bg-card-muted);
   color: #ffffff;
   transform: translateY(-1px);
 }
 
 .nav-icon-button.active {
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  background: var(--accent);
   color: #ffffff;
 }
 
