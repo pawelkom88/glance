@@ -272,7 +272,7 @@ export default function App() {
               type="button"
               className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
               aria-label={tab.label}
-              title={tab.label}
+              data-tooltip={tab.label}
               onClick={() => setActiveTab(tab.id)}
             >
               <tab.icon />

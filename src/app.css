@@ -90,14 +90,20 @@ select {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 12px;
+  position: relative;
+  display: block;
+  width: 100%;
   min-height: 100vh;
-  padding: 10px;
+  padding: 0;
 }
 
 .sidebar {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  top: auto;
+  transform: none;
+  z-index: 24;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.24);
   background: var(--sidebar-bg);
@@ -105,12 +111,7 @@ select {
   padding: 8px 6px;
   display: flex;
   justify-content: center;
-  height: fit-content;
-  align-self: start;
-  position: sticky;
-  top: 50vh;
-  transform: translateY(-50%);
-  z-index: 5;
+  width: 54px;
 }
 
 .icon-nav {
@@ -123,6 +124,7 @@ select {
 }
 
 .nav-icon-button {
+  position: relative;
   border: 0;
   width: 42px;
   height: 42px;
@@ -134,6 +136,58 @@ select {
   place-items: center;
   cursor: pointer;
   transition: background 160ms ease, transform 180ms ease, color 160ms ease;
+}
+
+.nav-icon-button::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  transform: translateY(-50%) rotate(45deg) translateX(-3px);
+  background: #0f1521;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.nav-icon-button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: #0f1521;
+  color: #f6f8ff;
+  font-size: 0.78rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  padding: 8px 10px;
+  border-radius: 9px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+  box-shadow: 0 8px 20px rgba(8, 12, 22, 0.24);
+}
+
+.nav-icon-button:hover::before,
+.nav-icon-button:hover::after,
+.nav-icon-button:focus-visible::before,
+.nav-icon-button:focus-visible::after {
+  opacity: 1;
+}
+
+.nav-icon-button:hover::before,
+.nav-icon-button:focus-visible::before {
+  transform: translateY(-50%) rotate(45deg) translateX(0);
+}
+
+.nav-icon-button:hover::after,
+.nav-icon-button:focus-visible::after {
+  transform: translateY(-50%) translateX(0);
 }
 
 .nav-icon-button svg {
@@ -164,10 +218,11 @@ select {
 }
 
 .content-area {
-  min-height: 0;
+  min-height: 100vh;
 }
 
 .panel-switch {
+  min-height: 100vh;
   opacity: 1;
   transform: translateY(0);
   transition: opacity 120ms ease-out, transform 120ms ease-out;
@@ -180,11 +235,11 @@ select {
 
 .panel {
   position: relative;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   background: var(--bg-canvas-2);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 0;
   padding: 24px;
-  min-height: calc(100vh - 28px);
+  min-height: 100vh;
   transition: border-color 220ms ease, background-color 220ms ease;
 }
 
@@ -678,6 +733,11 @@ select {
   .panel {
     transition: none;
   }
+
+  .nav-icon-button::before,
+  .nav-icon-button::after {
+    transition: none;
+  }
 }
 
 .overlay-root {
@@ -804,10 +864,9 @@ select {
 }
 
 @media (max-width: 1024px) {
-  .app-shell {
-    grid-template-columns: 58px 1fr;
-    gap: 10px;
-    padding: 8px;
+  .sidebar {
+    left: 12px;
+    bottom: 12px;
   }
 
   .panel {
