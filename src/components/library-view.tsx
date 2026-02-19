@@ -49,6 +49,7 @@ export function LibraryView(props: LibraryViewProps) {
 
   const [draftSessionName, setDraftSessionName] = useState(`Session ${new Date().toLocaleDateString()}`);
   const [menuState, setMenuState] = useState<MenuState | null>(null);
+  const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
 
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -57,6 +58,7 @@ export function LibraryView(props: LibraryViewProps) {
   const cancelDeleteRef = useRef<HTMLButtonElement | null>(null);
   const confirmDeleteRef = useRef<HTMLButtonElement | null>(null);
   const previousModalFocusRef = useRef<HTMLElement | null>(null);
+  const closeMenuTimeoutRef = useRef<number | null>(null);
 
   const deleteCandidate = sessions.find((session) => session.id === deleteCandidateId) ?? null;
 
@@ -71,22 +73,39 @@ export function LibraryView(props: LibraryViewProps) {
   };
 
   const closeMenu = (restoreFocus: boolean = true) => {
-    setMenuState(null);
-    if (restoreFocus) {
-      window.setTimeout(() => {
-        lastMenuTriggerRef.current?.focus();
-      }, 0);
+    if (!menuState) {
+      return;
     }
+
+    setIsMenuClosing(true);
+    if (closeMenuTimeoutRef.current !== null) {
+      window.clearTimeout(closeMenuTimeoutRef.current);
+    }
+
+    closeMenuTimeoutRef.current = window.setTimeout(() => {
+      setMenuState(null);
+      setIsMenuClosing(false);
+      closeMenuTimeoutRef.current = null;
+
+      if (restoreFocus) {
+        lastMenuTriggerRef.current?.focus();
+      }
+    }, 140);
   };
 
   const openMenu = (sessionId: string, trigger: HTMLElement) => {
+    if (closeMenuTimeoutRef.current !== null) {
+      window.clearTimeout(closeMenuTimeoutRef.current);
+      closeMenuTimeoutRef.current = null;
+    }
     lastMenuTriggerRef.current = trigger as HTMLButtonElement;
     const position = buildMenuPosition(trigger);
+    setIsMenuClosing(false);
     setMenuState({ sessionId, ...position });
   };
 
   useEffect(() => {
-    if (!menuState) {
+    if (!menuState || isMenuClosing) {
       return;
     }
 
@@ -106,7 +125,15 @@ export function LibraryView(props: LibraryViewProps) {
       window.removeEventListener('resize', closeOnResize);
       window.removeEventListener('scroll', closeOnScroll, true);
     };
-  }, [menuState]);
+  }, [isMenuClosing, menuState]);
+
+  useEffect(() => {
+    return () => {
+      if (closeMenuTimeoutRef.current !== null) {
+        window.clearTimeout(closeMenuTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!deleteCandidate) {
@@ -253,6 +280,7 @@ export function LibraryView(props: LibraryViewProps) {
                 type="button"
                 className="floating-menu-backdrop"
                 aria-label="Close actions menu"
+                data-state={isMenuClosing ? 'closing' : 'open'}
                 onClick={() => {
                   closeMenu();
                 }}
@@ -260,6 +288,7 @@ export function LibraryView(props: LibraryViewProps) {
               <div
                 className="floating-menu"
                 role="menu"
+                data-state={isMenuClosing ? 'closing' : 'open'}
                 style={{ top: `${menuState.top}px`, left: `${menuState.left}px` }}
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
@@ -343,12 +372,14 @@ export function LibraryView(props: LibraryViewProps) {
       {deleteCandidate ? (
         <div
           className="confirm-backdrop"
+          data-state="open"
           onClick={() => {
             setDeleteCandidateId(null);
           }}
         >
           <div
             className="confirm-sheet"
+            data-state="open"
             role="dialog"
             aria-modal="true"
             aria-label="Delete session confirmation"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { EditorView } from './components/editor-view';
@@ -12,11 +12,48 @@ import { useAppStore } from './store/use-app-store';
 
 type MainTab = 'library' | 'editor' | 'settings' | 'help';
 
-const tabs: ReadonlyArray<{ readonly id: MainTab; readonly label: string }> = [
-  { id: 'library', label: 'Library' },
-  { id: 'editor', label: 'Editor' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'help', label: 'Help' }
+function LibraryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 6.5a2.5 2.5 0 0 1 2.5-2.5h3A2.5 2.5 0 0 1 12 6.5V20H6.5A2.5 2.5 0 0 1 4 17.5v-11Zm8 13.5V6.5A2.5 2.5 0 0 1 14.5 4h3A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H12Z" />
+    </svg>
+  );
+}
+
+function EditorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 4h10.5L20 8.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm9.5 1.5V9H18" />
+      <path d="M8 13h8M8 16h8" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M19.2 14.3a7.8 7.8 0 0 0 .1-1.3c0-.4 0-.9-.1-1.3l2-1.6a.7.7 0 0 0 .2-.9l-1.9-3.2a.7.7 0 0 0-.8-.3l-2.4 1a8.2 8.2 0 0 0-2.2-1.3l-.4-2.6a.7.7 0 0 0-.7-.6h-3.8a.7.7 0 0 0-.7.6l-.4 2.6a8.2 8.2 0 0 0-2.2 1.3l-2.4-1a.7.7 0 0 0-.8.3L2.6 9.2a.7.7 0 0 0 .2.9l2 1.6A7.8 7.8 0 0 0 4.7 13c0 .4 0 .9.1 1.3l-2 1.6a.7.7 0 0 0-.2.9l1.9 3.2c.2.3.5.4.8.3l2.4-1a8.2 8.2 0 0 0 2.2 1.3l.4 2.6c.1.3.3.6.7.6h3.8c.4 0 .6-.3.7-.6l.4-2.6a8.2 8.2 0 0 0 2.2-1.3l2.4 1c.3.1.6 0 .8-.3l1.9-3.2a.7.7 0 0 0-.2-.9l-2-1.6ZM12 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+    </svg>
+  );
+}
+
+function HelpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm0-4.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Zm-1.2-4h1.9c0-2 2.7-2.1 2.7-4.8 0-1.9-1.6-3.1-3.7-3.1-1.8 0-3.3.9-4.1 2.5l1.6 1c.4-.9 1.2-1.5 2.4-1.5 1.1 0 1.8.5 1.8 1.3 0 1.5-2.6 1.8-2.6 4.6Z" />
+    </svg>
+  );
+}
+
+const tabs: ReadonlyArray<{
+  readonly id: MainTab;
+  readonly label: string;
+  readonly icon: () => ReactElement;
+}> = [
+  { id: 'library', label: 'Session Library', icon: LibraryIcon },
+  { id: 'editor', label: 'Session Editor', icon: EditorIcon },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon },
+  { id: 'help', label: 'Help', icon: HelpIcon }
 ];
 
 function isOverlayRoute(): boolean {
@@ -36,6 +73,7 @@ function toExportFilename(title: string): string {
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('library');
   const [isOverlay] = useState<boolean>(isOverlayRoute);
+  const [isTabSwitchAnimating, setIsTabSwitchAnimating] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
 
@@ -106,6 +144,21 @@ export default function App() {
     warningSignatureRef.current = signature;
     showToast(parseWarnings[0].message);
   }, [parseWarnings, showToast]);
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+
+    setIsTabSwitchAnimating(true);
+    const frame = window.requestAnimationFrame(() => {
+      setIsTabSwitchAnimating(false);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [activeTab, initialized]);
 
   const activePanel = useMemo(() => {
     if (activeTab === 'library') {
@@ -211,24 +264,30 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Primary">
-        <h1>Glance</h1>
-        <nav>
+      <aside className="sidebar" aria-label="Primary navigation">
+        <nav className="icon-nav">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
-              className={`nav-pill ${activeTab === tab.id ? 'active' : ''}`}
+              className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
+              aria-label={tab.label}
+              title={tab.label}
               onClick={() => setActiveTab(tab.id)}
             >
-              {tab.label}
+              <tab.icon />
+              <span className="sr-only">{tab.label}</span>
             </button>
           ))}
         </nav>
       </aside>
 
       <section className="content-area">
-        {!initialized ? <p className="startup-label">Loading local workspace…</p> : activePanel}
+        {!initialized ? (
+          <p className="startup-label">Loading local workspace…</p>
+        ) : (
+          <div className={`panel-switch ${isTabSwitchAnimating ? 'is-switching' : ''}`}>{activePanel}</div>
+        )}
       </section>
 
       <input
