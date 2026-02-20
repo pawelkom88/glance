@@ -40,6 +40,7 @@ export function SettingsView() {
   const [alwaysOnTop, setAlwaysOnTopState] = useState(true);
   const [selectedMonitor, setSelectedMonitor] = useState('');
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
+  const [savedShortcutConfig, setSavedShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [isDisplayMenuOpen, setIsDisplayMenuOpen] = useState(false);
   const [showAdvancedJumpMappings, setShowAdvancedJumpMappings] = useState(false);
   const displayMenuRef = useRef<HTMLDivElement | null>(null);
@@ -67,6 +68,12 @@ export function SettingsView() {
 
     return `${found.name}${found.primary ? ' • Primary' : ''}`;
   }, [monitors, selectedMonitor]);
+  const hasUnsavedShortcutChanges = useMemo(
+    () => shortcutDefinitions.some((definition) => {
+      return shortcutConfig[definition.action] !== savedShortcutConfig[definition.action];
+    }),
+    [savedShortcutConfig, shortcutConfig]
+  );
 
   useEffect(() => {
     void listMonitors().then((items) => {
@@ -113,7 +120,7 @@ export function SettingsView() {
     const validationError = validateShortcutConfig(nextConfig);
     if (validationError) {
       setShortcutWarning(validationError);
-        showToast(validationError, 'warning');
+      showToast(validationError, 'warning');
       return;
     }
 
@@ -127,6 +134,7 @@ export function SettingsView() {
     try {
       await registerShortcuts(toShortcutBindings(nextConfig));
       saveShortcutConfig(nextConfig);
+      setSavedShortcutConfig(nextConfig);
       setShortcutWarning(null);
       showToast('Shortcuts updated', 'success');
     } catch (error) {
@@ -135,6 +143,23 @@ export function SettingsView() {
       showToast(message, 'error');
     }
   };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const withModifier = event.metaKey || event.ctrlKey;
+      if (!withModifier || event.key !== 'Enter' || !hasUnsavedShortcutChanges) {
+        return;
+      }
+
+      event.preventDefault();
+      void applyShortcutConfig(shortcutConfig);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [hasUnsavedShortcutChanges, shortcutConfig]);
 
   const updateDisplay = async (monitorName: string | null) => {
     setIsDisplayMenuOpen(false);
@@ -288,28 +313,6 @@ export function SettingsView() {
             <h3 id="shortcut-settings-title">Shortcuts</h3>
             <p className="shortcut-settings-subtitle">Assign keys without overloading the interface.</p>
           </div>
-          <div className="shortcut-settings-actions">
-            <button
-              type="button"
-              className="cancel-button"
-              onClick={() => {
-                const defaults = defaultShortcutConfig();
-                setShortcutConfig(defaults);
-                void applyShortcutConfig(defaults);
-              }}
-            >
-              Restore defaults
-            </button>
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => {
-                void applyShortcutConfig(shortcutConfig);
-              }}
-            >
-              Apply shortcuts
-            </button>
-          </div>
         </div>
 
         <div className="shortcut-groups">
@@ -348,7 +351,34 @@ export function SettingsView() {
           </section>
         </div>
 
-        
+        <div className="shortcut-action-bar" role="region" aria-label="Shortcut actions">
+          <p className={`shortcut-change-indicator ${hasUnsavedShortcutChanges ? 'is-dirty' : ''}`}>
+            {hasUnsavedShortcutChanges ? 'Unsaved shortcut changes' : 'All shortcut changes applied'}
+          </p>
+          <div className="shortcut-settings-actions">
+            <button
+              type="button"
+              className="cancel-button"
+              onClick={() => {
+                const defaults = defaultShortcutConfig();
+                setShortcutConfig(defaults);
+                void applyShortcutConfig(defaults);
+              }}
+            >
+              Restore defaults
+            </button>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!hasUnsavedShortcutChanges}
+              onClick={() => {
+                void applyShortcutConfig(shortcutConfig);
+              }}
+            >
+              Apply shortcuts
+            </button>
+          </div>
+        </div>
       </section>
     </section>
   );

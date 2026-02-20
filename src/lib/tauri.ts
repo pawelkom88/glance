@@ -22,6 +22,7 @@ type OverlayLayoutMap = Record<string, OverlayLayoutEntry>;
 
 const overlayLayoutStorageKey = 'glance-overlay-layout-v2';
 const overlayLastMonitorStorageKey = 'glance-overlay-last-monitor-v2';
+const lastActiveSessionStorageKey = 'glance-last-active-session-v1';
 
 function inTauri(): boolean {
   return isTauri();
@@ -99,6 +100,30 @@ export function clearLastOverlayMonitorName(): void {
   }
 
   window.localStorage.removeItem(overlayLastMonitorStorageKey);
+}
+
+export function getLastActiveSessionId(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.localStorage.getItem(lastActiveSessionStorageKey);
+}
+
+export function setLastActiveSessionId(id: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(lastActiveSessionStorageKey, id);
+}
+
+export function clearLastActiveSessionId(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(lastActiveSessionStorageKey);
 }
 
 export async function listSessions(): Promise<readonly SessionSummary[]> {

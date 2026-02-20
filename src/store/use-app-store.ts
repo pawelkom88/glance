@@ -3,14 +3,17 @@ import { isTauri } from '@tauri-apps/api/core';
 import { startTransition } from 'react';
 import { parseMarkdown } from '../lib/markdown';
 import {
+  clearLastActiveSessionId,
   createSession,
   createSessionFromMarkdown,
   deleteSession,
   duplicateSession,
   exportSessionToPath,
+  getLastActiveSessionId,
   listSessions,
   loadSession,
   registerShortcuts,
+  setLastActiveSessionId,
   saveSession
 } from '../lib/tauri';
 import { loadShortcutConfig, toShortcutBindings } from '../lib/shortcuts';
@@ -158,7 +161,13 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
 
       if (sessions.length > 0) {
-        await get().openSession(sessions[0].id);
+        const preferredSessionId = getLastActiveSessionId();
+        const initialSession = preferredSessionId
+          ? sessions.find((session) => session.id === preferredSessionId) ?? sessions[0]
+          : sessions[0];
+        await get().openSession(initialSession.id);
+      } else {
+        clearLastActiveSessionId();
       }
     },
 
@@ -206,6 +215,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           if (sessions.length > 0) {
             await get().openSession(sessions[0].id);
           } else {
+            clearLastActiveSessionId();
             const parsed = parseMarkdown('# Intro\n\n- Start here');
             set({
               activeSessionId: null,
@@ -281,6 +291,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           scrollSpeed: loaded.meta.scroll.speed,
           playbackState: loaded.meta.scroll.running ? 'running' : 'paused'
         });
+        setLastActiveSessionId(loaded.id);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to open session';
         get().showToast(message, 'error');

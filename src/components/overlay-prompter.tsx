@@ -3,6 +3,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
   closeOverlayWindow,
+  getLastActiveSessionId,
   getLastOverlayMonitorName,
   listenForShortcutEvents,
   saveOverlayBoundsForMonitor,
@@ -67,10 +68,12 @@ function RestartIcon() {
   );
 }
 export function OverlayPrompter() {
+  const activeSessionId = useAppStore((state) => state.activeSessionId);
   const markdown = useAppStore((state) => state.markdown);
   const playbackState = useAppStore((state) => state.playbackState);
   const scrollPosition = useAppStore((state) => state.scrollPosition);
   const scrollSpeed = useAppStore((state) => state.scrollSpeed);
+  const openSession = useAppStore((state) => state.openSession);
   const togglePlayback = useAppStore((state) => state.togglePlayback);
   const setPlaybackState = useAppStore((state) => state.setPlaybackState);
   const setScrollPosition = useAppStore((state) => state.setScrollPosition);
@@ -204,6 +207,38 @@ export function OverlayPrompter() {
       })();
     }, fadeDurationMs);
   }, [isClosing, setPlaybackState, showToast]);
+
+  useEffect(() => {
+    const syncActiveSession = () => {
+      const preferredSessionId = getLastActiveSessionId();
+      if (!preferredSessionId || preferredSessionId === activeSessionId) {
+        return;
+      }
+
+      void openSession(preferredSessionId);
+    };
+
+    syncActiveSession();
+
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    const appWindow = getCurrentWindow();
+    let unlistenFocus: (() => void) | null = null;
+
+    void appWindow.onFocusChanged(({ payload }) => {
+      if (payload) {
+        syncActiveSession();
+      }
+    }).then((fn) => {
+      unlistenFocus = fn;
+    });
+
+    return () => {
+      unlistenFocus?.();
+    };
+  }, [activeSessionId, openSession]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

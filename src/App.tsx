@@ -122,6 +122,7 @@ export default function App() {
   const [isOverlay] = useState<boolean>(isOverlayRoute);
   const [isTabSwitchAnimating, setIsTabSwitchAnimating] = useState(false);
   const [mainWindowTransition, setMainWindowTransition] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
+  const [isToastClosing, setIsToastClosing] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
   const fadeInFrameRef = useRef<number | null>(null);
@@ -166,14 +167,23 @@ export default function App() {
 
   useEffect(() => {
     if (!toastMessage) {
+      setIsToastClosing(false);
       return;
     }
 
+    setIsToastClosing(false);
+    const closeAnimationLeadMs = 220;
+    const durationMs = 3000;
+    const closePhaseId = window.setTimeout(() => {
+      setIsToastClosing(true);
+    }, durationMs - closeAnimationLeadMs);
+
     const timeoutId = window.setTimeout(() => {
       clearToast();
-    }, 3000);
+    }, durationMs);
 
     return () => {
+      window.clearTimeout(closePhaseId);
       window.clearTimeout(timeoutId);
     };
   }, [clearToast, toastMessage]);
@@ -332,6 +342,11 @@ export default function App() {
           onLaunchOverlay={() => {
             void (async () => {
               try {
+                const persisted = await persistActiveSession();
+                if (activeSessionId && !persisted) {
+                  return;
+                }
+
                 setMainWindowTransition('fade-out');
                 await new Promise((resolve) => {
                   window.setTimeout(resolve, windowFadeDurationMs);
@@ -406,6 +421,20 @@ export default function App() {
       </aside>
 
       <section className="content-area">
+        {toastMessage ? (
+          <div className="toast-layer" aria-live="polite">
+            <div
+              className={`toast-banner toast-${toastMessage.variant} ${isToastClosing ? 'is-closing' : ''}`}
+              role="status"
+            >
+              <span className="toast-icon" aria-hidden="true">
+                <ToastIcon variant={toastMessage.variant} />
+              </span>
+              <span className="toast-copy">{toastMessage.message}</span>
+            </div>
+          </div>
+        ) : null}
+
         {!initialized ? (
           <p className="startup-label">Loading local workspace…</p>
         ) : (
@@ -442,14 +471,6 @@ export default function App() {
         }}
       />
 
-      {toastMessage ? (
-        <div className={`toast-banner toast-${toastMessage.variant}`} role="status" aria-live="polite">
-          <span className="toast-icon" aria-hidden="true">
-            <ToastIcon variant={toastMessage.variant} />
-          </span>
-          <span className="toast-copy">{toastMessage.message}</span>
-        </div>
-      ) : null}
     </main>
   );
 }

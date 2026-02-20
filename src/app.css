@@ -250,6 +250,17 @@ select {
   min-width: 0;
 }
 
+.toast-layer {
+  position: sticky;
+  top: 14px;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 18px;
+  height: 0;
+  pointer-events: none;
+}
+
 .panel-switch {
   min-height: 100vh;
   opacity: 1;
@@ -1280,6 +1291,33 @@ select {
   gap: 8px;
 }
 
+.shortcut-action-bar {
+  position: sticky;
+  bottom: 10px;
+  z-index: 8;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--bg-canvas-2) 92%, white 8%);
+  box-shadow: var(--shadow-sm);
+}
+
+.shortcut-change-indicator {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.shortcut-change-indicator.is-dirty {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
 .shortcut-groups {
   display: grid;
   gap: 14px;
@@ -1377,8 +1415,7 @@ select {
 }
 
 .startup-label,
-.warning-banner,
-.toast-banner {
+.warning-banner {
   margin: 0;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -1395,22 +1432,31 @@ select {
 }
 
 .toast-banner {
-  position: fixed;
-  right: 16px;
-  bottom: 68px;
+  position: relative;
+  top: 0;
+  right: 0;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-width: 220px;
+  min-width: 240px;
+  min-height: 50px;
   max-width: min(420px, calc(100vw - 32px));
+  padding: 11px 14px;
   background: var(--toast-info-bg);
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   border: 1px solid var(--toast-info-border);
   color: var(--text-strong);
   animation: toast-in .3s ease-in-out;
   font-weight: 550;
-  font-size: 1.05rem;
-  box-shadow: var(--shadow-sm);
+  font-size: 1.12rem;
+  line-height: 1.2;
+  box-shadow: 0 12px 28px rgba(12, 18, 30, 0.18), 0 2px 8px rgba(12, 18, 30, 0.1);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.toast-banner.is-closing {
+  animation: toast-out .22s ease-in forwards;
 }
 
 .toast-icon {
@@ -1546,6 +1592,17 @@ select {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
   }
 }
 
@@ -1911,6 +1968,17 @@ select {
   .shortcut-settings-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .shortcut-action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .shortcut-settings-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
   }
 
   .overlay-root {
