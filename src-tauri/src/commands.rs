@@ -4,8 +4,13 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
-use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, PhysicalSize, Position, Size, State};
+use tauri::{AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition, PhysicalSize, Position, Size, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+
+const OVERLAY_MIN_WIDTH: u32 = 1080;
+const OVERLAY_MIN_HEIGHT: u32 = 400;
+const OVERLAY_DEFAULT_WIDTH: u32 = 1120;
+const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -153,6 +158,13 @@ pub fn show_overlay_window(request: ShowOverlayRequest, app: AppHandle) -> Resul
       .map_err(|error| error.to_string())?;
   }
 
+  overlay
+    .set_min_size(Some(Size::Logical(LogicalSize::new(
+      OVERLAY_MIN_WIDTH as f64,
+      OVERLAY_MIN_HEIGHT as f64,
+    ))))
+    .map_err(|error| error.to_string())?;
+
   if request.saved_monitor_name.as_deref() == Some(target_monitor_name.as_str()) {
     if let Some(saved_bounds) = request.saved_bounds.as_ref() {
       if is_bounds_inside_monitor(saved_bounds, &target_monitor) {
@@ -166,9 +178,9 @@ pub fn show_overlay_window(request: ShowOverlayRequest, app: AppHandle) -> Resul
     let current_size = overlay
       .outer_size()
       .map_err(|error| error.to_string())
-      .unwrap_or(PhysicalSize::new(980, 310));
-    let width = current_size.width as i32;
-    let height = current_size.height as i32;
+      .unwrap_or(PhysicalSize::new(OVERLAY_DEFAULT_WIDTH, OVERLAY_DEFAULT_HEIGHT));
+    let width = current_size.width.max(OVERLAY_MIN_WIDTH) as i32;
+    let height = current_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
     let monitor_position = target_monitor.position();
     let monitor_size = target_monitor.size();
 
@@ -180,6 +192,9 @@ pub fn show_overlay_window(request: ShowOverlayRequest, app: AppHandle) -> Resul
     };
 
     let (clamped_x, clamped_y) = clamp_to_monitor(raw_x, raw_y, width, height, &target_monitor);
+    overlay
+      .set_size(Size::Physical(PhysicalSize::new(width as u32, height as u32)))
+      .map_err(|error| error.to_string())?;
     overlay
       .set_position(Position::Physical(PhysicalPosition::new(clamped_x, clamped_y)))
       .map_err(|error| error.to_string())?;
@@ -344,15 +359,18 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
   let overlay_size = overlay
     .outer_size()
     .map_err(|error| error.to_string())
-    .unwrap_or(PhysicalSize::new(980, 310));
-  let width = overlay_size.width as i32;
-  let height = overlay_size.height as i32;
+    .unwrap_or(PhysicalSize::new(OVERLAY_DEFAULT_WIDTH, OVERLAY_DEFAULT_HEIGHT));
+  let width = overlay_size.width.max(OVERLAY_MIN_WIDTH) as i32;
+  let height = overlay_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
   let monitor_position = monitor.position();
   let monitor_size = monitor.size();
   let centered_x = monitor_position.x + ((monitor_size.width as i32 - width) / 2);
   let top_y = monitor_position.y;
   let (x, y) = clamp_to_monitor(centered_x, top_y, width, height, &monitor);
 
+  overlay
+    .set_size(Size::Physical(PhysicalSize::new(width as u32, height as u32)))
+    .map_err(|error| error.to_string())?;
   overlay
     .set_position(Position::Physical(PhysicalPosition::new(x, y)))
     .map_err(|error| error.to_string())?;
@@ -440,8 +458,8 @@ fn clamp_to_monitor(x: i32, y: i32, width: i32, height: i32, monitor: &Monitor) 
 }
 
 fn apply_overlay_bounds(overlay: &tauri::WebviewWindow, bounds: &OverlayBounds) -> Result<(), String> {
-  let width = bounds.width.round().max(320.0) as u32;
-  let height = bounds.height.round().max(220.0) as u32;
+  let width = bounds.width.round().max(OVERLAY_MIN_WIDTH as f64) as u32;
+  let height = bounds.height.round().max(OVERLAY_MIN_HEIGHT as f64) as u32;
   overlay
     .set_size(Size::Physical(PhysicalSize::new(width, height)))
     .map_err(|error| error.to_string())?;

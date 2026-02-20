@@ -193,7 +193,7 @@ export async function resetOverlayPosition(): Promise<void> {
     return;
   }
 
-  await existing.setSize(new LogicalSize(960, 310));
+  await existing.setSize(new LogicalSize(1120, 400));
   await existing.center();
   window.localStorage.removeItem(overlayLayoutStorageKey);
   clearLastOverlayMonitorName();

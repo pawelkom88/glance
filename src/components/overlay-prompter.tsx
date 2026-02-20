@@ -26,8 +26,8 @@ import { useAppStore } from '../store/use-app-store';
 const baseLineHeight = 54;
 const fadeDurationMs = 140;
 const baseSpeed = 42;
-const minSpeed = 21;
-const maxSpeed = 63;
+const minSpeed = 10;
+const maxSpeed = 140;
 const minFontScale = 0.85;
 const maxFontScale = 1.4;
 const fontScaleStep = 0.05;
@@ -51,10 +51,6 @@ function isMacPlatform(): boolean {
 
 function platformModifier(): string {
   return isMacPlatform() ? '⌘' : 'Ctrl+';
-}
-
-function speedShortcutLabel(direction: 'up' | 'down'): string {
-  return `${platformModifier()}${direction === 'up' ? '↑' : '↓'}`;
 }
 
 function isTauriRuntime(): boolean {
@@ -87,6 +83,88 @@ function RewindIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M11.2 6.8a.9.9 0 0 0-1.3 0l-4.2 4a.9.9 0 0 0 0 1.3l4.2 4a.9.9 0 1 0 1.3-1.3l-2.7-2.5h6.6a4 4 0 1 1 0 8h-6.2a.9.9 0 1 0 0 1.8h6.2a5.8 5.8 0 0 0 0-11.6H8.5L11.2 8a.9.9 0 0 0 0-1.2Z" />
+    </svg>
+  );
+}
+
+function FontSizeIcon() {
+  return (
+    <svg className="overlay-font-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M0 0h16v4h-2V2H9v12h3v2H4v-2h3V2H2v2H0V2z" fillRule="evenodd" />
+    </svg>
+  );
+}
+
+function JumpSectionsIcon({ open }: { readonly open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {open ? <path d="m7 14 5-5 5 5" /> : <path d="m7 10 5 5 5-5" />}
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 7l10 10M17 7 7 17" />
+    </svg>
+  );
+}
+
+function SidebarToggleIcon({ expanded }: { readonly expanded: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 5h16v14H4z" />
+      <path d={expanded ? 'M15 5v14' : 'M9 5v14'} />
+    </svg>
+  );
+}
+
+function SlowSpeedIcon() {
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <g>
+          <path d="M28 38 Q26 22 36 18 Q48 14 52 26 Q56 38 44 44 Q34 48 28 38Z" strokeWidth="2.2" />
+          <path d="M34 38 Q32 28 38 24 Q46 20 48 28 Q50 36 43 40 Q37 43 34 38Z" strokeWidth="1.6" />
+          <path d="M38 37 Q37 31 41 29 Q45 27 46 31 Q47 35 43 37 Q40 38 38 37Z" strokeWidth="1.2" />
+          <circle cx="42" cy="33" r="1.4" fill="currentColor" stroke="none" />
+        </g>
+        <g>
+          <path d="M10 42 Q18 46 28 44 Q34 43 36 40" strokeWidth="2.4" />
+          <path d="M10 40 Q8 36 10 32 Q12 28 18 30 Q22 31 22 36" strokeWidth="2.4" />
+          <circle cx="16" cy="29" r="5" strokeWidth="2" />
+          <circle cx="18" cy="27" r="1.2" fill="currentColor" stroke="none" />
+          <line x1="14" y1="25" x2="10" y2="18" strokeWidth="1.8" />
+          <circle cx="10" cy="17" r="1.5" fill="currentColor" stroke="none" />
+          <line x1="18" y1="24" x2="20" y2="17" strokeWidth="1.8" />
+          <circle cx="20" cy="16" r="1.5" fill="currentColor" stroke="none" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+function FastSpeedIcon() {
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <g>
+          <path d="M24 26 Q20 16 21 9 Q22 4 26 5 Q30 6 29 14 Q28 20 26 26" strokeWidth="2.2" />
+          <path d="M38 26 Q42 16 41 9 Q40 4 36 5 Q32 6 33 14 Q34 20 36 26" strokeWidth="2.2" />
+          <ellipse cx="31" cy="32" rx="10" ry="9" strokeWidth="2.2" />
+          <circle cx="27" cy="30" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="35" cy="30" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="31" cy="34" r="0.9" fill="currentColor" stroke="none" />
+          <path d="M29 35 Q31 37 33 35" strokeWidth="1.3" />
+          <ellipse cx="31" cy="46" rx="9" ry="7" strokeWidth="2" />
+          <circle cx="42" cy="46" r="3.5" strokeWidth="1.8" />
+          <path d="M25 51 Q22 55 20 58" strokeWidth="2" />
+          <path d="M30 52 Q28 56 26 59" strokeWidth="2" />
+          <path d="M33 52 Q35 57 34 60" strokeWidth="2" />
+          <path d="M38 51 Q41 55 43 58" strokeWidth="2" />
+        </g>
+      </g>
     </svg>
   );
 }
@@ -137,12 +215,19 @@ export function OverlayPrompter() {
   const fontTriggerRef = useRef<HTMLButtonElement | null>(null);
   const fontMenuRef = useRef<HTMLDivElement | null>(null);
   const fontPersistTimeoutRef = useRef<number | null>(null);
+  const speedIconAnimationTimeoutRef = useRef<number | null>(null);
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState(false);
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
+  const [overlaySize, setOverlaySize] = useState(() => ({
+    width: Math.round(window.innerWidth),
+    height: Math.round(window.innerHeight)
+  }));
   const [contentMetrics, setContentMetrics] = useState<ContentMetrics>({ width: 880, height: 420 });
   const [rulerStyle, setRulerStyle] = useState<RulerStyle>({
     left: 24,
@@ -214,7 +299,8 @@ export function OverlayPrompter() {
 
   const currentSection = sections[currentSectionIndex] ?? null;
   const nextSection = sections[currentSectionIndex + 1] ?? null;
-  const normalizedSpeed = Math.max(0.5, Math.min(1.5, scrollSpeed / baseSpeed));
+  const normalizedSpeed = scrollSpeed / baseSpeed;
+  const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
 
   const overlayVars = useMemo(() => ({
     '--overlay-font-scale': overlayFontScale.toString(),
@@ -272,7 +358,21 @@ export function OverlayPrompter() {
       if (fontPersistTimeoutRef.current !== null) {
         window.clearTimeout(fontPersistTimeoutRef.current);
       }
+      if (speedIconAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(speedIconAnimationTimeoutRef.current);
+      }
     };
+  }, []);
+
+  const triggerSpeedIconAnimation = useCallback((icon: 'slow' | 'fast') => {
+    setAnimatedSpeedIcon(icon);
+    if (speedIconAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(speedIconAnimationTimeoutRef.current);
+    }
+    speedIconAnimationTimeoutRef.current = window.setTimeout(() => {
+      setAnimatedSpeedIcon(null);
+      speedIconAnimationTimeoutRef.current = null;
+    }, 420);
   }, []);
 
   useEffect(() => {
@@ -465,9 +565,11 @@ export function OverlayPrompter() {
       }
     };
 
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    document.addEventListener('keydown', onKeyDown, { capture: true });
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
+      document.removeEventListener('keydown', onKeyDown, { capture: true });
     };
   }, [
     changeScrollSpeedBy,
@@ -563,6 +665,21 @@ export function OverlayPrompter() {
     observer.observe(contentElement);
     return () => {
       observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncSize = () => {
+      setOverlaySize({
+        width: Math.round(window.innerWidth),
+        height: Math.round(window.innerHeight)
+      });
+    };
+
+    syncSize();
+    window.addEventListener('resize', syncSize);
+    return () => {
+      window.removeEventListener('resize', syncSize);
     };
   }, []);
 
@@ -741,63 +858,85 @@ export function OverlayPrompter() {
 
   return (
     <main
-      className={`overlay-root ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
+      className={`overlay-root ${isSidebarExpanded ? 'overlay-sidebar-expanded' : 'overlay-sidebar-collapsed'} ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
       role="application"
       aria-label="Glance overlay"
       style={overlayVars}
       onMouseDown={handleDragMouseDown}
     >
-      <header className="overlay-topbar" onMouseDown={handleDragMouseDown}>
-        <span className="overlay-section-counter">
-          {sections.length > 0 ? `Section ${currentSectionIndex + 1}/${sections.length}` : 'No sections'}
-        </span>
-
-        <div className="overlay-section-rail" aria-label="Current and next section">
-          <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
-            {currentSection?.title ?? 'Waiting for headings'}
-          </span>
-          {nextSection ? (
-            <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-              Next: {nextSection.title}
-            </span>
-          ) : null}
-        </div>
-
+      <div className="overlay-debug-size" aria-live="polite" aria-label="Overlay size">
+        {overlaySize.width} × {overlaySize.height}
+      </div>
+      <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
         <div className="overlay-top-actions">
+          <button
+            type="button"
+            className={`overlay-top-action ${isSidebarExpanded ? 'is-active' : ''}`}
+            aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            title={isSidebarExpanded ? 'Collapse' : 'Expand'}
+            aria-pressed={isSidebarExpanded}
+            onClick={() => setIsSidebarExpanded((previous) => !previous)}
+          >
+            <SidebarToggleIcon expanded={isSidebarExpanded} />
+          </button>
           <button
             ref={fontTriggerRef}
             type="button"
-            className="overlay-top-action"
+            className={`overlay-top-action ${isFontMenuOpen ? 'is-active' : ''}`}
+            aria-label="Font size settings"
+            title="Font size"
             aria-haspopup="dialog"
             aria-expanded={isFontMenuOpen}
+            aria-pressed={isFontMenuOpen}
             onClick={() => {
               setIsJumpMenuOpen(false);
               setIsFontMenuOpen((previous) => !previous);
             }}
           >
-            Aa
+            <FontSizeIcon />
           </button>
           <button
             ref={jumpTriggerRef}
             type="button"
-            className="overlay-top-action"
+            className={`overlay-top-action ${isJumpMenuOpen ? 'is-active' : ''}`}
+            aria-label="Jump to section"
+            title="Jump"
             aria-haspopup="menu"
             aria-expanded={isJumpMenuOpen}
+            aria-pressed={isJumpMenuOpen}
             onClick={() => {
               setIsFontMenuOpen(false);
               setIsJumpMenuOpen((previous) => !previous);
             }}
           >
-            Jump
+            <JumpSectionsIcon open={isJumpMenuOpen} />
           </button>
           <button
             type="button"
             className="overlay-close-button"
             onClick={requestCloseOverlay}
             aria-label="Close prompter"
+            title="Close"
           >
-            Close
+            <CloseIcon />
           </button>
+        </div>
+<br/>
+        <span className="overlay-section-counter">
+          {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
+        </span>
+
+        <div className="overlay-section-rail" aria-label="Current and next section">
+          <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
+            {isSidebarExpanded
+              ? (currentSection?.title ?? 'Waiting for headings')
+              : `${currentSectionIndex + 1}`}
+          </span>
+          {nextSection ? (
+            <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
+              {isSidebarExpanded ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
+            </span>
+          ) : null}
         </div>
 
         {isFontMenuOpen ? (
@@ -832,6 +971,9 @@ export function OverlayPrompter() {
             </div>
             <div className="overlay-font-footer">
               <span>{Math.round(overlayFontScale * 100)}%</span>
+              <span className="overlay-font-shortcuts">
+                {platformModifier()}+/− · {platformModifier()}0
+              </span>
               <button
                 type="button"
                 className="overlay-popover-link"
@@ -871,7 +1013,7 @@ export function OverlayPrompter() {
             ))}
           </div>
         ) : null}
-      </header>
+      </aside>
 
       <section className="overlay-content" aria-live="polite" ref={contentRef}>
         <div
@@ -918,41 +1060,87 @@ export function OverlayPrompter() {
         </div>
       </section>
 
-      <footer className="overlay-controls">
-        <div className="overlay-transport-row">
-          <button
-            type="button"
-            className="cancel-button overlay-secondary-button"
-            onClick={() => {
-              setPlaybackState('paused');
-              setScrollPosition(0);
-            }}
+      <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
+        <footer className="overlay-controls">
+          <div className="overlay-controls-row">
+            <button
+              type="button"
+              className="overlay-icon-button overlay-secondary-button"
+              aria-label="Rewind to start"
+              onClick={() => {
+                setPlaybackState('paused');
+                setScrollPosition(0);
+              }}
+            >
+              <RewindIcon />
+            </button>
+            <button
+              type="button"
+              className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
+              onClick={() => togglePlayback()}
+              aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
+            >
+              <span className="overlay-play-icon-stack" aria-hidden="true">
+                <span className="overlay-play-icon overlay-play-icon-play">
+                  <PlayIcon />
+                </span>
+                <span className="overlay-play-icon overlay-play-icon-pause">
+                  <PauseIcon />
+                </span>
+              </span>
+            </button>
+          </div>
+        </footer>
+      </aside>
+
+      <footer className="overlay-speed-footer">
+        <div className="overlay-speed-inline">
+          <span
+            className={`overlay-speed-icon overlay-speed-icon-slow ${animatedSpeedIcon === 'slow' ? 'is-animating' : ''}`}
+            aria-hidden="true"
           >
-            <RewindIcon />
-            <span>Rewind</span>
-          </button>
-          <button type="button" className="control-button overlay-primary-button" onClick={() => togglePlayback()}>
-            {playbackState === 'running' ? <PauseIcon /> : <PlayIcon />}
-            <span>{playbackState === 'running' ? 'Pause' : 'Play'}</span>
-          </button>
-        </div>
-
-        <div className="overlay-speed-row">
-          <input
-            type="range"
-            min={minSpeed}
-            max={maxSpeed}
-            step={1}
-            value={scrollSpeed}
-            onChange={(event) => setScrollSpeed(Number(event.target.value))}
-            aria-label="Scroll speed"
-          />
-          <span className="speed-value-label">{normalizedSpeed.toFixed(2)}x</span>
-        </div>
-
-        <div className="overlay-speed-hints" role="note" aria-label="Speed shortcuts">
-          <span className="overlay-speed-keycap">{speedShortcutLabel('down')}</span>
-          <span className="overlay-speed-keycap">{speedShortcutLabel('up')}</span>
+            <SlowSpeedIcon />
+          </span>
+          <div className="overlay-speed-track-wrap">
+            <div
+              className="overlay-speed-bubble"
+              aria-hidden="true"
+              style={{ left: `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%` }}
+            >
+              {normalizedSpeed.toFixed(2)}x
+            </div>
+            <input
+              className="overlay-speed-slider"
+              type="range"
+              min={minSpeed}
+              max={maxSpeed}
+              step={1}
+              value={scrollSpeed}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                setScrollSpeed(nextValue);
+                if (nextValue < scrollSpeed) {
+                  triggerSpeedIconAnimation('slow');
+                  return;
+                }
+                if (nextValue > scrollSpeed) {
+                  triggerSpeedIconAnimation('fast');
+                  return;
+                }
+                triggerSpeedIconAnimation(nextValue <= baseSpeed ? 'slow' : 'fast');
+              }}
+              aria-label="Scroll speed"
+              style={{
+                '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
+              } as CSSProperties}
+            />
+          </div>
+          <span
+            className={`overlay-speed-icon overlay-speed-icon-fast ${animatedSpeedIcon === 'fast' ? 'is-animating' : ''}`}
+            aria-hidden="true"
+          >
+            <FastSpeedIcon />
+          </span>
         </div>
       </footer>
     </main>
