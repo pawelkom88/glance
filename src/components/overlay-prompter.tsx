@@ -57,6 +57,31 @@ function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+function isTypingTarget(target: HTMLElement | null): boolean {
+  if (!target) {
+    return false;
+  }
+
+  if (target instanceof HTMLTextAreaElement || target.isContentEditable) {
+    return true;
+  }
+
+  if (!(target instanceof HTMLInputElement)) {
+    return false;
+  }
+
+  const type = (target.type || 'text').toLowerCase();
+  return [
+    'text',
+    'search',
+    'url',
+    'tel',
+    'email',
+    'password',
+    'number'
+  ].includes(type);
+}
+
 function normalizeFontScale(value: number): number {
   const clamped = Math.max(minFontScale, Math.min(maxFontScale, value));
   const stepped = Math.round(clamped / fontScaleStep) * fontScaleStep;
@@ -81,7 +106,7 @@ function PauseIcon() {
 
 function RewindIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className="overlay-rewind-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M11.2 6.8a.9.9 0 0 0-1.3 0l-4.2 4a.9.9 0 0 0 0 1.3l4.2 4a.9.9 0 1 0 1.3-1.3l-2.7-2.5h6.6a4 4 0 1 1 0 8h-6.2a.9.9 0 1 0 0 1.8h6.2a5.8 5.8 0 0 0 0-11.6H8.5L11.2 8a.9.9 0 0 0 0-1.2Z" />
     </svg>
   );
@@ -269,18 +294,12 @@ export function OverlayPrompter() {
   }, [contentMetrics.width, markdown, measureText]);
 
   const sectionStartLineIndexes = useMemo(() => {
-    const starts = Array.from({ length: sections.length }, () => 0);
-    lines.forEach((line, index) => {
-      if (line.kind !== 'heading' || typeof line.sectionIndex !== 'number') {
-        return;
-      }
-
-      if (starts[line.sectionIndex] === 0) {
-        starts[line.sectionIndex] = index;
-      }
+    return sections.map((section) => {
+      const headingId = `heading-${section.lineIndex}`;
+      const headingLineIndex = lines.findIndex((line) => line.id === headingId);
+      return headingLineIndex >= 0 ? headingLineIndex : 0;
     });
-    return starts;
-  }, [lines, sections.length]);
+  }, [lines, sections]);
 
   const anchorLineIndex = useMemo(() => {
     if (lines.length === 0) {
@@ -331,7 +350,15 @@ export function OverlayPrompter() {
   }, []);
 
   const jumpToSection = useCallback((index: number) => {
-    const targetLine = sectionStartLineIndexes[index] ?? 0;
+    if (index < 0 || index >= sectionStartLineIndexes.length) {
+      return;
+    }
+
+    const targetLine = sectionStartLineIndexes[index];
+    if (typeof targetLine !== 'number' || !Number.isFinite(targetLine)) {
+      return;
+    }
+
     setScrollPosition(targetLine * scaledLineHeight);
   }, [scaledLineHeight, sectionStartLineIndexes, setScrollPosition]);
 
@@ -439,7 +466,8 @@ export function OverlayPrompter() {
   }, [playbackState]);
 
   useEffect(() => {
-    let unlisten: () => void = () => {};
+    let isDisposed = false;
+    let unlisten: (() => void) | null = null;
 
     void listenForShortcutEvents((payload) => {
       if (payload.action === 'toggle-play') {
@@ -452,6 +480,12 @@ export function OverlayPrompter() {
 
       if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
         changeScrollSpeedBy(payload.delta);
+        revealSpeedBubble();
+        if (payload.delta < 0) {
+          triggerSpeedIconAnimation('slow');
+        } else if (payload.delta > 0) {
+          triggerSpeedIconAnimation('fast');
+        }
       }
 
       if (payload.action === 'start-over') {
@@ -459,13 +493,27 @@ export function OverlayPrompter() {
         setScrollPosition(0);
       }
     }).then((fn) => {
+      if (isDisposed) {
+        fn();
+        return;
+      }
+
       unlisten = fn;
     });
 
     return () => {
-      unlisten();
+      isDisposed = true;
+      unlisten?.();
     };
-  }, [changeScrollSpeedBy, jumpToSection, setPlaybackState, setScrollPosition, togglePlayback]);
+  }, [
+    changeScrollSpeedBy,
+    jumpToSection,
+    revealSpeedBubble,
+    setPlaybackState,
+    setScrollPosition,
+    togglePlayback,
+    triggerSpeedIconAnimation
+  ]);
 
   const requestCloseOverlay = useCallback(() => {
     if (isClosing) {
@@ -526,12 +574,18 @@ export function OverlayPrompter() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const isTextLikeTarget = target instanceof HTMLInputElement
-        || target instanceof HTMLTextAreaElement
-        || target?.isContentEditable === true;
+      const isTextLikeTarget = isTypingTarget(target);
 
       if (event.key === 'Escape') {
         event.preventDefault();
+        if (isJumpMenuOpen) {
+          closeJumpMenu(true);
+          return;
+        }
+        if (isFontMenuOpen) {
+          closeFontMenu(true);
+          return;
+        }
         requestCloseOverlay();
         return;
       }
@@ -550,6 +604,7 @@ export function OverlayPrompter() {
 
         if (event.key.toLowerCase() === 'r') {
           event.preventDefault();
+          event.stopPropagation();
           setPlaybackState('paused');
           setScrollPosition(0);
           return;
@@ -799,6 +854,16 @@ export function OverlayPrompter() {
     overlayRootRef.current?.focus({ preventScroll: true });
   }, []);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      overlayRootRef.current?.focus({ preventScroll: true });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
   const handleJumpMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     const items = Array.from(
       jumpMenuRef.current?.querySelectorAll<HTMLButtonElement>('[data-jump-item="true"]') ?? []
@@ -895,12 +960,16 @@ export function OverlayPrompter() {
       tabIndex={-1}
       style={overlayVars}
       onMouseDownCapture={handleRootMouseDownCapture}
+      onPointerDownCapture={() => {
+        overlayRootRef.current?.focus({ preventScroll: true });
+      }}
       onMouseDown={handleDragMouseDown}
     >
       <div className="overlay-debug-size" aria-live="polite" aria-label="Overlay size">
         {overlaySize.width} × {overlaySize.height}
       </div>
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
+
         <div className="overlay-top-actions">
           {!isCompactTopBar ? (
             <button
@@ -956,7 +1025,8 @@ export function OverlayPrompter() {
             <CloseIcon />
           </button>
         </div>
-<br/>
+          <br/>
+
         <span className="overlay-section-counter">
           {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
         </span>
@@ -967,6 +1037,7 @@ export function OverlayPrompter() {
               ? (currentSection?.title ?? 'Waiting for headings')
               : `${currentSectionIndex + 1}`}
           </span>
+
           {nextSection ? (
             <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
               {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
@@ -990,7 +1061,7 @@ export function OverlayPrompter() {
                 type="range"
                 min={minFontScale}
                 max={maxFontScale}
-                step={fontScaleStep}
+                step={fontScaleStep }
                 value={overlayFontScale}
                 onChange={(event) => commitFontScale(Number(event.target.value))}
                 aria-label="Font size"
@@ -1159,7 +1230,7 @@ export function OverlayPrompter() {
               type="range"
               min={minSpeed}
               max={maxSpeed}
-              step={1}
+              step={0.1}
               value={scrollSpeed}
               onChange={(event) => {
                 const nextValue = Number(event.target.value);

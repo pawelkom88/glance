@@ -1713,7 +1713,7 @@ select {
 
 .overlay-left-sidebar {
   position: relative;
-  z-index: 6;
+  z-index: 20;
   grid-column: 1;
   grid-row: 1 / -1;
   display: grid;
@@ -1909,12 +1909,14 @@ select {
   position: absolute;
   top: 0;
   left: calc(100% + 10px);
+  max-width: min(420px, calc(100vw - 24px));
+  max-height: min(70vh, calc(100dvh - 24px));
   border-radius: 12px;
   border: 1px solid var(--line-soft);
   background: var(--bg-canvas-2);
   box-shadow: var(--shadow-sm);
   padding: 10px;
-  z-index: 42;
+  z-index: 220;
   -webkit-app-region: no-drag;
   opacity: 1;
   transform: translateY(0);
@@ -1973,7 +1975,11 @@ select {
 }
 
 .overlay-jump-popover {
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(62vh, calc(100dvh - 96px));
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
   display: grid;
   gap: 4px;
 }
@@ -2151,7 +2157,7 @@ select {
 
 .overlay-controls {
   position: relative;
-  z-index: 6;
+  z-index: 5;
   border: 0;
   background: transparent;
   padding: 0;
@@ -2163,6 +2169,8 @@ select {
 }
 
 .overlay-right-sidebar {
+  position: relative;
+  z-index: 4;
   grid-column: 3;
   grid-row: 1;
   background: var(--sidebar-bg);
@@ -2220,6 +2228,8 @@ select {
 }
 
 .overlay-speed-footer {
+  position: relative;
+  z-index: 4;
   grid-column: 2 / 4;
   grid-row: 2;
   border-top: 1px solid var(--line-soft);
@@ -2259,6 +2269,11 @@ select {
   width: 18px;
   height: 18px;
   fill: currentColor;
+  display: block;
+}
+
+.overlay-rewind-icon {
+  transform: translate(-0.5px, 0.25px);
 }
 
 .overlay-secondary-button {
@@ -2505,16 +2520,14 @@ select {
   .overlay-left-sidebar {
     grid-column: 1;
     grid-row: 1;
-    border-right: 0;
-    border-bottom: 1px solid var(--line-soft);
     grid-template-columns: auto auto;
     grid-template-areas: 'rail actions';
-    align-items: center;
-    justify-items: center;
     justify-content: center;
-    min-height: 76px;
     padding: 0 12px;
-    gap: 8px;
+
+    & > * {
+      margin-top:25px;
+    }
   }
 
   .overlay-content {
@@ -2554,6 +2567,13 @@ select {
     top: calc(100% + 8px);
     left: auto;
     right: 0;
+    max-width: min(440px, calc(100vw - 24px));
+    max-height: min(68vh, calc(100dvh - 92px));
+  }
+
+  .overlay-jump-popover {
+    width: min(440px, calc(100vw - 24px));
+    max-height: min(58vh, calc(100dvh - 116px));
   }
 
   .overlay-controls {

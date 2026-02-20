@@ -7,7 +7,7 @@ use std::str::FromStr;
 use tauri::{AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition, PhysicalSize, Position, Size, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
-const OVERLAY_MIN_WIDTH: u32 = 780;
+const OVERLAY_MIN_WIDTH: u32 = 500;
 const OVERLAY_MIN_HEIGHT: u32 = 400;
 const OVERLAY_DEFAULT_WIDTH: u32 = 1120;
 const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
@@ -489,7 +489,7 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
     return Ok(ShortcutAction {
       action: String::from("speed-change"),
       index: None,
-      delta: Some(4),
+      delta: Some(1),
     });
   }
 
@@ -497,7 +497,7 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
     return Ok(ShortcutAction {
       action: String::from("speed-change"),
       index: None,
-      delta: Some(-4),
+      delta: Some(-1),
     });
   }
 
