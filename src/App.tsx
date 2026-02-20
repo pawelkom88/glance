@@ -269,26 +269,6 @@ export default function App() {
           onImport={() => {
             importInputRef.current?.click();
           }}
-          onExportSession={(id) => {
-            if (!isTauri()) {
-              showToast('Export is available in the desktop app runtime', 'info');
-              return;
-            }
-
-            const selectedSession = sessions.find((session) => session.id === id);
-            const defaultPath = toExportFilename(selectedSession?.title ?? 'session');
-
-            void save({
-              title: 'Export Markdown Session',
-              defaultPath,
-              filters: [{ name: 'Markdown', extensions: ['md'] }]
-            }).then((selectedPath) => {
-              if (!selectedPath || Array.isArray(selectedPath)) {
-                return;
-              }
-              void exportSessionById(id, selectedPath);
-            });
-          }}
         />
       );
     }
@@ -314,22 +294,22 @@ export default function App() {
           onOpenShortcutSettings={() => {
             switchTab('settings');
           }}
-          onSave={() => {
+          onExportMarkdown={() => {
             void (async () => {
               if (!activeSessionId) {
-                showToast('Open a session before saving', 'warning');
+                showToast('Open a session before exporting', 'warning');
                 return;
               }
 
               if (!isTauri()) {
-                showToast('Save is available in the desktop app runtime', 'info');
+                showToast('Export is available in the desktop app runtime', 'info');
                 return;
               }
 
               const selectedSession = sessions.find((session) => session.id === activeSessionId);
               const defaultPath = toExportFilename(selectedSession?.title ?? 'session');
               const selectedPath = await save({
-                title: 'Save Markdown Session',
+                title: 'Export Markdown Session',
                 defaultPath,
                 filters: [{ name: 'Markdown', extensions: ['md'] }]
               });
@@ -345,7 +325,7 @@ export default function App() {
 
               const exportedPath = await exportSessionById(activeSessionId, selectedPath, false);
               if (exportedPath) {
-                showToast('Session saved', 'success');
+                showToast('Markdown exported', 'success');
               }
             })();
           }}

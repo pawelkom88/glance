@@ -179,8 +179,7 @@ export function SettingsView() {
     <section className="panel settings-panel">
       <header className="panel-header">
         <div>
-          <p className="eyebrow">Settings</p>
-          <h2>Overlay Controls</h2>
+          <h2>Settings</h2>
         </div>
       </header>
 

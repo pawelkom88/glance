@@ -1,5 +1,4 @@
 import { startTransition, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ReactViewTransition } from './react-view-transition';
 import type { SessionSummary } from '../types';
 
@@ -11,43 +10,17 @@ interface LibraryViewProps {
   readonly onCreate: (name: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onImport: () => void;
-  readonly onExportSession: (id: string) => void;
 }
-
-interface FileMenuState {
-  readonly kind: 'file';
-  readonly top: number;
-  readonly left: number;
-}
-
-const menuWidth = 220;
-const menuHeight = 132;
-const menuGap = 8;
 
 function defaultSessionName(): string {
   return `Session ${new Date().toLocaleDateString()}`;
 }
 
-function buildMenuPosition(trigger: HTMLElement): { top: number; left: number } {
-  const rect = trigger.getBoundingClientRect();
-  const viewportPadding = 10;
-  const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
-  const left = Math.min(Math.max(rect.left, viewportPadding), maxLeft);
-
-  const spaceBelow = window.innerHeight - rect.bottom;
-  const canPlaceBelow = spaceBelow >= menuHeight + menuGap;
-  const top = canPlaceBelow
-    ? rect.bottom + menuGap
-    : Math.max(viewportPadding, rect.top - menuHeight - menuGap);
-
-  return { top, left };
-}
-
-function FileIcon() {
+function ImportIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M5 4h10.5L20 8.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm9.5 1.5V9H18" />
-      <path d="M8 13h8M8 16h8" />
+      <path d="M12 4v9m0 0-3-3m3 3 3-3" />
+      <path d="M5 14.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5" />
     </svg>
   );
 }
@@ -79,23 +52,17 @@ export function LibraryView(props: LibraryViewProps) {
     onOpen,
     onCreate,
     onDelete,
-    onImport,
-    onExportSession
+    onImport
   } = props;
 
   const [draftSessionName, setDraftSessionName] = useState(defaultSessionName());
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [isComposerClosing, setIsComposerClosing] = useState(false);
-  const [menuState, setMenuState] = useState<FileMenuState | null>(null);
-  const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const [isDeleteDialogClosing, setIsDeleteDialogClosing] = useState(false);
   const [exitingSessionIds, setExitingSessionIds] = useState<Set<string>>(new Set());
 
-  const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const lastMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const closeMenuTimeoutRef = useRef<number | null>(null);
   const deleteTimeoutsRef = useRef<Record<string, number>>({});
   const closeDeleteDialogTimeoutRef = useRef<number | null>(null);
   const closeComposerTimeoutRef = useRef<number | null>(null);
@@ -107,38 +74,6 @@ export function LibraryView(props: LibraryViewProps) {
   const confirmDeleteRef = useRef<HTMLButtonElement | null>(null);
 
   const deleteCandidate = sessions.find((session) => session.id === deleteCandidateId) ?? null;
-
-  const closeMenu = (restoreFocus: boolean = true) => {
-    if (!menuState) {
-      return;
-    }
-
-    setIsMenuClosing(true);
-    if (closeMenuTimeoutRef.current !== null) {
-      window.clearTimeout(closeMenuTimeoutRef.current);
-    }
-
-    closeMenuTimeoutRef.current = window.setTimeout(() => {
-      setMenuState(null);
-      setIsMenuClosing(false);
-      closeMenuTimeoutRef.current = null;
-      if (restoreFocus) {
-        lastMenuTriggerRef.current?.focus();
-      }
-    }, 140);
-  };
-
-  const openFileMenu = (trigger: HTMLElement) => {
-    if (closeMenuTimeoutRef.current !== null) {
-      window.clearTimeout(closeMenuTimeoutRef.current);
-      closeMenuTimeoutRef.current = null;
-    }
-
-    const position = buildMenuPosition(trigger);
-    lastMenuTriggerRef.current = trigger as HTMLButtonElement;
-    setIsMenuClosing(false);
-    setMenuState({ kind: 'file', ...position });
-  };
 
   const createFromDraft = () => {
     const name = draftSessionName.trim();
@@ -177,33 +112,7 @@ export function LibraryView(props: LibraryViewProps) {
   };
 
   useEffect(() => {
-    if (!menuState || isMenuClosing) {
-      return;
-    }
-
-    menuItemRefs.current = [];
-    const timeoutId = window.setTimeout(() => {
-      const items = menuItemRefs.current.filter((item): item is HTMLButtonElement => item !== null && !item.disabled);
-      items[0]?.focus();
-    }, 0);
-
-    const closeOnResize = () => closeMenu(false);
-    const closeOnScroll = () => closeMenu(false);
-    window.addEventListener('resize', closeOnResize);
-    window.addEventListener('scroll', closeOnScroll, true);
-
     return () => {
-      window.clearTimeout(timeoutId);
-      window.removeEventListener('resize', closeOnResize);
-      window.removeEventListener('scroll', closeOnScroll, true);
-    };
-  }, [isMenuClosing, menuState]);
-
-  useEffect(() => {
-    return () => {
-      if (closeMenuTimeoutRef.current !== null) {
-        window.clearTimeout(closeMenuTimeoutRef.current);
-      }
       if (closeDeleteDialogTimeoutRef.current !== null) {
         window.clearTimeout(closeDeleteDialogTimeoutRef.current);
       }
@@ -320,23 +229,12 @@ export function LibraryView(props: LibraryViewProps) {
         <div className="library-toolbar-actions">
           <button
             type="button"
-            className="ghost-button file-menu-button"
-            aria-label="File actions"
-            aria-haspopup="menu"
-            aria-expanded={menuState?.kind === 'file'}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (menuState?.kind === 'file') {
-                closeMenu();
-                return;
-              }
-
-              setIsCreatingSession(false);
-              openFileMenu(event.currentTarget);
-            }}
+            className="ghost-button library-import-button"
+            aria-label="Import Markdown"
+            onClick={onImport}
           >
-            <FileIcon />
-            <span>File</span>
+            <ImportIcon />
+            <span>Import Markdown</span>
           </button>
 
           <button
@@ -351,7 +249,6 @@ export function LibraryView(props: LibraryViewProps) {
               }
 
               startTransition(() => {
-                closeMenu(false);
                 setIsComposerClosing(false);
                 setDraftSessionName(defaultSessionName());
                 setShowComposer(true);
@@ -416,7 +313,6 @@ export function LibraryView(props: LibraryViewProps) {
                   return;
                 }
                 onSelect(session.id);
-                closeMenu(false);
               }}
               onDoubleClick={() => {
                 if (exitingSessionIds.has(session.id)) {
@@ -471,121 +367,6 @@ export function LibraryView(props: LibraryViewProps) {
 
         {sessions.length === 0 ? <p className="empty-state">No sessions yet. Create one to begin.</p> : null}
       </div>
-
-      {menuState
-        ? createPortal(
-            <>
-              <button
-                type="button"
-                className="floating-menu-backdrop"
-                aria-label="Close actions menu"
-                data-state={isMenuClosing ? 'closing' : 'open'}
-                onClick={() => closeMenu()}
-              />
-              <div
-                className="floating-menu"
-                role="menu"
-                data-state={isMenuClosing ? 'closing' : 'open'}
-                style={{ top: `${menuState.top}px`, left: `${menuState.left}px` }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') {
-                    event.preventDefault();
-                    closeMenu();
-                    return;
-                  }
-
-                  if (event.key === 'Tab') {
-                    event.preventDefault();
-                    const items = menuItemRefs.current.filter(
-                      (item): item is HTMLButtonElement => item !== null && !item.disabled
-                    );
-                    if (items.length === 0) {
-                      return;
-                    }
-
-                    const currentIndex = items.findIndex((item) => item === document.activeElement);
-                    const delta = event.shiftKey ? -1 : 1;
-                    const fallbackIndex = event.shiftKey ? items.length - 1 : 0;
-                    const nextIndex = currentIndex === -1
-                      ? fallbackIndex
-                      : (currentIndex + delta + items.length) % items.length;
-                    items[nextIndex].focus();
-                    return;
-                  }
-
-                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                    event.preventDefault();
-                    const items = menuItemRefs.current.filter(
-                      (item): item is HTMLButtonElement => item !== null && !item.disabled
-                    );
-                    if (items.length === 0) {
-                      return;
-                    }
-
-                    const currentIndex = items.findIndex((item) => item === document.activeElement);
-                    const delta = event.key === 'ArrowDown' ? 1 : -1;
-                    const fallbackIndex = event.key === 'ArrowDown' ? 0 : items.length - 1;
-                    const nextIndex = currentIndex === -1
-                      ? fallbackIndex
-                      : (currentIndex + delta + items.length) % items.length;
-                    items[nextIndex].focus();
-                    return;
-                  }
-
-                  if (event.key === 'Home' || event.key === 'End') {
-                    event.preventDefault();
-                    const items = menuItemRefs.current.filter(
-                      (item): item is HTMLButtonElement => item !== null && !item.disabled
-                    );
-                    if (items.length === 0) {
-                      return;
-                    }
-
-                    if (event.key === 'Home') {
-                      items[0].focus();
-                    } else {
-                      items[items.length - 1].focus();
-                    }
-                  }
-                }}
-              >
-                <button
-                  ref={(node) => {
-                    menuItemRefs.current[0] = node;
-                  }}
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  onClick={() => {
-                    onImport();
-                    closeMenu();
-                  }}
-                >
-                  Import Markdown
-                </button>
-                <button
-                  ref={(node) => {
-                    menuItemRefs.current[1] = node;
-                  }}
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  disabled={!activeSessionId}
-                  onClick={() => {
-                    if (!activeSessionId) {
-                      return;
-                    }
-                    onExportSession(activeSessionId);
-                    closeMenu();
-                  }}
-                >
-                  Export Selected
-                </button>
-              </div>
-            </>,
-            document.body
-          )
-        : null}
 
       {deleteCandidate ? (
         <div

@@ -23,7 +23,6 @@ export function HelpView() {
     <section className="panel help-panel">
       <header className="panel-header">
         <div>
-          <p className="eyebrow">Help</p>
           <h2>Shortcuts & Flow</h2>
         </div>
       </header>

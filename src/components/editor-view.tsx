@@ -13,11 +13,29 @@ interface EditorViewProps {
   readonly onOpenShortcutSettings: () => void;
   readonly onLaunchOverlay: () => void;
   readonly onCloseOverlay: () => void;
-  readonly onSave: () => void;
+  readonly onExportMarkdown: () => void;
 }
 
 function shortcutLabel(index: number): string {
   return navigator.platform.includes('Mac') ? `⌘${index}` : `Ctrl+${index}`;
+}
+
+function ExportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 15V5m0 0-3 3m3-3 3 3" />
+      <path d="M5 14.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5" />
+    </svg>
+  );
+}
+
+function RocketIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 12.2 20 4l-8.2 16-1.8-6-6-1.8Z" />
+      <path d="M10 14 20 4" />
+    </svg>
+  );
 }
 
 export function EditorView(props: EditorViewProps) {
@@ -33,7 +51,7 @@ export function EditorView(props: EditorViewProps) {
     onOpenSessions,
     onOpenShortcutSettings,
     onLaunchOverlay,
-    onSave
+    onExportMarkdown
   } = props;
   const hasSections = sections.length > 0;
 
@@ -46,7 +64,7 @@ export function EditorView(props: EditorViewProps) {
             <h2>Create your first session</h2>
           </div>
           <div className="header-actions">
-            <button type="button" className="ghost-button" onClick={onImportSession}>
+            <button type="button" className="cancel-button" onClick={onImportSession}>
               Import Markdown
             </button>
             <button type="button" className="primary-button" onClick={onCreateSession}>
@@ -106,19 +124,21 @@ export function EditorView(props: EditorViewProps) {
     <section className="panel editor-panel">
       <header className="panel-header">
         <div>
-          <p className="eyebrow">Session Editor</p>
-          <h2>Markdown Source</h2>
+          <h2>Session Editor</h2>
+          <p className="editor-autosave-note">Changes are saved automatically on this device.</p>
         </div>
         <div className="header-actions">
-          <button type="button" className="ghost-button" onClick={onSave}>
-            Save
+          <button type="button" className="ghost-button editor-action-button" onClick={onExportMarkdown}>
+            <ExportIcon />
+            Export Markdown
           </button>
           <button
             type="button"
-            className="primary-button"
+            className="primary-button editor-action-button"
             onClick={onLaunchOverlay}
             disabled={!hasSections}
           >
+            <RocketIcon />
             Launch Prompter
           </button>
         </div>

@@ -289,6 +289,13 @@ select {
   letter-spacing: var(--page-heading-letter-spacing);
 }
 
+.editor-autosave-note {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .library-toolbar {
   display: flex;
   align-items: center;
@@ -317,6 +324,7 @@ select {
 }
 
 .file-menu-button,
+.library-import-button,
 .library-toolbar-actions .primary-button {
   display: inline-flex;
   align-items: center;
@@ -324,6 +332,7 @@ select {
 }
 
 .file-menu-button svg,
+.library-import-button svg,
 .library-toolbar-actions .primary-button svg,
 .row-menu-button svg {
   width: 16px;
@@ -377,14 +386,6 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
 }
 
 .primary-button,
@@ -456,6 +457,23 @@ select {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.editor-action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-action-button svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
 }
 
 .session-name-input {
