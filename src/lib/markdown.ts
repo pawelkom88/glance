@@ -1,4 +1,10 @@
-import type { DisplayLine, ParseWarning, ParsedMarkdown, SectionItem } from '../types';
+import type {
+  DisplayLine,
+  DisplaySegment,
+  ParseWarning,
+  ParsedMarkdown,
+  SectionItem
+} from '../types';
 
 const headingPattern = /^#\s+(.+)$/;
 
@@ -64,7 +70,13 @@ export function parseSections(markdown: string): readonly SectionItem[] {
   return parseMarkdown(markdown).sections;
 }
 
-function wrapWords(text: string, maxChars: number): string[] {
+interface DisplayLineOptions {
+  readonly maxCharsPerLine?: number;
+  readonly maxLineWidthPx?: number;
+  readonly measureText?: (text: string) => number;
+}
+
+function wrapWordsByChars(text: string, maxChars: number): string[] {
   const trimmed = text.trim();
   if (trimmed.length <= maxChars) {
     return [trimmed];
@@ -91,27 +103,133 @@ function wrapWords(text: string, maxChars: number): string[] {
   return lines;
 }
 
-export function markdownToDisplayLines(markdown: string): readonly DisplayLine[] {
+function wrapWordsByMeasurement(text: string, maxLineWidthPx: number, measureText: (text: string) => number): string[] {
+  const trimmed = text.trim();
+  if (trimmed.length === 0 || measureText(trimmed) <= maxLineWidthPx) {
+    return [trimmed];
+  }
+
+  const words = trimmed.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    const candidate = current.length === 0 ? word : `${current} ${word}`;
+    if (current.length > 0 && measureText(candidate) > maxLineWidthPx) {
+      lines.push(current);
+      current = word;
+      continue;
+    }
+    current = candidate;
+  }
+
+  if (current.length > 0) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+function parseInlineSegments(text: string, lineId: string): readonly DisplaySegment[] {
+  const pattern = /(\*\*[^*]+\*\*|_[^_]+_|\[[^\]]+\])/g;
+  const segments: DisplaySegment[] = [];
+  let cursor = 0;
+  let match: RegExpExecArray | null = null;
+  let segmentIndex = 0;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > cursor) {
+      segments.push({
+        id: `${lineId}-segment-${segmentIndex}`,
+        kind: 'plain',
+        text: text.slice(cursor, match.index)
+      });
+      segmentIndex += 1;
+    }
+
+    const token = match[0];
+    if (token.startsWith('**') && token.endsWith('**')) {
+      segments.push({
+        id: `${lineId}-segment-${segmentIndex}`,
+        kind: 'strong',
+        text: token.slice(2, -2)
+      });
+    } else if (token.startsWith('_') && token.endsWith('_')) {
+      segments.push({
+        id: `${lineId}-segment-${segmentIndex}`,
+        kind: 'emphasis',
+        text: token.slice(1, -1)
+      });
+    } else {
+      const cueValue = token.slice(1, -1).trim();
+      const cue = cueValue.length > 0 ? cueValue : 'cue';
+      segments.push({
+        id: `${lineId}-segment-${segmentIndex}`,
+        kind: 'cue',
+        text: cue
+      });
+    }
+
+    segmentIndex += 1;
+    cursor = match.index + token.length;
+  }
+
+  if (cursor < text.length) {
+    segments.push({
+      id: `${lineId}-segment-${segmentIndex}`,
+      kind: 'plain',
+      text: text.slice(cursor)
+    });
+  }
+
+  if (segments.length === 0) {
+    return [{ id: `${lineId}-segment-0`, kind: 'plain', text }];
+  }
+
+  return segments;
+}
+
+export function markdownToDisplayLines(markdown: string, options?: DisplayLineOptions): readonly DisplayLine[] {
   const output: DisplayLine[] = [];
-  const maxChars = 56;
+  const maxChars = options?.maxCharsPerLine ?? 56;
+  const maxLineWidthPx = options?.maxLineWidthPx ?? null;
+  const measureText = options?.measureText;
+  let currentSectionIndex: number | null = null;
+  let sectionCursor = 0;
+  const wrap = (text: string): string[] => {
+    if (maxLineWidthPx && measureText) {
+      return wrapWordsByMeasurement(text, maxLineWidthPx, measureText);
+    }
+    return wrapWordsByChars(text, maxChars);
+  };
 
   markdown.split('\n').forEach((line, lineIndex) => {
     if (line.startsWith('# ')) {
+      const headingText = line.replace(/^#\s+/, '').trim();
+      const headingId = `heading-${lineIndex}`;
       output.push({
-        id: `heading-${lineIndex}`,
+        id: headingId,
         kind: 'heading',
-        text: line.replace(/^#\s+/, '').trim()
+        text: headingText,
+        sectionIndex: sectionCursor,
+        segments: parseInlineSegments(headingText, headingId)
       });
+      currentSectionIndex = sectionCursor;
+      sectionCursor += 1;
       return;
     }
 
     if (line.startsWith('- ')) {
-      const wrapped = wrapWords(line.replace(/^-+\s*/, ''), maxChars);
+      const cleaned = line.replace(/^-+\s*/, '').trim();
+      const wrapped = wrap(cleaned);
       wrapped.forEach((wrappedLine, wrappedIndex) => {
+        const lineId = `bullet-${lineIndex}-${wrappedIndex}`;
         output.push({
-          id: `bullet-${lineIndex}-${wrappedIndex}`,
+          id: lineId,
           kind: wrappedIndex === 0 ? 'bullet' : 'text',
-          text: wrappedLine
+          text: wrappedLine,
+          sectionIndex: currentSectionIndex,
+          segments: wrapped.length === 1 ? parseInlineSegments(wrappedLine, lineId) : undefined
         });
       });
       return;
@@ -125,17 +243,21 @@ export function markdownToDisplayLines(markdown: string): readonly DisplayLine[]
       output.push({
         id: `empty-${lineIndex}`,
         kind: 'empty',
-        text: ''
+        text: '',
+        sectionIndex: currentSectionIndex
       });
       return;
     }
 
-    const wrapped = wrapWords(line, maxChars);
+    const wrapped = wrap(line.trim());
     wrapped.forEach((wrappedLine, wrappedIndex) => {
+      const lineId = `text-${lineIndex}-${wrappedIndex}`;
       output.push({
-        id: `text-${lineIndex}-${wrappedIndex}`,
+        id: lineId,
         kind: 'text',
-        text: wrappedLine
+        text: wrappedLine,
+        sectionIndex: currentSectionIndex,
+        segments: wrapped.length === 1 ? parseInlineSegments(wrappedLine, lineId) : undefined
       });
     });
   });

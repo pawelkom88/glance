@@ -1,4 +1,13 @@
-import { type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
@@ -13,13 +22,14 @@ import {
 import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
 
-const lineHeight = 54;
+const baseLineHeight = 54;
 const fadeDurationMs = 140;
-const rulerHeight = 56;
-const rulerPadding = 34;
 const baseSpeed = 42;
 const minSpeed = 21;
 const maxSpeed = 63;
+const minFontScale = 0.85;
+const maxFontScale = 1.4;
+const fontScaleStep = 0.05;
 
 interface RulerStyle {
   readonly left: number;
@@ -28,19 +38,31 @@ interface RulerStyle {
   readonly visible: boolean;
 }
 
+interface ContentMetrics {
+  readonly width: number;
+  readonly height: number;
+}
+
+function isMacPlatform(): boolean {
+  return navigator.platform.includes('Mac');
+}
+
 function platformModifier(): string {
-  return navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+';
+  return isMacPlatform() ? '⌘' : 'Ctrl+';
 }
 
 function speedShortcutLabel(direction: 'up' | 'down'): string {
-  if (navigator.platform.includes('Mac')) {
-    return `⌘${direction === 'up' ? '↑' : '↓'}`;
-  }
-  return `Ctrl+${direction === 'up' ? '↑' : '↓'}`;
+  return `${platformModifier()}${direction === 'up' ? '↑' : '↓'}`;
 }
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
+function normalizeFontScale(value: number): number {
+  const clamped = Math.max(minFontScale, Math.min(maxFontScale, value));
+  const stepped = Math.round(clamped / fontScaleStep) * fontScaleStep;
+  return Number(stepped.toFixed(2));
 }
 
 function PlayIcon() {
@@ -51,56 +73,192 @@ function PlayIcon() {
   );
 }
 
-function StopIcon() {
+function PauseIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M7 7h10v10H7z" />
+      <path d="M7 6h4v12H7zm6 0h4v12h-4z" />
     </svg>
   );
 }
 
-function RestartIcon() {
+function RewindIcon() {
   return (
-  <svg fill="#000000" width="24" height="24" viewBox="-7.5 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
-    <title>restart</title>
-    <path d="M15.88 13.84c-1.68-3.48-5.44-5.24-9.040-4.6l0.96-1.8c0.24-0.4 0.080-0.92-0.32-1.12-0.4-0.24-0.92-0.080-1.12 0.32l-1.96 3.64c0 0-0.44 0.72 0.24 1.040l3.64 1.96c0.12 0.080 0.28 0.12 0.4 0.12 0.28 0 0.6-0.16 0.72-0.44 0.24-0.4 0.080-0.92-0.32-1.12l-1.88-1.040c2.84-0.48 5.8 0.96 7.12 3.68 1.6 3.32 0.2 7.32-3.12 8.88-1.6 0.76-3.4 0.88-5.080 0.28s-3.040-1.8-3.8-3.4c-0.76-1.6-0.88-3.4-0.28-5.080 0.16-0.44-0.080-0.92-0.52-1.080-0.4-0.080-0.88 0.16-1.040 0.6-0.72 2.12-0.6 4.36 0.36 6.36s2.64 3.52 4.76 4.28c0.92 0.32 1.84 0.48 2.76 0.48 1.24 0 2.48-0.28 3.6-0.84 4.16-2 5.92-7 3.92-11.12z"></path>
-  </svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M11.2 6.8a.9.9 0 0 0-1.3 0l-4.2 4a.9.9 0 0 0 0 1.3l4.2 4a.9.9 0 1 0 1.3-1.3l-2.7-2.5h6.6a4 4 0 1 1 0 8h-6.2a.9.9 0 1 0 0 1.8h6.2a5.8 5.8 0 0 0 0-11.6H8.5L11.2 8a.9.9 0 0 0 0-1.2Z" />
+    </svg>
   );
 }
+
+function currentSectionFromLine(lines: readonly { sectionIndex: number | null }[], lineIndex: number): number {
+  if (lines.length === 0) {
+    return 0;
+  }
+
+  let cursor = Math.max(0, Math.min(lines.length - 1, lineIndex));
+  for (; cursor >= 0; cursor -= 1) {
+    const sectionIndex = lines[cursor]?.sectionIndex;
+    if (typeof sectionIndex === 'number' && sectionIndex >= 0) {
+      return sectionIndex;
+    }
+  }
+
+  return 0;
+}
+
 export function OverlayPrompter() {
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const markdown = useAppStore((state) => state.markdown);
   const playbackState = useAppStore((state) => state.playbackState);
   const scrollPosition = useAppStore((state) => state.scrollPosition);
   const scrollSpeed = useAppStore((state) => state.scrollSpeed);
+  const overlayFontScale = useAppStore((state) => state.overlayFontScale);
   const openSession = useAppStore((state) => state.openSession);
   const togglePlayback = useAppStore((state) => state.togglePlayback);
   const setPlaybackState = useAppStore((state) => state.setPlaybackState);
   const setScrollPosition = useAppStore((state) => state.setScrollPosition);
   const setScrollSpeed = useAppStore((state) => state.setScrollSpeed);
+  const setOverlayFontScale = useAppStore((state) => state.setOverlayFontScale);
   const changeScrollSpeedBy = useAppStore((state) => state.changeScrollSpeedBy);
-  const jumpToSectionByIndex = useAppStore((state) => state.jumpToSectionByIndex);
+  const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const showToast = useAppStore((state) => state.showToast);
 
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const sections = parsed.sections;
-  const lines = useMemo(() => markdownToDisplayLines(markdown), [markdown]);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   const speedRef = useRef(scrollSpeed);
-  const initialSpeedToastSkippedRef = useRef(false);
   const lineRefs = useRef<Array<HTMLParagraphElement | null>>([]);
   const monitorNameRef = useRef<string | null>(getLastOverlayMonitorName());
   const contentRef = useRef<HTMLElement | null>(null);
+  const jumpTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const jumpMenuRef = useRef<HTMLDivElement | null>(null);
+  const fontTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const fontMenuRef = useRef<HTMLDivElement | null>(null);
+  const fontPersistTimeoutRef = useRef<number | null>(null);
+  const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
+  const [isJumpMenuOpen, setIsJumpMenuOpen] = useState(false);
+  const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const [contentMetrics, setContentMetrics] = useState<ContentMetrics>({ width: 880, height: 420 });
   const [rulerStyle, setRulerStyle] = useState<RulerStyle>({
-    left: 16,
+    left: 24,
     top: 0,
     width: 260,
     visible: false
   });
+
+  const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
+
+  const measureText = useCallback((text: string): number => {
+    if (typeof window === 'undefined') {
+      return text.length * 16;
+    }
+
+    if (!measureCanvasRef.current) {
+      measureCanvasRef.current = document.createElement('canvas');
+    }
+
+    const context = measureCanvasRef.current.getContext('2d');
+    if (!context) {
+      return text.length * 16;
+    }
+
+    const fontSize = Math.round(28 * overlayFontScale);
+    context.font = `500 ${fontSize}px "Inter Variable", "Inter", sans-serif`;
+    return context.measureText(text).width;
+  }, [overlayFontScale]);
+
+  const lines = useMemo(() => {
+    const maxLineWidthPx = Math.max(280, contentMetrics.width - 120);
+    return markdownToDisplayLines(markdown, {
+      maxLineWidthPx,
+      measureText
+    });
+  }, [contentMetrics.width, markdown, measureText]);
+
+  const sectionStartLineIndexes = useMemo(() => {
+    const starts = Array.from({ length: sections.length }, () => 0);
+    lines.forEach((line, index) => {
+      if (line.kind !== 'heading' || typeof line.sectionIndex !== 'number') {
+        return;
+      }
+
+      if (starts[line.sectionIndex] === 0) {
+        starts[line.sectionIndex] = index;
+      }
+    });
+    return starts;
+  }, [lines, sections.length]);
+
+  const anchorLineIndex = useMemo(() => {
+    if (lines.length === 0) {
+      return 0;
+    }
+
+    const anchorOffset = scrollPosition + contentMetrics.height * 0.42;
+    return Math.max(0, Math.min(lines.length - 1, Math.floor(anchorOffset / scaledLineHeight)));
+  }, [contentMetrics.height, lines.length, scaledLineHeight, scrollPosition]);
+
+  const currentSectionIndex = useMemo(() => {
+    if (sections.length === 0) {
+      return 0;
+    }
+
+    const resolved = currentSectionFromLine(lines, anchorLineIndex);
+    return Math.max(0, Math.min(sections.length - 1, resolved));
+  }, [anchorLineIndex, lines, sections.length]);
+
+  const currentSection = sections[currentSectionIndex] ?? null;
+  const nextSection = sections[currentSectionIndex + 1] ?? null;
+  const normalizedSpeed = Math.max(0.5, Math.min(1.5, scrollSpeed / baseSpeed));
+
+  const overlayVars = useMemo(() => ({
+    '--overlay-font-scale': overlayFontScale.toString(),
+    '--overlay-line-height': `${scaledLineHeight}px`
+  } as CSSProperties), [overlayFontScale, scaledLineHeight]);
+
+  const closeJumpMenu = useCallback((restoreFocus: boolean) => {
+    setIsJumpMenuOpen(false);
+    if (restoreFocus) {
+      window.setTimeout(() => {
+        jumpTriggerRef.current?.focus();
+      }, 0);
+    }
+  }, []);
+
+  const closeFontMenu = useCallback((restoreFocus: boolean) => {
+    setIsFontMenuOpen(false);
+    if (restoreFocus) {
+      window.setTimeout(() => {
+        fontTriggerRef.current?.focus();
+      }, 0);
+    }
+  }, []);
+
+  const jumpToSection = useCallback((index: number) => {
+    const targetLine = sectionStartLineIndexes[index] ?? 0;
+    setScrollPosition(targetLine * scaledLineHeight);
+  }, [scaledLineHeight, sectionStartLineIndexes, setScrollPosition]);
+
+  const commitFontScale = useCallback((nextValue: number) => {
+    const normalized = normalizeFontScale(nextValue);
+    setOverlayFontScale(normalized);
+
+    if (!activeSessionId) {
+      return;
+    }
+
+    if (fontPersistTimeoutRef.current !== null) {
+      window.clearTimeout(fontPersistTimeoutRef.current);
+    }
+
+    fontPersistTimeoutRef.current = window.setTimeout(() => {
+      void persistActiveSession();
+      fontPersistTimeoutRef.current = null;
+    }, 240);
+  }, [activeSessionId, persistActiveSession, setOverlayFontScale]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -109,6 +267,9 @@ export function OverlayPrompter() {
 
     return () => {
       window.clearTimeout(timeoutId);
+      if (fontPersistTimeoutRef.current !== null) {
+        window.clearTimeout(fontPersistTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -120,7 +281,7 @@ export function OverlayPrompter() {
     engineRef.current = new ScrollEngine({
       getSpeed: () => speedRef.current,
       onTick: (position) => {
-        const maxPosition = Math.max(0, lines.length * lineHeight - window.innerHeight + 160);
+        const maxPosition = Math.max(0, lines.length * scaledLineHeight - window.innerHeight + 160);
         setScrollPosition(Math.min(position, maxPosition));
       }
     });
@@ -131,7 +292,7 @@ export function OverlayPrompter() {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
-  }, [lines.length, setScrollPosition]);
+  }, [lines.length, scaledLineHeight, setScrollPosition]);
 
   useEffect(() => {
     if (!engineRef.current) {
@@ -165,7 +326,7 @@ export function OverlayPrompter() {
       }
 
       if (payload.action === 'jump-section' && typeof payload.index === 'number') {
-        jumpToSectionByIndex(payload.index);
+        jumpToSection(payload.index);
       }
 
       if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
@@ -183,7 +344,7 @@ export function OverlayPrompter() {
     return () => {
       unlisten();
     };
-  }, [changeScrollSpeedBy, jumpToSectionByIndex, setPlaybackState, setScrollPosition, togglePlayback]);
+  }, [changeScrollSpeedBy, jumpToSection, setPlaybackState, setScrollPosition, togglePlayback]);
 
   const requestCloseOverlay = useCallback(() => {
     if (isClosing) {
@@ -196,6 +357,7 @@ export function OverlayPrompter() {
     window.setTimeout(() => {
       void (async () => {
         try {
+          await persistActiveSession();
           await closeOverlayWindow();
           await showMainWindow();
         } catch (error) {
@@ -206,7 +368,7 @@ export function OverlayPrompter() {
         }
       })();
     }, fadeDurationMs);
-  }, [isClosing, setPlaybackState, showToast]);
+  }, [isClosing, persistActiveSession, setPlaybackState, showToast]);
 
   useEffect(() => {
     const syncActiveSession = () => {
@@ -243,20 +405,20 @@ export function OverlayPrompter() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (isJumpMenuOpen) {
+          event.preventDefault();
+          closeJumpMenu(true);
+          return;
+        }
+
+        if (isFontMenuOpen) {
+          event.preventDefault();
+          closeFontMenu(true);
+          return;
+        }
+
         event.preventDefault();
         requestCloseOverlay();
-        return;
-      }
-
-      if (event.key === '=' || event.key === '+') {
-        event.preventDefault();
-        changeScrollSpeedBy(2);
-        return;
-      }
-
-      if (event.key === '-' || event.key === '_') {
-        event.preventDefault();
-        changeScrollSpeedBy(-2);
         return;
       }
 
@@ -274,11 +436,30 @@ export function OverlayPrompter() {
       if (event.key === 'ArrowUp') {
         event.preventDefault();
         changeScrollSpeedBy(2);
+        return;
       }
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
         changeScrollSpeedBy(-2);
+        return;
+      }
+
+      if (event.key === '=' || event.key === '+') {
+        event.preventDefault();
+        commitFontScale(overlayFontScale + fontScaleStep);
+        return;
+      }
+
+      if (event.key === '-' || event.key === '_') {
+        event.preventDefault();
+        commitFontScale(overlayFontScale - fontScaleStep);
+        return;
+      }
+
+      if (event.key === '0') {
+        event.preventDefault();
+        commitFontScale(1);
       }
     };
 
@@ -286,16 +467,102 @@ export function OverlayPrompter() {
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [changeScrollSpeedBy, requestCloseOverlay]);
+  }, [
+    changeScrollSpeedBy,
+    closeFontMenu,
+    closeJumpMenu,
+    commitFontScale,
+    isFontMenuOpen,
+    isJumpMenuOpen,
+    overlayFontScale,
+    requestCloseOverlay
+  ]);
 
   useEffect(() => {
-    if (!initialSpeedToastSkippedRef.current) {
-      initialSpeedToastSkippedRef.current = true;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+
+      if (
+        isJumpMenuOpen
+        && jumpMenuRef.current
+        && !jumpMenuRef.current.contains(target)
+        && !jumpTriggerRef.current?.contains(target)
+      ) {
+        closeJumpMenu(false);
+      }
+
+      if (
+        isFontMenuOpen
+        && fontMenuRef.current
+        && !fontMenuRef.current.contains(target)
+        && !fontTriggerRef.current?.contains(target)
+      ) {
+        closeFontMenu(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [closeFontMenu, closeJumpMenu, isFontMenuOpen, isJumpMenuOpen]);
+
+  useEffect(() => {
+    if (!isJumpMenuOpen) {
       return;
     }
 
-    showToast(`Speed ${(scrollSpeed / 42).toFixed(2)}x`, 'info');
-  }, [scrollSpeed, showToast]);
+    const timer = window.setTimeout(() => {
+      jumpMenuRef.current?.querySelector<HTMLButtonElement>('[data-jump-item="true"]')?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isJumpMenuOpen]);
+
+  useEffect(() => {
+    if (!isFontMenuOpen) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      fontMenuRef.current?.querySelector<HTMLButtonElement>('[data-font-focus="true"]')?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isFontMenuOpen]);
+
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (!contentElement) {
+      return;
+    }
+
+    const updateMetrics = () => {
+      setContentMetrics({
+        width: contentElement.clientWidth,
+        height: contentElement.clientHeight
+      });
+    };
+
+    updateMetrics();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateMetrics);
+      return () => {
+        window.removeEventListener('resize', updateMetrics);
+      };
+    }
+
+    const observer = new ResizeObserver(updateMetrics);
+    observer.observe(contentElement);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -363,9 +630,7 @@ export function OverlayPrompter() {
     };
   }, []);
 
-  const normalizedSpeed = Math.max(0.5, Math.min(1.5, scrollSpeed / baseSpeed));
-
-  const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+  const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('button, input, select, textarea, a')) {
       return;
@@ -377,6 +642,44 @@ export function OverlayPrompter() {
     }
   }, []);
 
+  const handleJumpMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const items = Array.from(
+      jumpMenuRef.current?.querySelectorAll<HTMLButtonElement>('[data-jump-item="true"]') ?? []
+    );
+    if (items.length === 0) {
+      return;
+    }
+
+    const activeIndex = items.findIndex((item) => item === document.activeElement);
+    const moveFocus = (nextIndex: number) => {
+      const clamped = Math.max(0, Math.min(items.length - 1, nextIndex));
+      items[clamped]?.focus();
+    };
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveFocus(activeIndex < 0 ? 0 : activeIndex + 1);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveFocus(activeIndex <= 0 ? 0 : activeIndex - 1);
+      return;
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      moveFocus(0);
+      return;
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault();
+      moveFocus(items.length - 1);
+    }
+  }, []);
+
   useEffect(() => {
     const updateRuler = () => {
       const contentElement = contentRef.current;
@@ -384,46 +687,38 @@ export function OverlayPrompter() {
         return;
       }
 
-      const anchorOffset = scrollPosition + contentElement.clientHeight * 0.42;
-      const nextLineIndex = Math.max(0, Math.min(lines.length - 1, Math.floor(anchorOffset / lineHeight)));
-      const lineElement = lineRefs.current[nextLineIndex];
-      const line = lines[nextLineIndex];
-
-      if (!lineElement || line.kind === 'empty') {
+      const lineElement = lineRefs.current[anchorLineIndex];
+      const line = lines[anchorLineIndex];
+      if (!lineElement || !line || line.kind === 'empty') {
         setRulerStyle((previous) => ({ ...previous, visible: false }));
         return;
       }
 
       const contentRect = contentElement.getBoundingClientRect();
       const lineRect = lineElement.getBoundingClientRect();
-      const measuredWidth = lineElement.scrollWidth;
       const minWidth = 220;
-      const maxWidth = Math.max(minWidth, contentRect.width - 44);
-      const nextWidth = Math.min(maxWidth, Math.max(minWidth, measuredWidth + rulerPadding));
-      const nextLeft = Math.max(
-        16,
-        Math.min(lineRect.left - contentRect.left - 16, contentRect.width - nextWidth - 16)
-      );
-      const nextTop = lineRect.top - contentRect.top + (lineRect.height - rulerHeight) / 2;
+      const maxWidth = Math.max(minWidth, contentRect.width - 60);
+      const measuredWidth = lineElement.scrollWidth + 24;
+      const width = Math.max(minWidth, Math.min(maxWidth, measuredWidth));
+      const top = lineRect.top - contentRect.top + (lineRect.height - Math.round(50 * overlayFontScale)) / 2;
 
       setRulerStyle((previous) => {
-        const roundedWidth = Math.round(nextWidth);
-        const roundedLeft = Math.round(nextLeft);
-        const roundedTop = Math.round(nextTop);
+        const roundedTop = Math.round(top);
+        const roundedWidth = Math.round(width);
+        const nextLeft = 24;
 
         if (
           previous.visible
-          && Math.abs(previous.width - roundedWidth) < 1
-          && Math.abs(previous.left - roundedLeft) < 1
           && Math.abs(previous.top - roundedTop) < 1
+          && Math.abs(previous.width - roundedWidth) < 1
         ) {
           return previous;
         }
 
         return {
-          width: roundedWidth,
-          left: roundedLeft,
+          left: nextLeft,
           top: roundedTop,
+          width: roundedWidth,
           visible: true
         };
       });
@@ -433,47 +728,139 @@ export function OverlayPrompter() {
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [lines, scrollPosition]);
-
-  useEffect(() => {
-    const onResize = () => {
-      setRulerStyle((previous) => ({ ...previous, visible: false }));
-    };
-
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
+  }, [anchorLineIndex, lines, overlayFontScale]);
 
   return (
     <main
       className={`overlay-root ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
       role="application"
       aria-label="Glance overlay"
+      style={overlayVars}
     >
-      <header className="hint-bar" data-tauri-drag-region onMouseDown={handleDragMouseDown}>
-        <div className="hint-items" role="tablist" aria-label="Section shortcuts">
-          {sections.slice(0, 9).map((section, index) => (
-            <button
-              key={section.id}
-              type="button"
-              className="hint-item"
-              onClick={() => jumpToSectionByIndex(index)}
-            >
-              {platformModifier()}{index + 1} {section.title}
-            </button>
-          ))}
-          {sections.length > 9 ? <span className="hint-overflow">+{sections.length - 9} more</span> : null}
+      <header className="overlay-topbar" data-tauri-drag-region onMouseDown={handleDragMouseDown}>
+        <span className="overlay-section-counter">
+          {sections.length > 0 ? `Section ${currentSectionIndex + 1}/${sections.length}` : 'No sections'}
+        </span>
+
+        <div className="overlay-section-rail" aria-label="Current and next section">
+          <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
+            {currentSection?.title ?? 'Waiting for headings'}
+          </span>
+          {nextSection ? (
+            <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
+              Next: {nextSection.title}
+            </span>
+          ) : null}
         </div>
-        <button
-          type="button"
-          className="overlay-close-button"
-          onClick={requestCloseOverlay}
-          aria-label="Close prompter"
-        >
-          Close
-        </button>
+
+        <div className="overlay-top-actions">
+          <button
+            ref={fontTriggerRef}
+            type="button"
+            className="overlay-top-action"
+            aria-haspopup="dialog"
+            aria-expanded={isFontMenuOpen}
+            onClick={() => {
+              setIsJumpMenuOpen(false);
+              setIsFontMenuOpen((previous) => !previous);
+            }}
+          >
+            Aa
+          </button>
+          <button
+            ref={jumpTriggerRef}
+            type="button"
+            className="overlay-top-action"
+            aria-haspopup="menu"
+            aria-expanded={isJumpMenuOpen}
+            onClick={() => {
+              setIsFontMenuOpen(false);
+              setIsJumpMenuOpen((previous) => !previous);
+            }}
+          >
+            Jump
+          </button>
+          <button
+            type="button"
+            className="overlay-close-button"
+            onClick={requestCloseOverlay}
+            aria-label="Close prompter"
+          >
+            Close
+          </button>
+        </div>
+
+        {isFontMenuOpen ? (
+          <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label="Font size controls">
+            <div className="overlay-font-controls">
+              <button
+                type="button"
+                className="overlay-popover-button"
+                data-font-focus="true"
+                onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
+                aria-label="Decrease font size"
+              >
+                A−
+              </button>
+              <input
+                type="range"
+                min={minFontScale}
+                max={maxFontScale}
+                step={fontScaleStep}
+                value={overlayFontScale}
+                onChange={(event) => commitFontScale(Number(event.target.value))}
+                aria-label="Font size"
+              />
+              <button
+                type="button"
+                className="overlay-popover-button"
+                onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
+                aria-label="Increase font size"
+              >
+                A+
+              </button>
+            </div>
+            <div className="overlay-font-footer">
+              <span>{Math.round(overlayFontScale * 100)}%</span>
+              <button
+                type="button"
+                className="overlay-popover-link"
+                onClick={() => commitFontScale(1)}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {isJumpMenuOpen ? (
+          <div
+            ref={jumpMenuRef}
+            className="overlay-popover overlay-jump-popover"
+            role="menu"
+            aria-label="Jump to section"
+            onKeyDown={handleJumpMenuKeyDown}
+          >
+            {sections.map((section, index) => (
+              <button
+                key={section.id}
+                type="button"
+                role="menuitem"
+                data-jump-item="true"
+                className={`overlay-jump-item ${index === currentSectionIndex ? 'is-current' : ''}`}
+                onClick={() => {
+                  jumpToSection(index);
+                  closeJumpMenu(true);
+                }}
+              >
+                <span className="overlay-jump-title">{section.title}</span>
+                {index < 9 ? (
+                  <span className="overlay-jump-keycap">{platformModifier()}{index + 1}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       <section className="overlay-content" aria-live="polite" ref={contentRef}>
@@ -486,6 +873,7 @@ export function OverlayPrompter() {
             width: `${rulerStyle.width}px`
           }}
         />
+
         <div className="overlay-lines" style={{ transform: `translateY(${-scrollPosition}px)` }}>
           {lines.map((line, index) => (
             <p
@@ -495,15 +883,33 @@ export function OverlayPrompter() {
               }}
               className={`overlay-line overlay-line-${line.kind}`}
             >
-              {line.kind === 'bullet' ? '• ' : ''}
-              {line.text || '\u00A0'}
+              {line.kind === 'bullet' ? <span className="overlay-bullet-marker">•</span> : null}
+              <span className="overlay-line-content">
+                {line.segments?.length
+                  ? line.segments.map((segment) => {
+                    if (segment.kind === 'cue') {
+                      return (
+                        <span key={segment.id} className="overlay-cue-chip">
+                          {segment.text}
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <span key={segment.id} className={`overlay-segment-${segment.kind}`}>
+                        {segment.text}
+                      </span>
+                    );
+                  })
+                  : line.text || '\u00A0'}
+              </span>
             </p>
           ))}
         </div>
       </section>
 
       <footer className="overlay-controls">
-        <div className="overlay-playback-controls">
+        <div className="overlay-transport-row">
           <button
             type="button"
             className="cancel-button overlay-secondary-button"
@@ -512,17 +918,16 @@ export function OverlayPrompter() {
               setScrollPosition(0);
             }}
           >
-            <RestartIcon />
-            <span>Restart</span>
+            <RewindIcon />
+            <span>Rewind</span>
           </button>
           <button type="button" className="control-button overlay-primary-button" onClick={() => togglePlayback()}>
-            {playbackState === 'running' ? <StopIcon /> : <PlayIcon />}
-            <span>{playbackState === 'running' ? 'Stop' : 'Play'}</span>
+            {playbackState === 'running' ? <PauseIcon /> : <PlayIcon />}
+            <span>{playbackState === 'running' ? 'Pause' : 'Play'}</span>
           </button>
         </div>
 
-        <div className="speed-panel">
-          <div>
+        <div className="overlay-speed-row">
           <input
             type="range"
             min={minSpeed}
@@ -533,25 +938,11 @@ export function OverlayPrompter() {
             aria-label="Scroll speed"
           />
           <span className="speed-value-label">{normalizedSpeed.toFixed(2)}x</span>
-          </div>
-          <div className="speed-shortcut-hints" role="note" aria-label="Speed shortcuts">
-            <button
-              type="button"
-              className="speed-shortcut-chip"
-              onClick={() => changeScrollSpeedBy(-2)}
-              aria-label={`Decrease speed (${speedShortcutLabel('down')})`}
-            >
-              <span>{speedShortcutLabel('down')}</span>
-            </button>
-            <button
-              type="button"
-              className="speed-shortcut-chip"
-              onClick={() => changeScrollSpeedBy(2)}
-              aria-label={`Increase speed (${speedShortcutLabel('up')})`}
-            >
-              <span>{speedShortcutLabel('up')}</span>
-            </button>
-          </div>
+        </div>
+
+        <div className="overlay-speed-hints" role="note" aria-label="Speed shortcuts">
+          <span className="overlay-speed-keycap">{speedShortcutLabel('down')}</span>
+          <span className="overlay-speed-keycap">{speedShortcutLabel('up')}</span>
         </div>
       </footer>
     </main>

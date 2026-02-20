@@ -31,6 +31,7 @@ interface AppStoreState {
   readonly playbackState: PlaybackState;
   readonly scrollPosition: number;
   readonly scrollSpeed: number;
+  readonly overlayFontScale: number;
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
   readonly initialized: boolean;
@@ -48,6 +49,7 @@ interface AppStoreState {
   readonly setScrollPosition: (value: number) => void;
   readonly setScrollSpeed: (value: number) => void;
   readonly changeScrollSpeedBy: (delta: number) => void;
+  readonly setOverlayFontScale: (value: number) => void;
   readonly jumpToSectionByIndex: (index: number) => void;
   readonly setShortcutWarning: (value: string | null) => void;
   readonly showToast: (message: string, variant?: ToastVariant) => void;
@@ -101,8 +103,19 @@ function buildSessionMeta(state: AppStoreState): SessionMeta {
       position: state.scrollPosition,
       speed: state.scrollSpeed,
       running: state.playbackState === 'running'
+    },
+    overlay: {
+      fontScale: state.overlayFontScale
     }
   };
+}
+
+function normalizeFontScale(value: number | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.max(0.85, Math.min(1.4, Number(value.toFixed(2))));
 }
 
 function storeScrollState(state: Pick<AppStoreState, 'scrollPosition' | 'scrollSpeed' | 'playbackState'>): void {
@@ -134,6 +147,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     playbackState: storedScrollState.playbackState,
     scrollPosition: storedScrollState.position,
     scrollSpeed: storedScrollState.speed,
+    overlayFontScale: 1,
     shortcutWarning: null,
     toastMessage: null,
     initialized: false,
@@ -225,7 +239,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
               parseWarnings: parsed.warnings,
               playbackState: 'paused',
               scrollPosition: 0,
-              scrollSpeed: 42
+              scrollSpeed: 42,
+              overlayFontScale: 1
             });
           }
         }
@@ -289,7 +304,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           parseWarnings: parsed.warnings,
           scrollPosition: loaded.meta.scroll.position,
           scrollSpeed: loaded.meta.scroll.speed,
-          playbackState: loaded.meta.scroll.running ? 'running' : 'paused'
+          playbackState: loaded.meta.scroll.running ? 'running' : 'paused',
+          overlayFontScale: normalizeFontScale(loaded.meta.overlay?.fontScale)
         });
         setLastActiveSessionId(loaded.id);
       } catch (error) {
@@ -364,6 +380,24 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const next = Math.max(10, Math.min(140, currentSpeed + delta));
       get().setScrollSpeed(next);
       get().showToast(`Speed ${(next / 42).toFixed(2)}x`, 'info');
+    },
+
+    setOverlayFontScale: (value: number) => {
+      const normalized = normalizeFontScale(value);
+      set((state) => {
+        const currentMeta = state.activeSessionMeta;
+        return {
+          overlayFontScale: normalized,
+          activeSessionMeta: currentMeta
+            ? {
+                ...currentMeta,
+                overlay: {
+                  fontScale: normalized
+                }
+              }
+            : currentMeta
+        };
+      });
     },
 
     jumpToSectionByIndex: (index: number) => {

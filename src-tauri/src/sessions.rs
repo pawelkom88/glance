@@ -17,6 +17,18 @@ pub struct ScrollState {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct OverlayPreferences {
+  pub font_scale: f64,
+}
+
+impl Default for OverlayPreferences {
+  fn default() -> Self {
+    Self { font_scale: 1.0 }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionSummary {
   pub id: String,
   pub title: String,
@@ -34,6 +46,8 @@ pub struct SessionMeta {
   pub updated_at: String,
   pub last_opened_at: String,
   pub scroll: ScrollState,
+  #[serde(default)]
+  pub overlay: OverlayPreferences,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,6 +214,7 @@ fn create_session_files(session_root: &Path, title: &str, markdown: String) -> R
       speed: 42.0,
       running: false,
     },
+    overlay: OverlayPreferences::default(),
   };
 
   write_json(session_dir.join(META_FILE), &meta)?;

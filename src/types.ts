@@ -12,6 +12,10 @@ export interface ScrollState {
   readonly running: boolean;
 }
 
+export interface OverlayPreferences {
+  readonly fontScale: number;
+}
+
 export interface SessionMeta {
   readonly id: string;
   readonly title: string;
@@ -19,6 +23,7 @@ export interface SessionMeta {
   readonly updatedAt: string;
   readonly lastOpenedAt: string;
   readonly scroll: ScrollState;
+  readonly overlay?: OverlayPreferences;
 }
 
 export interface SessionData {
@@ -48,6 +53,14 @@ export interface ParsedMarkdown {
 export interface DisplayLine {
   readonly id: string;
   readonly kind: 'heading' | 'bullet' | 'text' | 'empty';
+  readonly text: string;
+  readonly sectionIndex: number | null;
+  readonly segments?: readonly DisplaySegment[];
+}
+
+export interface DisplaySegment {
+  readonly id: string;
+  readonly kind: 'plain' | 'strong' | 'emphasis' | 'cue';
   readonly text: string;
 }
 
