@@ -337,11 +337,15 @@ export function SettingsView() {
               {showAdvancedJumpMappings ? 'Hide Advanced Jump Keys' : 'Customize Jump Keys'}
             </button>
 
-            {showAdvancedJumpMappings ? (
-              <div className="shortcut-grid shortcut-grid-advanced">
-                {jumpActions.map((action) => renderShortcutInput(action, 'shortcut-advanced'))}
-              </div>
-            ) : null}
+            <div
+              className="shortcut-advanced-wrapper"
+            >
+              {showAdvancedJumpMappings ? (
+                <div className="shortcut-grid shortcut-grid-advanced">
+                  {jumpActions.map((action) => renderShortcutInput(action, 'shortcut-advanced'))}
+                </div>
+              ) : null}
+            </div>
           </section>
         </div>
 

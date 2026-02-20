@@ -286,6 +286,7 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
   let overlay = app
     .get_webview_window("overlay")
     .ok_or_else(|| String::from("Overlay window is not available"))?;
+  let was_visible = overlay.is_visible().map_err(|error| error.to_string())?;
 
   let monitor = app
     .available_monitors()
@@ -310,7 +311,9 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
     .set_position(Position::Physical(PhysicalPosition::new(x, y)))
     .map_err(|error| error.to_string())?;
 
-  overlay.show().map_err(|error| error.to_string())?;
+  if was_visible {
+    overlay.show().map_err(|error| error.to_string())?;
+  }
   Ok(())
 }
 
