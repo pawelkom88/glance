@@ -197,7 +197,7 @@ export function OverlayPrompter() {
           await showMainWindow();
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to close prompter';
-          showToast(message);
+          showToast(message, 'error');
         } finally {
           setIsClosing(false);
         }
@@ -259,7 +259,7 @@ export function OverlayPrompter() {
       return;
     }
 
-    showToast(`Speed ${(scrollSpeed / 42).toFixed(2)}x`);
+    showToast(`Speed ${(scrollSpeed / 42).toFixed(2)}x`, 'info');
   }, [scrollSpeed, showToast]);
 
   useEffect(() => {

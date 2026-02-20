@@ -15,6 +15,7 @@ import {
   openOverlayWindow
 } from './lib/tauri';
 import { useAppStore } from './store/use-app-store';
+import type { ToastVariant } from './types';
 
 type MainTab = 'library' | 'editor' | 'settings' | 'help';
 const windowFadeDurationMs = 140;
@@ -77,6 +78,44 @@ function toExportFilename(title: string): string {
   return `${normalized || 'session'}.md`;
 }
 
+function defaultSessionTitle(): string {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  return `Session ${day}/${month}/${year}`;
+}
+
+function ToastIcon({ variant }: { variant: ToastVariant }) {
+  if (variant === 'success') {
+    return (
+    <svg width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="white" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.808 536.384-99.52-99.584a38.4 38.4 0 1 0-54.336 54.336l126.72 126.72a38.272 38.272 0 0 0 54.336 0l262.4-262.464a38.4 38.4 0 1 0-54.272-54.336L456.192 600.384z"/></svg>
+    );
+  }
+
+  if (variant === 'warning') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 2.7c.6 0 1.1.3 1.4.8l8.1 14a1.6 1.6 0 0 1-1.4 2.5H3.9a1.6 1.6 0 0 1-1.4-2.5l8.1-14c.3-.5.8-.8 1.4-.8Zm-1 6.1v4.6a1 1 0 0 0 2 0V8.8a1 1 0 0 0-2 0Zm1 9.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z" />
+      </svg>
+    );
+  }
+
+  if (variant === 'error') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm3.7-13.7a1 1 0 0 0-1.4-1.4L12 9.2 9.7 6.9a1 1 0 1 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4l-2.3-2.3 2.3-2.3Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-12.3a1 1 0 1 0-2 0v6a1 1 0 0 0 2 0v-6Zm-1-3.4a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z" />
+    </svg>
+  );
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('library');
   const [isOverlay] = useState<boolean>(isOverlayRoute);
@@ -92,7 +131,6 @@ export default function App() {
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const markdown = useAppStore((state) => state.markdown);
   const parseWarnings = useAppStore((state) => state.parseWarnings);
-  const shortcutWarning = useAppStore((state) => state.shortcutWarning);
   const toastMessage = useAppStore((state) => state.toastMessage);
   const loadInitialState = useAppStore((state) => state.loadInitialState);
   const createSessionWithName = useAppStore((state) => state.createSessionWithName);
@@ -132,7 +170,7 @@ export default function App() {
 
     const timeoutId = window.setTimeout(() => {
       clearToast();
-    }, 2000);
+    }, 3000);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -151,7 +189,7 @@ export default function App() {
     }
 
     warningSignatureRef.current = signature;
-    showToast(parseWarnings[0].message);
+    showToast(parseWarnings[0].message, 'warning');
   }, [parseWarnings, showToast]);
 
   useEffect(() => {
@@ -232,7 +270,7 @@ export default function App() {
           }}
           onExportSession={(id) => {
             if (!isTauri()) {
-              showToast('Export is available in the desktop app runtime');
+              showToast('Export is available in the desktop app runtime', 'info');
               return;
             }
 
@@ -260,16 +298,30 @@ export default function App() {
           markdown={markdown}
           sections={sections}
           warnings={parseWarnings}
+          hasSessions={sessions.length > 0}
+          hasActiveSession={Boolean(activeSessionId)}
           onChange={setMarkdown}
+          onCreateSession={() => {
+            void createSessionWithName(defaultSessionTitle());
+          }}
+          onImportSession={() => {
+            importInputRef.current?.click();
+          }}
+          onOpenSessions={() => {
+            switchTab('library');
+          }}
+          onOpenShortcutSettings={() => {
+            switchTab('settings');
+          }}
           onSave={() => {
             void (async () => {
               if (!activeSessionId) {
-                showToast('Open a session before saving');
+                showToast('Open a session before saving', 'warning');
                 return;
               }
 
               if (!isTauri()) {
-                showToast('Save is available in the desktop app runtime');
+                showToast('Save is available in the desktop app runtime', 'info');
                 return;
               }
 
@@ -292,7 +344,7 @@ export default function App() {
 
               const exportedPath = await exportSessionById(activeSessionId, selectedPath, false);
               if (exportedPath) {
-                showToast('Session saved');
+                showToast('Session saved', 'success');
               }
             })();
           }}
@@ -309,14 +361,14 @@ export default function App() {
               } catch (error) {
                 setMainWindowTransition('idle');
                 const message = error instanceof Error ? error.message : 'Failed to launch prompter';
-                showToast(message);
+                showToast(message, 'error');
               }
             })();
           }}
           onCloseOverlay={() => {
             void closeOverlayWindow().catch((error) => {
               const message = error instanceof Error ? error.message : 'Failed to close prompter';
-              showToast(message);
+              showToast(message, 'error');
             });
           }}
         />
@@ -409,8 +461,14 @@ export default function App() {
         }}
       />
 
-      {shortcutWarning ? <p className="warning-banner">Shortcut warning: {shortcutWarning}</p> : null}
-      {toastMessage ? <p className="toast-banner">{toastMessage}</p> : null}
+      {toastMessage ? (
+        <div className={`toast-banner toast-${toastMessage.variant}`} role="status" aria-live="polite">
+          <span className="toast-icon" aria-hidden="true">
+            <ToastIcon variant={toastMessage.variant} />
+          </span>
+          <span className="toast-copy">{toastMessage.message}</span>
+        </div>
+      ) : null}
     </main>
   );
 }

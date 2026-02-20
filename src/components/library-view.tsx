@@ -21,6 +21,8 @@ interface FileMenuState {
 }
 
 const menuWidth = 220;
+const menuHeight = 132;
+const menuGap = 8;
 
 function defaultSessionName(): string {
   return `Session ${new Date().toLocaleDateString()}`;
@@ -28,12 +30,16 @@ function defaultSessionName(): string {
 
 function buildMenuPosition(trigger: HTMLElement): { top: number; left: number } {
   const rect = trigger.getBoundingClientRect();
-  const viewportPadding = 8;
-  const left = Math.max(
-    viewportPadding,
-    Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding)
-  );
-  const top = Math.min(rect.bottom + 8, window.innerHeight - 160);
+  const viewportPadding = 10;
+  const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
+  const left = Math.min(Math.max(rect.left, viewportPadding), maxLeft);
+
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const canPlaceBelow = spaceBelow >= menuHeight + menuGap;
+  const top = canPlaceBelow
+    ? rect.bottom + menuGap
+    : Math.max(viewportPadding, rect.top - menuHeight - menuGap);
+
   return { top, left };
 }
 

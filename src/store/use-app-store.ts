@@ -14,7 +14,7 @@ import {
   saveSession
 } from '../lib/tauri';
 import { loadShortcutConfig, toShortcutBindings } from '../lib/shortcuts';
-import type { ParseWarning, SessionMeta, SessionSummary } from '../types';
+import type { ParseWarning, SessionMeta, SessionSummary, ToastMessage, ToastVariant } from '../types';
 
 type PlaybackState = 'paused' | 'running';
 
@@ -29,7 +29,7 @@ interface AppStoreState {
   readonly scrollPosition: number;
   readonly scrollSpeed: number;
   readonly shortcutWarning: string | null;
-  readonly toastMessage: string | null;
+  readonly toastMessage: ToastMessage | null;
   readonly initialized: boolean;
   readonly loadInitialState: () => Promise<void>;
   readonly createSessionWithName: (name: string) => Promise<void>;
@@ -47,7 +47,7 @@ interface AppStoreState {
   readonly changeScrollSpeedBy: (delta: number) => void;
   readonly jumpToSectionByIndex: (index: number) => void;
   readonly setShortcutWarning: (value: string | null) => void;
-  readonly showToast: (message: string) => void;
+  readonly showToast: (message: string, variant?: ToastVariant) => void;
   readonly clearToast: () => void;
 }
 
@@ -154,7 +154,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         set({ sessions, shortcutWarning, initialized: true });
       });
       if (shortcutWarning) {
-        get().showToast(shortcutWarning);
+        get().showToast(shortcutWarning, 'warning');
       }
 
       if (sessions.length > 0) {
@@ -170,10 +170,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           set({ sessions });
         });
         await get().openSession(newSession.id);
-        get().showToast(`Created "${newSession.title}"`);
+        get().showToast(`Created "${newSession.title}"`, 'success');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to create session';
-        get().showToast(message);
+        get().showToast(message, 'error');
       }
     },
 
@@ -185,10 +185,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           set({ sessions });
         });
         await get().openSession(copied.id);
-        get().showToast(`Duplicated "${copied.title}"`);
+        get().showToast(`Duplicated "${copied.title}"`, 'success');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to duplicate session';
-        get().showToast(message);
+        get().showToast(message, 'error');
       }
     },
 
@@ -220,10 +220,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           }
         }
 
-        get().showToast('Session deleted');
+        get().showToast('Session deleted', 'success');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to delete session';
-        get().showToast(message);
+        get().showToast(message, 'error');
       }
     },
 
@@ -235,33 +235,33 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           set({ sessions });
         });
         await get().openSession(imported.id);
-        get().showToast(`Imported "${imported.title}"`);
+        get().showToast(`Imported "${imported.title}"`, 'success');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to import markdown';
-        get().showToast(message);
+        get().showToast(message, 'error');
       }
     },
 
     exportSessionById: async (id: string, targetPath: string, notify = true) => {
       if (!id) {
-        get().showToast('Select a session before exporting');
+        get().showToast('Select a session before exporting', 'warning');
         return null;
       }
 
       if (!targetPath) {
-        get().showToast('Export canceled');
+        get().showToast('Export canceled', 'info');
         return null;
       }
 
       try {
         const path = await exportSessionToPath(id, targetPath);
         if (notify) {
-          get().showToast(`Exported to ${path}`);
+          get().showToast(`Exported to ${path}`, 'success');
         }
         return path;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to export session';
-        get().showToast(message);
+        get().showToast(message, 'error');
         return null;
       }
     },
@@ -283,7 +283,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to open session';
-        get().showToast(message);
+        get().showToast(message, 'error');
       }
     },
 
@@ -308,7 +308,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         return true;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to save session';
-        get().showToast(message);
+        get().showToast(message, 'error');
         return false;
       }
     },
@@ -352,7 +352,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const currentSpeed = get().scrollSpeed;
       const next = Math.max(10, Math.min(140, currentSpeed + delta));
       get().setScrollSpeed(next);
-      get().showToast(`Speed ${(next / 42).toFixed(2)}x`);
+      get().showToast(`Speed ${(next / 42).toFixed(2)}x`, 'info');
     },
 
     jumpToSectionByIndex: (index: number) => {
@@ -370,8 +370,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       set({ shortcutWarning: value });
     },
 
-    showToast: (message: string) => {
-      set({ toastMessage: message });
+    showToast: (message: string, variant: ToastVariant = 'info') => {
+      set({ toastMessage: { message, variant } });
     },
 
     clearToast: () => {

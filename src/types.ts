@@ -80,3 +80,10 @@ export interface ShowOverlayResult {
   readonly monitorName: string;
   readonly usedSavedBounds: boolean;
 }
+
+export type ToastVariant = 'info' | 'success' | 'warning' | 'error';
+
+export interface ToastMessage {
+  readonly message: string;
+  readonly variant: ToastVariant;
+}
