@@ -210,12 +210,14 @@ export function OverlayPrompter() {
   const lineRefs = useRef<Array<HTMLParagraphElement | null>>([]);
   const monitorNameRef = useRef<string | null>(getLastOverlayMonitorName());
   const contentRef = useRef<HTMLElement | null>(null);
+  const overlayRootRef = useRef<HTMLElement | null>(null);
   const jumpTriggerRef = useRef<HTMLButtonElement | null>(null);
   const jumpMenuRef = useRef<HTMLDivElement | null>(null);
   const fontTriggerRef = useRef<HTMLButtonElement | null>(null);
   const fontMenuRef = useRef<HTMLDivElement | null>(null);
   const fontPersistTimeoutRef = useRef<number | null>(null);
   const speedIconAnimationTimeoutRef = useRef<number | null>(null);
+  const speedBubbleTimeoutRef = useRef<number | null>(null);
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
@@ -224,6 +226,7 @@ export function OverlayPrompter() {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
+  const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
   const [overlaySize, setOverlaySize] = useState(() => ({
     width: Math.round(window.innerWidth),
     height: Math.round(window.innerHeight)
@@ -284,7 +287,7 @@ export function OverlayPrompter() {
       return 0;
     }
 
-    const anchorOffset = scrollPosition + contentMetrics.height * 0.42;
+    const anchorOffset = scrollPosition + contentMetrics.height * 0.5;
     return Math.max(0, Math.min(lines.length - 1, Math.floor(anchorOffset / scaledLineHeight)));
   }, [contentMetrics.height, lines.length, scaledLineHeight, scrollPosition]);
 
@@ -301,6 +304,8 @@ export function OverlayPrompter() {
   const nextSection = sections[currentSectionIndex + 1] ?? null;
   const normalizedSpeed = scrollSpeed / baseSpeed;
   const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
+  const showSectionTitlesInRail = isSidebarExpanded || overlaySize.width < 1200;
+  const isCompactTopBar = overlaySize.width < 1200;
 
   const overlayVars = useMemo(() => ({
     '--overlay-font-scale': overlayFontScale.toString(),
@@ -361,6 +366,9 @@ export function OverlayPrompter() {
       if (speedIconAnimationTimeoutRef.current !== null) {
         window.clearTimeout(speedIconAnimationTimeoutRef.current);
       }
+      if (speedBubbleTimeoutRef.current !== null) {
+        window.clearTimeout(speedBubbleTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -373,6 +381,17 @@ export function OverlayPrompter() {
       setAnimatedSpeedIcon(null);
       speedIconAnimationTimeoutRef.current = null;
     }, 420);
+  }, []);
+
+  const revealSpeedBubble = useCallback(() => {
+    setIsSpeedBubbleVisible(true);
+    if (speedBubbleTimeoutRef.current !== null) {
+      window.clearTimeout(speedBubbleTimeoutRef.current);
+    }
+    speedBubbleTimeoutRef.current = window.setTimeout(() => {
+      setIsSpeedBubbleVisible(false);
+      speedBubbleTimeoutRef.current = null;
+    }, 680);
   }, []);
 
   useEffect(() => {
@@ -506,25 +525,37 @@ export function OverlayPrompter() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTextLikeTarget = target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target?.isContentEditable === true;
+
       if (event.key === 'Escape') {
-        if (isJumpMenuOpen) {
-          event.preventDefault();
-          closeJumpMenu(true);
-          return;
-        }
-
-        if (isFontMenuOpen) {
-          event.preventDefault();
-          closeFontMenu(true);
-          return;
-        }
-
         event.preventDefault();
         requestCloseOverlay();
         return;
       }
 
       const withModifier = event.metaKey || event.ctrlKey;
+
+      if (!withModifier && !isTextLikeTarget) {
+        const isSpaceKey = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+
+        if (isSpaceKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          togglePlayback();
+          return;
+        }
+
+        if (event.key.toLowerCase() === 'r') {
+          event.preventDefault();
+          setPlaybackState('paused');
+          setScrollPosition(0);
+          return;
+        }
+      }
+
       if (!withModifier) {
         return;
       }
@@ -532,18 +563,6 @@ export function OverlayPrompter() {
       if (event.key.toLowerCase() === 'w') {
         event.preventDefault();
         requestCloseOverlay();
-        return;
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        changeScrollSpeedBy(2);
-        return;
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        changeScrollSpeedBy(-2);
         return;
       }
 
@@ -579,7 +598,10 @@ export function OverlayPrompter() {
     isFontMenuOpen,
     isJumpMenuOpen,
     overlayFontScale,
-    requestCloseOverlay
+    requestCloseOverlay,
+    setPlaybackState,
+    setScrollPosition,
+    togglePlayback
   ]);
 
   useEffect(() => {
@@ -768,6 +790,15 @@ export function OverlayPrompter() {
     void startWindowDrag();
   }, [isFontMenuOpen, isJumpMenuOpen, startWindowDrag]);
 
+  const handleRootMouseDownCapture = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest(nonDraggableSelector)) {
+      return;
+    }
+
+    overlayRootRef.current?.focus({ preventScroll: true });
+  }, []);
+
   const handleJumpMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     const items = Array.from(
       jumpMenuRef.current?.querySelectorAll<HTMLButtonElement>('[data-jump-item="true"]') ?? []
@@ -821,17 +852,16 @@ export function OverlayPrompter() {
       }
 
       const contentRect = contentElement.getBoundingClientRect();
-      const lineRect = lineElement.getBoundingClientRect();
       const minWidth = 220;
-      const maxWidth = Math.max(minWidth, contentRect.width - 60);
-      const measuredWidth = lineElement.scrollWidth + 24;
-      const width = Math.max(minWidth, Math.min(maxWidth, measuredWidth));
-      const top = lineRect.top - contentRect.top + (lineRect.height - Math.round(50 * overlayFontScale)) / 2;
+      const horizontalInset = 24;
+      const width = Math.max(minWidth, contentRect.width - (horizontalInset * 2));
+      const rulerHeight = Math.round(50 * overlayFontScale);
+      const top = (contentRect.height * 0.5) - (rulerHeight / 2);
 
       setRulerStyle((previous) => {
         const roundedTop = Math.round(top);
         const roundedWidth = Math.round(width);
-        const nextLeft = 24;
+        const nextLeft = horizontalInset;
 
         if (
           previous.visible
@@ -858,10 +888,13 @@ export function OverlayPrompter() {
 
   return (
     <main
+      ref={overlayRootRef}
       className={`overlay-root ${isSidebarExpanded ? 'overlay-sidebar-expanded' : 'overlay-sidebar-collapsed'} ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
       role="application"
       aria-label="Glance overlay"
+      tabIndex={-1}
       style={overlayVars}
+      onMouseDownCapture={handleRootMouseDownCapture}
       onMouseDown={handleDragMouseDown}
     >
       <div className="overlay-debug-size" aria-live="polite" aria-label="Overlay size">
@@ -869,16 +902,18 @@ export function OverlayPrompter() {
       </div>
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
         <div className="overlay-top-actions">
-          <button
-            type="button"
-            className={`overlay-top-action ${isSidebarExpanded ? 'is-active' : ''}`}
-            aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-            title={isSidebarExpanded ? 'Collapse' : 'Expand'}
-            aria-pressed={isSidebarExpanded}
-            onClick={() => setIsSidebarExpanded((previous) => !previous)}
-          >
-            <SidebarToggleIcon expanded={isSidebarExpanded} />
-          </button>
+          {!isCompactTopBar ? (
+            <button
+              type="button"
+              className={`overlay-top-action ${isSidebarExpanded ? 'is-active' : ''}`}
+              aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              title={isSidebarExpanded ? 'Collapse' : 'Expand'}
+              aria-pressed={isSidebarExpanded}
+              onClick={() => setIsSidebarExpanded((previous) => !previous)}
+            >
+              <SidebarToggleIcon expanded={isSidebarExpanded} />
+            </button>
+          ) : null}
           <button
             ref={fontTriggerRef}
             type="button"
@@ -928,13 +963,13 @@ export function OverlayPrompter() {
 
         <div className="overlay-section-rail" aria-label="Current and next section">
           <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
-            {isSidebarExpanded
+            {showSectionTitlesInRail
               ? (currentSection?.title ?? 'Waiting for headings')
               : `${currentSectionIndex + 1}`}
           </span>
           {nextSection ? (
             <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-              {isSidebarExpanded ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
+              {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
             </span>
           ) : null}
         </div>
@@ -1015,7 +1050,7 @@ export function OverlayPrompter() {
         ) : null}
       </aside>
 
-      <section className="overlay-content" aria-live="polite" ref={contentRef}>
+      <section className="overlay-content" aria-live="polite" ref={contentRef} data-overlay-no-drag="true">
         <div
           className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
           aria-hidden="true"
@@ -1090,6 +1125,16 @@ export function OverlayPrompter() {
               </span>
             </button>
           </div>
+          <div className="overlay-control-hints" aria-hidden="true">
+            <span className="overlay-control-hint">
+              <span className="overlay-control-keycap">R</span>
+              <span>Rewind</span>
+            </span>
+            <span className="overlay-control-hint">
+              <span className="overlay-control-keycap">Space</span>
+              <span>Play</span>
+            </span>
+          </div>
         </footer>
       </aside>
 
@@ -1103,7 +1148,7 @@ export function OverlayPrompter() {
           </span>
           <div className="overlay-speed-track-wrap">
             <div
-              className="overlay-speed-bubble"
+              className={`overlay-speed-bubble ${isSpeedBubbleVisible ? 'is-visible' : ''}`}
               aria-hidden="true"
               style={{ left: `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%` }}
             >
@@ -1119,6 +1164,7 @@ export function OverlayPrompter() {
               onChange={(event) => {
                 const nextValue = Number(event.target.value);
                 setScrollSpeed(nextValue);
+                revealSpeedBubble();
                 if (nextValue < scrollSpeed) {
                   triggerSpeedIconAnimation('slow');
                   return;
@@ -1130,6 +1176,8 @@ export function OverlayPrompter() {
                 triggerSpeedIconAnimation(nextValue <= baseSpeed ? 'slow' : 'fast');
               }}
               aria-label="Scroll speed"
+              onPointerDown={() => revealSpeedBubble()}
+              onFocus={() => revealSpeedBubble()}
               style={{
                 '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
               } as CSSProperties}

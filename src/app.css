@@ -1669,16 +1669,14 @@ select {
   grid-template-rows: minmax(0, 1fr) auto;
   background: var(--bg-canvas-2);
   overflow: hidden;
-  border-radius: 14px;
-  border: 1px solid rgba(12, 18, 30, 0.18);
   opacity: 1;
   transform: translateY(0) scale(1);
   transition:
     opacity 140ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
-    grid-template-columns 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    grid-template-columns 760ms cubic-bezier(0.22, 1, 0.36, 1);
   cursor: grab;
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
 }
 
 .overlay-root.overlay-sidebar-expanded {
@@ -1697,7 +1695,7 @@ select {
 
 .overlay-debug-size {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
   right: 12px;
   z-index: 90;
   pointer-events: none;
@@ -1727,9 +1725,9 @@ select {
   padding: 10px 8px;
   user-select: none;
   transition:
-    padding 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    gap 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    padding 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-section-counter {
@@ -1746,9 +1744,9 @@ select {
   width: 100%;
   max-width: 64px;
   transition:
-    max-width 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    max-width 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-section-rail {
@@ -1756,7 +1754,7 @@ select {
   display: grid;
   justify-items: center;
   gap: 7px;
-  transition: gap 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: gap 760ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-rail-pill {
@@ -1774,12 +1772,12 @@ select {
   line-height: 1.2;
   text-align: center;
   transition:
-    padding 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    max-width 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    width 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    font-size 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    padding 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    font-size 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-rail-current {
@@ -1800,7 +1798,7 @@ select {
   gap: 8px;
   justify-content: flex-start;
   -webkit-app-region: no-drag;
-  transition: gap 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: gap 760ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-popover,
@@ -2037,10 +2035,25 @@ select {
 .overlay-content::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: rgba(12, 18, 30, 0.05);
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(5, 8, 14, 0.34), rgba(5, 8, 14, 0));
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
+}
+
+.overlay-content::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(5, 8, 14, 0.34), rgba(5, 8, 14, 0));
+  pointer-events: none;
+  z-index: 2;
 }
 
 .reading-ruler {
@@ -2054,6 +2067,7 @@ select {
   border: 1px solid rgba(0, 145, 254, 0.18);
   opacity: 0;
   pointer-events: none;
+  z-index: 3;
   transition:
     left 140ms cubic-bezier(0.22, 1, 0.36, 1),
     width 140ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -2166,6 +2180,43 @@ select {
   gap: 14px;
   flex-wrap: nowrap;
   align-self: center;
+}
+
+.overlay-control-hints {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.overlay-control-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  line-height: 1;
+  justify-content: center;
+}
+
+.overlay-control-keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+@media (min-width: 1201px) {
+  .overlay-control-hints {
+    display: none;
+  }
 }
 
 .overlay-speed-footer {
@@ -2382,7 +2433,7 @@ select {
   position: absolute;
   left: 50%;
   bottom: calc(100% + 8px);
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(3px) scale(0.96);
   border-radius: 10px;
   min-width: 48px;
   height: 30px;
@@ -2395,9 +2446,19 @@ select {
   color: var(--text-soft);
   background: var(--accent);
   box-shadow: 0 6px 14px rgba(0, 145, 254, 0.24);
-  transition: left 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transform-origin: center;
+  transition:
+    left 120ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
   z-index: 4;
+}
+
+.overlay-speed-bubble.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
 .overlay-speed-track-fill,
@@ -2446,12 +2507,14 @@ select {
     grid-row: 1;
     border-right: 0;
     border-bottom: 1px solid var(--line-soft);
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto auto;
     grid-template-areas: 'rail actions';
     align-items: center;
-    justify-items: stretch;
-    padding: 6px 10px;
-    gap: 6px;
+    justify-items: center;
+    justify-content: center;
+    min-height: 76px;
+    padding: 0 12px;
+    gap: 8px;
   }
 
   .overlay-content {
@@ -2470,6 +2533,10 @@ select {
     flex-wrap: nowrap;
     overflow-x: auto;
     gap: 6px;
+    width: auto;
+    max-width: min(72vw, 820px);
+    justify-content: center;
+    align-self: center;
   }
 
   .overlay-top-actions {
@@ -2477,9 +2544,10 @@ select {
     display: inline-flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 6px;
     width: auto;
+    align-self: center;
   }
 
   .overlay-popover {
@@ -2492,6 +2560,7 @@ select {
     width: 100%;
     grid-template-rows: auto;
     justify-items: center;
+    justify-content: center;
     gap: 10px;
   }
 
@@ -2508,6 +2577,15 @@ select {
     flex-direction: row;
     gap: 14px;
     align-self: center;
+    justify-content: center;
+  }
+
+  .overlay-control-hints {
+    margin-top: 6px;
+    grid-auto-flow: column;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
   }
 
   .overlay-icon-button,
@@ -2534,11 +2612,13 @@ select {
   .overlay-speed-inline {
     width: min(360px, 100%);
     padding-bottom: 0;
+    justify-self: center;
   }
 
   .overlay-speed-bubble {
     top: calc(100% + 6px);
     bottom: auto;
+    transform: translateX(-50%) translateY(-3px) scale(0.96);
   }
 }
 
