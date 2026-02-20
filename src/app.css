@@ -771,7 +771,7 @@ select {
   gap: 10px;
 }
 
-.editor-area span {
+.editor-area-span {
   color: var(--text-muted);
 }
 

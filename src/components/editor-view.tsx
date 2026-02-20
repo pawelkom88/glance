@@ -42,7 +42,7 @@ export function EditorView(props: EditorViewProps) {
 
       <div className="editor-grid">
         <label className="editor-area" htmlFor="session-markdown">
-          <span>Markdown</span>
+          <span className="editor-area-span">Markdown</span>
           <textarea
             id="session-markdown"
             value={markdown}
@@ -51,8 +51,9 @@ export function EditorView(props: EditorViewProps) {
           />
         </label>
 
+        <div>
+        <span className="editor-area-span">Sessions</span>
         <aside className="sections-panel" aria-label="Derived sections">
-          <h3>Sections</h3>
           {hasSections ? (
             <ul>
               {sections.map((section) => (
@@ -76,6 +77,7 @@ export function EditorView(props: EditorViewProps) {
             </div>
           ) : null}
         </aside>
+      </div>
       </div>
     </section>
   );
