@@ -16,6 +16,7 @@ import {
   getLastOverlayMonitorName,
   listenForShortcutEvents,
   saveOverlayBoundsForMonitor,
+  startOverlayDrag,
   setLastOverlayMonitorName,
   showMainWindow
 } from '../lib/tauri';
@@ -30,6 +31,7 @@ const maxSpeed = 63;
 const minFontScale = 0.85;
 const maxFontScale = 1.4;
 const fontScaleStep = 0.05;
+const nonDraggableSelector = 'button, input, select, textarea, a, [role="menuitem"], [data-overlay-no-drag="true"]';
 
 interface RulerStyle {
   readonly left: number;
@@ -630,17 +632,24 @@ export function OverlayPrompter() {
     };
   }, []);
 
+  const startWindowDrag = useCallback(() => {
+    void startOverlayDrag().catch(() => {
+      // best-effort
+    });
+  }, []);
+
   const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement;
-    if (target.closest('button, input, select, textarea, a')) {
+    if (event.button !== 0 || isJumpMenuOpen || isFontMenuOpen) {
       return;
     }
 
-    const draggableWindow = getCurrentWindow() as unknown as { startDragging?: () => Promise<void> };
-    if (typeof draggableWindow.startDragging === 'function') {
-      void draggableWindow.startDragging();
+    const target = event.target as HTMLElement;
+    if (target.closest(nonDraggableSelector)) {
+      return;
     }
-  }, []);
+
+    void startWindowDrag();
+  }, [isFontMenuOpen, isJumpMenuOpen, startWindowDrag]);
 
   const handleJumpMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     const items = Array.from(
@@ -736,8 +745,9 @@ export function OverlayPrompter() {
       role="application"
       aria-label="Glance overlay"
       style={overlayVars}
+      onMouseDown={handleDragMouseDown}
     >
-      <header className="overlay-topbar" data-tauri-drag-region onMouseDown={handleDragMouseDown}>
+      <header className="overlay-topbar" onMouseDown={handleDragMouseDown}>
         <span className="overlay-section-counter">
           {sections.length > 0 ? `Section ${currentSectionIndex + 1}/${sections.length}` : 'No sections'}
         </span>

@@ -68,6 +68,7 @@ fn main() {
       commands::hide_overlay_window,
       commands::hide_main_window,
       commands::show_main_window,
+      commands::start_overlay_drag,
       commands::register_shortcuts,
       commands::register_default_shortcuts,
       commands::set_overlay_always_on_top,

@@ -243,6 +243,13 @@ export async function showMainWindow(): Promise<void> {
   await invoke('show_main_window');
 }
 
+export async function startOverlayDrag(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+  await invoke('start_overlay_drag');
+}
+
 export async function listenForMainWindowShown(onShown: () => void): Promise<() => void> {
   if (!inTauri()) {
     return () => undefined;

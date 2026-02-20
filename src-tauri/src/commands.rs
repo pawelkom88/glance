@@ -134,6 +134,25 @@ pub fn show_overlay_window(request: ShowOverlayRequest, app: AppHandle) -> Resul
   let target_monitor_name = monitor_label(&target_monitor);
   let mut used_saved_bounds = false;
 
+  // Guard against accidental fullscreen/maximized state which blocks normal dragging.
+  if overlay
+    .is_fullscreen()
+    .map_err(|error| error.to_string())?
+  {
+    overlay
+      .set_fullscreen(false)
+      .map_err(|error| error.to_string())?;
+  }
+
+  if overlay
+    .is_maximized()
+    .map_err(|error| error.to_string())?
+  {
+    overlay
+      .unmaximize()
+      .map_err(|error| error.to_string())?;
+  }
+
   if request.saved_monitor_name.as_deref() == Some(target_monitor_name.as_str()) {
     if let Some(saved_bounds) = request.saved_bounds.as_ref() {
       if is_bounds_inside_monitor(saved_bounds, &target_monitor) {
@@ -204,6 +223,33 @@ pub fn show_main_window(app: AppHandle) -> Result<(), String> {
   app
     .emit_to("main", "main-window-shown", ())
     .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn start_overlay_drag(app: AppHandle) -> Result<(), String> {
+  let overlay = app
+    .get_webview_window("overlay")
+    .ok_or_else(|| String::from("Overlay window is not available"))?;
+
+  if overlay
+    .is_fullscreen()
+    .map_err(|error| error.to_string())?
+  {
+    overlay
+      .set_fullscreen(false)
+      .map_err(|error| error.to_string())?;
+  }
+
+  if overlay
+    .is_maximized()
+    .map_err(|error| error.to_string())?
+  {
+    overlay
+      .unmaximize()
+      .map_err(|error| error.to_string())?;
+  }
+
+  overlay.start_dragging().map_err(|error| error.to_string())
 }
 
 #[tauri::command]
