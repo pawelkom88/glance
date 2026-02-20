@@ -634,7 +634,7 @@ export function LibraryView(props: LibraryViewProps) {
               <button
                 ref={cancelDeleteRef}
                 type="button"
-                className="ghost-button"
+                className="cancel-button"
                 onClick={() => {
                   closeDeleteDialog();
                 }}

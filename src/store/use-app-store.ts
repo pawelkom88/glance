@@ -36,10 +36,10 @@ interface AppStoreState {
   readonly duplicateSessionById: (id: string) => Promise<void>;
   readonly deleteSessionById: (id: string) => Promise<void>;
   readonly importMarkdown: (name: string, markdown: string) => Promise<void>;
-  readonly exportSessionById: (id: string, targetPath: string) => Promise<string | null>;
+  readonly exportSessionById: (id: string, targetPath: string, notify?: boolean) => Promise<string | null>;
   readonly openSession: (id: string) => Promise<void>;
   readonly setMarkdown: (nextMarkdown: string) => void;
-  readonly persistActiveSession: () => Promise<void>;
+  readonly persistActiveSession: () => Promise<boolean>;
   readonly setPlaybackState: (value: PlaybackState) => void;
   readonly togglePlayback: () => void;
   readonly setScrollPosition: (value: number) => void;
@@ -242,7 +242,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
     },
 
-    exportSessionById: async (id: string, targetPath: string) => {
+    exportSessionById: async (id: string, targetPath: string, notify = true) => {
       if (!id) {
         get().showToast('Select a session before exporting');
         return null;
@@ -255,7 +255,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
       try {
         const path = await exportSessionToPath(id, targetPath);
-        get().showToast(`Exported to ${path}`);
+        if (notify) {
+          get().showToast(`Exported to ${path}`);
+        }
         return path;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to export session';
@@ -293,7 +295,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     persistActiveSession: async () => {
       const state = get();
       if (!state.activeSessionId) {
-        return;
+        return false;
       }
 
       try {
@@ -303,9 +305,11 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         startTransition(() => {
           set({ sessions, activeSessionMeta: nextMeta, activeSessionTitle: nextMeta.title });
         });
+        return true;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to save session';
         get().showToast(message);
+        return false;
       }
     },
 

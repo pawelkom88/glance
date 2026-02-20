@@ -31,6 +31,13 @@ function platformModifier(): string {
   return navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+';
 }
 
+function speedShortcutLabel(direction: 'up' | 'down'): string {
+  if (navigator.platform.includes('Mac')) {
+    return `⌘${direction === 'up' ? '↑' : '↓'}`;
+  }
+  return `Ctrl+${direction === 'up' ? '↑' : '↓'}`;
+}
+
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
@@ -53,13 +60,12 @@ function StopIcon() {
 
 function RestartIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M6 8.5h5v-5" />
-      <path d="M7.4 13.2A5.5 5.5 0 1 0 10.8 7" />
-    </svg>
+  <svg fill="#000000" width="24" height="24" viewBox="-7.5 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <title>restart</title>
+    <path d="M15.88 13.84c-1.68-3.48-5.44-5.24-9.040-4.6l0.96-1.8c0.24-0.4 0.080-0.92-0.32-1.12-0.4-0.24-0.92-0.080-1.12 0.32l-1.96 3.64c0 0-0.44 0.72 0.24 1.040l3.64 1.96c0.12 0.080 0.28 0.12 0.4 0.12 0.28 0 0.6-0.16 0.72-0.44 0.24-0.4 0.080-0.92-0.32-1.12l-1.88-1.040c2.84-0.48 5.8 0.96 7.12 3.68 1.6 3.32 0.2 7.32-3.12 8.88-1.6 0.76-3.4 0.88-5.080 0.28s-3.040-1.8-3.8-3.4c-0.76-1.6-0.88-3.4-0.28-5.080 0.16-0.44-0.080-0.92-0.52-1.080-0.4-0.080-0.88 0.16-1.040 0.6-0.72 2.12-0.6 4.36 0.36 6.36s2.64 3.52 4.76 4.28c0.92 0.32 1.84 0.48 2.76 0.48 1.24 0 2.48-0.28 3.6-0.84 4.16-2 5.92-7 3.92-11.12z"></path>
+  </svg>
   );
 }
-
 export function OverlayPrompter() {
   const markdown = useAppStore((state) => state.markdown);
   const playbackState = useAppStore((state) => state.playbackState);
@@ -204,6 +210,18 @@ export function OverlayPrompter() {
       if (event.key === 'Escape') {
         event.preventDefault();
         requestCloseOverlay();
+        return;
+      }
+
+      if (event.key === '=' || event.key === '+') {
+        event.preventDefault();
+        changeScrollSpeedBy(2);
+        return;
+      }
+
+      if (event.key === '-' || event.key === '_') {
+        event.preventDefault();
+        changeScrollSpeedBy(-2);
         return;
       }
 
@@ -450,23 +468,26 @@ export function OverlayPrompter() {
       </section>
 
       <footer className="overlay-controls">
-        <button
-          type="button"
-          className="ghost-button overlay-secondary-button"
-          onClick={() => {
-            setPlaybackState('paused');
-            setScrollPosition(0);
-          }}
-        >
-          <RestartIcon />
-          <span>Restart</span>
-        </button>
-        <button type="button" className="control-button overlay-primary-button" onClick={() => togglePlayback()}>
-          {playbackState === 'running' ? <StopIcon /> : <PlayIcon />}
-          <span>{playbackState === 'running' ? 'Stop' : 'Play'}</span>
-        </button>
+        <div className="overlay-playback-controls">
+          <button
+            type="button"
+            className="cancel-button overlay-secondary-button"
+            onClick={() => {
+              setPlaybackState('paused');
+              setScrollPosition(0);
+            }}
+          >
+            <RestartIcon />
+            <span>Restart</span>
+          </button>
+          <button type="button" className="control-button overlay-primary-button" onClick={() => togglePlayback()}>
+            {playbackState === 'running' ? <StopIcon /> : <PlayIcon />}
+            <span>{playbackState === 'running' ? 'Stop' : 'Play'}</span>
+          </button>
+        </div>
 
-        <div className="speed-control speed-control-compact">
+        <div className="speed-panel">
+          <div>
           <input
             type="range"
             min={minSpeed}
@@ -477,6 +498,25 @@ export function OverlayPrompter() {
             aria-label="Scroll speed"
           />
           <span className="speed-value-label">{normalizedSpeed.toFixed(2)}x</span>
+          </div>
+          <div className="speed-shortcut-hints" role="note" aria-label="Speed shortcuts">
+            <button
+              type="button"
+              className="speed-shortcut-chip"
+              onClick={() => changeScrollSpeedBy(-2)}
+              aria-label={`Decrease speed (${speedShortcutLabel('down')})`}
+            >
+              <span>{speedShortcutLabel('down')}</span>
+            </button>
+            <button
+              type="button"
+              className="speed-shortcut-chip"
+              onClick={() => changeScrollSpeedBy(2)}
+              aria-label={`Increase speed (${speedShortcutLabel('up')})`}
+            >
+              <span>{speedShortcutLabel('up')}</span>
+            </button>
+          </div>
         </div>
       </footer>
     </main>

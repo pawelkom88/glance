@@ -6,22 +6,29 @@
 
   --bg-canvas-1: #E7E7E7;
   --bg-canvas-2: #fff;
-  --bg-card: #f3f4f6;
-  --bg-card-strong: #050505;
-  --bg-card-muted: #E4E4E4;
+  --bg-card-strong: #121212;
+  --bg-card: #fff;
+  --bg-gradient-start: #1a2233;
+  --bg-gradient-mid: #0d121b;
+  --bg-gradient-end: #232d40;
+  --bg-gradient-accent: rgba(255, 90, 0, 0.15);
 
-  --sidebar-bg: #050505;
+  --sidebar-bg: #121212;
 
-  --text-strong: #050505;
+  --text-strong: #121212;
   --text-soft: #fff;
   --text-body: #2f3745;
   --text-muted: #6d7380;
 
+  --color-grey: #747485;
+  --color-green: #00C978;
+  --color-gold:#D48F00;
+
   --line-soft: #ffffff14;
   --line-faint: #050505;
   
-  --accent: #FF5A00;
-  --danger: #b00000;
+  --accent: #0091FE;
+  --danger: #FF520F;
 
   --radius-xl: 32px;
   --radius-lg: 22px;
@@ -53,7 +60,9 @@ html {
 body {
   font-family: var(--font-body, sans-serif);
   font-optical-sizing: auto;
-  background: var(--bg-canvas-1);
+  background:
+    linear-gradient(180deg, var(--bg-gradient-accent) 0%, rgba(255, 90, 0, 0) 42%),
+    linear-gradient(120deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 54%, var(--bg-gradient-end) 100%);
   color: var(--text-strong);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -92,7 +101,9 @@ select {
 
 .app-shell {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: stretch;
   width: 100%;
   min-height: 100vh;
   padding: 0;
@@ -112,29 +123,34 @@ select {
 }
 
 .sidebar {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
-  top: auto;
-  transform: none;
-  z-index: 24;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  position: relative;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  min-height: 100vh;
+  border-radius: 0;
+  border: 0;
+  border-right: 1px solid var(--line-soft);
   background: var(--sidebar-bg);
-  backdrop-filter: blur(20px);
-  padding: 12px 6px;
+  backdrop-filter: none;
   display: flex;
   justify-content: center;
-  width: 54px;
+  width: 100%;
+  z-index: 20;
+  overflow: visible;
 }
 
 .icon-nav {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  min-height: 0;
-  gap: 8px;
+  height: 100%;
+  min-height: 100%;
+  gap: 12px;
+  overflow: visible;
 }
 
 .nav-icon-button {
@@ -150,6 +166,7 @@ select {
   place-items: center;
   cursor: pointer;
   transition: background 160ms ease, transform 180ms ease, color 160ms ease;
+  z-index: 1;
 }
 
 .nav-icon-button::after {
@@ -170,6 +187,7 @@ select {
   pointer-events: none;
   transition: opacity 140ms ease, transform 140ms ease;
   box-shadow: var(--shadow-sm);
+  z-index: 12;
 }
 
 .nav-icon-button:hover::before,
@@ -200,7 +218,7 @@ select {
 }
 
 .nav-icon-button:hover {
-  background: var(--bg-card-muted);
+  background: var(--bg-card);
   color: var(--text-strong);
   transform: translateY(-1px);
 }
@@ -217,24 +235,27 @@ select {
 
 .content-area {
   min-height: 100vh;
+  background: var(--bg-canvas-2);
+  min-width: 0;
 }
 
 .panel-switch {
   min-height: 100vh;
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 120ms ease-out, transform 120ms ease-out;
+  will-change: opacity;
+  transition: opacity 1s ease-out;
+  background: var(--bg-canvas-2);
 }
 
 .panel-switch.is-switching {
-  opacity: 0.985;
-  transform: translateY(2px);
+  opacity: 0;
 }
 
 .panel {
   position: relative;
   border-radius: 0;
-  background: var(--bg-canvas-2);
+  background: rgba(245, 247, 251, 0.92);
+  backdrop-filter: blur(8px);
   border: 0;
   padding: 24px;
   min-height: 100vh;
@@ -319,7 +340,7 @@ select {
   margin: 0 0 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-soft);
-  background: var(--bg-card-muted);
+  background: var(--bg-card);
   opacity: 0;
   transform: translateY(-4px) scale(0.99);
   animation: composer-in 170ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -380,12 +401,12 @@ select {
 
 .cancel-button {
   color: var(--text-strong);
-  background: var(--bg-canvas-2);
-  border: 1px solid var(--line-soft);
+  background: var(--text-soft);
+  border: 1px solid var(--color-grey);
 }
 
 .ghost-button {
-  background: var(--bg-card-muted);
+  background: var(--bg-card);
   color: var(--text-strong);
   border: 1px solid var(--line-soft);
 }
@@ -466,7 +487,7 @@ select {
 }
 
 .session-card.active {
-  border-color: var(--bg-card-muted);
+  border-color: var(--bg-card);
 
   &:hover {
     transform: translateY(-1px);
@@ -483,18 +504,96 @@ select {
 
 @supports (view-transition-name: none) {
   @media (prefers-reduced-motion: no-preference) {
-    ::view-transition-group(.session-row-update) {
+    ::view-transition-group(.app-page-update),
+    ::view-transition-group(.app-page-enter),
+    ::view-transition-group(.app-page-exit),
+    ::view-transition-group(.app-page-fade) {
       animation-duration: 220ms;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+      animation-timing-function: ease;
+    }
+
+    ::view-transition-old(.app-page-update),
+    ::view-transition-old(.app-page-enter),
+    ::view-transition-old(.app-page-exit),
+    ::view-transition-old(.app-page-fade) {
+      animation-name: app-page-old;
+      animation-duration: 220ms;
+      animation-timing-function: ease;
+    }
+
+    ::view-transition-new(.app-page-update),
+    ::view-transition-new(.app-page-enter),
+    ::view-transition-new(.app-page-exit),
+    ::view-transition-new(.app-page-fade) {
+      animation-name: app-page-new;
+      animation-duration: 220ms;
+      animation-timing-function: ease;
+    }
+
+    ::view-transition-group(.session-row-update) {
+      animation-duration: 300ms;
+      animation-timing-function: cubic-bezier(0.2, 0.9, 0.2, 1);
     }
 
     ::view-transition-old(.session-row-enter),
     ::view-transition-new(.session-row-enter),
     ::view-transition-old(.session-row-exit),
     ::view-transition-new(.session-row-exit) {
-      animation-duration: 170ms;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+      animation-duration: 240ms;
+      animation-timing-function: cubic-bezier(0.2, 0.9, 0.2, 1);
     }
+
+    ::view-transition-old(.session-row-update),
+    ::view-transition-old(.session-row-exit),
+    ::view-transition-old(.session-row-enter) {
+      animation-name: session-row-old;
+    }
+
+    ::view-transition-new(.session-row-update),
+    ::view-transition-new(.session-row-enter),
+    ::view-transition-new(.session-row-exit) {
+      animation-name: session-row-new;
+    }
+  }
+}
+
+@keyframes app-page-old {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes app-page-new {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes session-row-old {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0.84;
+    transform: translateY(-2px) scale(0.995);
+  }
+}
+
+@keyframes session-row-new {
+  from {
+    opacity: 0.78;
+    transform: translateY(3px) scale(0.994);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -556,16 +655,10 @@ select {
   animation: fade-in 150ms ease forwards;
 }
 
-.floating-menu-backdrop[data-state='closing'] {
-  animation: fade-out 140ms ease forwards;
-}
-
 .floating-menu {
   position: fixed;
-  min-width: 182px;
   border-radius: 14px;
   border: 1px solid var(--line-soft);
-  background: var(--bg-canvas-2);
   box-shadow: var(--shadow-sm);
   display: grid;
   overflow: hidden;
@@ -582,11 +675,13 @@ select {
 
 .menu-item {
   border: 0;
-  background: transparent;
+  background: var(--bg-card);
   color: var(--text-strong);
   text-align: left;
   padding: 11px 14px;
   cursor: pointer;
+  position: relative;
+  transition: transform 160ms ease, background-color 160ms ease;
 
   &:focus-visible {
     outline: 2px solid var(--accent);
@@ -596,7 +691,8 @@ select {
 
 .menu-item:hover,
 .menu-item:focus-visible {
-  background: var(--bg-card-muted);
+  font-weight: 600;
+  transition: transform 160ms ease, font-weight 160ms ease;
 }
 
 .menu-item-danger {
@@ -683,7 +779,6 @@ select {
   min-height: calc(100vh - 260px);
   border-radius: var(--radius-md);
   border: 1px solid var(--line-soft);
-  background: rgba(10, 16, 27, 0.65);
   color: var(--text-strong);
   padding: 14px;
   resize: vertical;
@@ -694,8 +789,8 @@ select {
 .help-grid article,
 .setting-row {
   border-radius: var(--radius-md);
-  border: 1px solid var(--line-faint);
-  background: green;
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-canvas-2);
 }
 
 .sections-panel {
@@ -786,7 +881,6 @@ select {
   margin-top: 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-faint);
-  background: rgba(13, 20, 32, 0.62);
   padding: 14px;
 }
 
@@ -873,7 +967,9 @@ select {
   position: fixed;
   right: 16px;
   bottom: 68px;
-  background: var(--bg-card-muted);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
   color: var(--text-strong);
   animation: toast-in .3s ease-in-out;
   font-weight: 500;
@@ -1010,12 +1106,12 @@ select {
 .overlay-root {
   --hint-bar-height: 54px;
   --controls-height: 94px;
+
   position: relative;
-  min-height: 100vh;
-  height: 100vh;
-  max-height: 100vh;
-  border-radius: 0;
-  border: 0;
+  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 12px;
   background: var(--bg-canvas-2);
   overflow: hidden;
   opacity: 1;
@@ -1255,13 +1351,11 @@ select {
 }
 
 @media (max-width: 1024px) {
-  .sidebar {
-    left: 12px;
-    bottom: 12px;
+  .app-shell {
+    grid-template-columns: 56px minmax(0, 1fr);
   }
 
   .panel {
-    min-height: auto;
     padding: 18px;
   }
 
@@ -1331,4 +1425,22 @@ select {
     min-width: 100%;
     margin-left: 0;
   }
+}
+
+.overlay-controls {
+  border-top: 1px solid var(--color-grey);
+  padding-top: 20px;
+}
+
+.overlay-playback-controls, .speed-panel {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.speed-shortcut-chip {
+  background: none;
+  border: 1px solid red;
 }

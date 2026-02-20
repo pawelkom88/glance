@@ -1,10 +1,11 @@
-import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactElement, startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { EditorView } from './components/editor-view';
 import { HelpView } from './components/help-view';
 import { LibraryView } from './components/library-view';
 import { OverlayPrompter } from './components/overlay-prompter';
+import { ReactViewTransition } from './components/react-view-transition';
 import { SettingsView } from './components/settings-view';
 import { parseMarkdown } from './lib/markdown';
 import {
@@ -84,6 +85,7 @@ export default function App() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
   const fadeInFrameRef = useRef<number | null>(null);
+  const tabSwitchTimeoutRef = useRef<number | null>(null);
 
   const initialized = useAppStore((state) => state.initialized);
   const sessions = useAppStore((state) => state.sessions);
@@ -130,7 +132,7 @@ export default function App() {
 
     const timeoutId = window.setTimeout(() => {
       clearToast();
-    }, 1400);
+    }, 2000);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -153,19 +155,12 @@ export default function App() {
   }, [parseWarnings, showToast]);
 
   useEffect(() => {
-    if (!initialized) {
-      return;
-    }
-
-    setIsTabSwitchAnimating(true);
-    const frame = window.requestAnimationFrame(() => {
-      setIsTabSwitchAnimating(false);
-    });
-
     return () => {
-      window.cancelAnimationFrame(frame);
+      if (tabSwitchTimeoutRef.current !== null) {
+        window.clearTimeout(tabSwitchTimeoutRef.current);
+      }
     };
-  }, [activeTab, initialized]);
+  }, []);
 
   useEffect(() => {
     let unlisten: () => void = () => undefined;
@@ -191,6 +186,27 @@ export default function App() {
     };
   }, []);
 
+  const switchTab = (nextTab: MainTab) => {
+    if (!initialized || nextTab === activeTab) {
+      return;
+    }
+
+    if (tabSwitchTimeoutRef.current !== null) {
+      window.clearTimeout(tabSwitchTimeoutRef.current);
+    }
+
+    setIsTabSwitchAnimating(true);
+    tabSwitchTimeoutRef.current = window.setTimeout(() => {
+      startTransition(() => {
+        setActiveTab(nextTab);
+      });
+      window.requestAnimationFrame(() => {
+        setIsTabSwitchAnimating(false);
+      });
+      tabSwitchTimeoutRef.current = null;
+    }, 130);
+  };
+
   const activePanel = useMemo(() => {
     if (activeTab === 'library') {
       return (
@@ -201,12 +217,12 @@ export default function App() {
             void openSession(id);
           }}
           onOpen={(id) => {
-            setActiveTab('editor');
+            switchTab('editor');
             void openSession(id);
           }}
           onCreate={(name) => {
             void createSessionWithName(name);
-            setActiveTab('editor');
+            switchTab('editor');
           }}
           onDelete={(id) => {
             void deleteSessionById(id);
@@ -246,7 +262,39 @@ export default function App() {
           warnings={parseWarnings}
           onChange={setMarkdown}
           onSave={() => {
-            void persistActiveSession();
+            void (async () => {
+              if (!activeSessionId) {
+                showToast('Open a session before saving');
+                return;
+              }
+
+              if (!isTauri()) {
+                showToast('Save is available in the desktop app runtime');
+                return;
+              }
+
+              const selectedSession = sessions.find((session) => session.id === activeSessionId);
+              const defaultPath = toExportFilename(selectedSession?.title ?? 'session');
+              const selectedPath = await save({
+                title: 'Save Markdown Session',
+                defaultPath,
+                filters: [{ name: 'Markdown', extensions: ['md'] }]
+              });
+
+              if (!selectedPath || Array.isArray(selectedPath)) {
+                return;
+              }
+
+              const persisted = await persistActiveSession();
+              if (!persisted) {
+                return;
+              }
+
+              const exportedPath = await exportSessionById(activeSessionId, selectedPath, false);
+              if (exportedPath) {
+                showToast('Session saved');
+              }
+            })();
           }}
           onLaunchOverlay={() => {
             void (async () => {
@@ -293,7 +341,9 @@ export default function App() {
     sections,
     sessions,
     setMarkdown,
-    showToast
+    showToast,
+    initialized,
+    switchTab
   ]);
 
   if (isOverlay) {
@@ -311,7 +361,9 @@ export default function App() {
               className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
               aria-label={tab.label}
               data-tooltip={tab.label}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                switchTab(tab.id);
+              }}
             >
               <tab.icon />
               <span className="sr-only">{tab.label}</span>
@@ -324,7 +376,16 @@ export default function App() {
         {!initialized ? (
           <p className="startup-label">Loading local workspace…</p>
         ) : (
-          <div className={`panel-switch ${isTabSwitchAnimating ? 'is-switching' : ''}`}>{activePanel}</div>
+          <ReactViewTransition
+            default="app-page-fade"
+            update="app-page-update"
+            enter="app-page-enter"
+            exit="app-page-exit"
+          >
+            <div key={activeTab} className={`panel-switch ${isTabSwitchAnimating ? 'is-switching' : ''}`}>
+              {activePanel}
+            </div>
+          </ReactViewTransition>
         )}
       </section>
 
