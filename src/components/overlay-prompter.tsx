@@ -414,8 +414,8 @@ export function OverlayPrompter() {
     </>
   );
 
-  const renderPlaybackControls = () => (
-    <footer className="overlay-controls">
+  const renderPlaybackControls = (className = '') => (
+    <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
         <button
           type="button"
@@ -428,6 +428,9 @@ export function OverlayPrompter() {
         >
           <RewindIcon />
         </button>
+
+
+
         <button
           type="button"
           className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
@@ -444,7 +447,10 @@ export function OverlayPrompter() {
           </span>
         </button>
       </div>
+
+
       <div className="overlay-control-hints" aria-hidden="true">
+
         <span className="overlay-control-hint">
           <span className="overlay-control-keycap">R</span>
           <span>Rewind</span>
@@ -453,6 +459,7 @@ export function OverlayPrompter() {
           <span className="overlay-control-keycap">Space</span>
           <span>Play</span>
         </span>
+        
       </div>
     </footer>
   );
@@ -1340,7 +1347,7 @@ export function OverlayPrompter() {
             </div>
           </div>
         ) : null}
-        {!isCompactTopBar ? renderPlaybackControls() : null}
+        {!isCompactTopBar ? renderPlaybackControls('overlay-controls-desktop') : null}
       </aside>
 
       {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer') : null}
