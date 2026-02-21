@@ -2124,36 +2124,52 @@ select {
   padding: 24px;
 }
 
+/* Spotlight dimming: gradient overlay that clears around the reading ruler */
 .overlay-content::before {
-  content: none;
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+
+  --clear-start: calc(var(--spotlight-top, 0px) - 6px);
+  --clear-end: calc(var(--spotlight-top, 0px) + var(--spotlight-height, 50px) + 6px);
+
+  background: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.86) 0%,
+      rgba(255, 255, 255, 0.78) calc(var(--clear-start) - 120px),
+      rgba(255, 255, 255, 0.40) calc(var(--clear-start) - 40px),
+      transparent var(--clear-start),
+      transparent var(--clear-end),
+      rgba(255, 255, 255, 0.40) calc(var(--clear-end) + 40px),
+      rgba(255, 255, 255, 0.78) calc(var(--clear-end) + 120px),
+      rgba(255, 255, 255, 0.86) 100%);
 }
 
 .overlay-content::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom,
-      rgba(5, 8, 14, 0) 0%,
-      rgba(5, 8, 14, 0) 20%,
-      rgba(5, 8, 14, 0.10) 40%,
-      rgba(5, 8, 14, 0.16) 72%,
-      rgba(5, 8, 14, 0.20) 100%);
-  pointer-events: none;
-  z-index: 2;
+  content: none;
 }
 
 .reading-ruler {
   position: absolute;
-  left: 24px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: min(100%, 1260px);
   top: 0;
-  width: 260px;
   height: calc(50px * var(--overlay-font-scale, 1));
-  border-radius: 16px;
-  background: rgba(0, 145, 254, 0.09);
-  border: 1px solid rgba(0, 145, 254, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(90deg,
+      rgba(0, 145, 254, 0.14),
+      rgba(0, 145, 254, 0.08) 60%,
+      rgba(0, 145, 254, 0.02) 100%);
+  border: 1px solid rgba(0, 145, 254, 0.2);
+  border-left: 3px solid rgba(0, 145, 254, 0.55);
+  box-shadow:
+    0 0 24px rgba(0, 145, 254, 0.06),
+    0 2px 8px rgba(0, 145, 254, 0.04),
+    inset 0 0 16px rgba(0, 145, 254, 0.03);
+  backdrop-filter: saturate(1.2);
   opacity: 0;
   pointer-events: none;
   z-index: 3;

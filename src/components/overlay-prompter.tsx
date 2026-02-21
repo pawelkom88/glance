@@ -201,6 +201,7 @@ function currentSectionFromLine(lines: readonly { sectionIndex: number | null }[
   }
 
   return 0;
+
 }
 
 export function OverlayPrompter() {
@@ -304,13 +305,34 @@ export function OverlayPrompter() {
     });
   }, [lines, sections]);
 
+  const linePositions = useMemo(() => {
+    const positions: number[] = [];
+    let currentY = 0;
+    for (const line of lines) {
+      positions.push(currentY);
+      if (line.kind === 'empty') {
+        currentY += (scaledLineHeight * 0.5) + overlayLineGapPx;
+      } else {
+        currentY += scaledLineHeight + overlayLineGapPx;
+      }
+    }
+    return { positions, totalHeight: currentY };
+  }, [lines, overlayLineGapPx, scaledLineHeight]);
+
   const anchorLineIndex = useMemo(() => {
     if (lines.length === 0) {
       return 0;
     }
 
-    return Math.max(0, Math.min(lines.length - 1, Math.floor(scrollPosition / lineStride)));
-  }, [lineStride, lines.length, scrollPosition]);
+    const { positions } = linePositions;
+    for (let i = 0; i < positions.length; i += 1) {
+      if (positions[i] > scrollPosition) {
+        return Math.max(0, i - 1);
+      }
+    }
+
+    return Math.max(0, lines.length - 1);
+  }, [linePositions, lines.length, scrollPosition]);
 
   const currentSectionIndex = useMemo(() => {
     if (sections.length === 0) {
@@ -543,8 +565,9 @@ export function OverlayPrompter() {
       return;
     }
 
-    setScrollPosition(targetLine * lineStride);
-  }, [lineStride, sectionStartLineIndexes, setScrollPosition]);
+    const targetY = linePositions.positions[targetLine] ?? 0;
+    setScrollPosition(targetY);
+  }, [linePositions.positions, sectionStartLineIndexes, setScrollPosition]);
 
   const commitFontScale = useCallback((nextValue: number) => {
     const normalized = normalizeFontScale(nextValue);
@@ -610,7 +633,7 @@ export function OverlayPrompter() {
   }, [scrollSpeed]);
 
   useEffect(() => {
-    const maxPosition = Math.max(0, (lines.length - 1) * lineStride);
+    const maxPosition = Math.max(0, linePositions.totalHeight - lineStride);
 
     engineRef.current = new ScrollEngine({
       getSpeed: () => speedRef.current,
@@ -627,14 +650,14 @@ export function OverlayPrompter() {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
-  }, [lineStride, lines.length, setScrollPosition]);
+  }, [linePositions.totalHeight, lineStride, setScrollPosition]);
 
   useEffect(() => {
-    const maxPosition = Math.max(0, (lines.length - 1) * lineStride);
+    const maxPosition = Math.max(0, linePositions.totalHeight - lineStride);
     if (scrollPosition > maxPosition) {
       setScrollPosition(maxPosition);
     }
-  }, [lineStride, lines.length, scrollPosition, setScrollPosition]);
+  }, [linePositions.totalHeight, lineStride, scrollPosition, setScrollPosition]);
 
   useEffect(() => {
     if (!engineRef.current) {
@@ -1266,15 +1289,20 @@ export function OverlayPrompter() {
         ) : null}
       </aside>
 
-      <section className="overlay-content" aria-live="polite" ref={contentRef} data-overlay-no-drag="true">
+      <section
+        className="overlay-content"
+        aria-live="polite"
+        ref={contentRef}
+        data-overlay-no-drag="true"
+        style={{
+          '--spotlight-top': `${rulerStyle.top}px`,
+          '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
+        } as CSSProperties}
+      >
         <div
           className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
           aria-hidden="true"
-          style={{
-            left: `${rulerStyle.left}px`,
-            top: `${rulerStyle.top}px`,
-            width: `${rulerStyle.width}px`
-          }}
+          style={{ top: `${rulerStyle.top}px` }}
         />
 
         <div
