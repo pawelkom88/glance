@@ -331,6 +331,15 @@ export function OverlayPrompter() {
 
   const currentSection = sections[currentSectionIndex] ?? null;
   const nextSection = sections[currentSectionIndex + 1] ?? null;
+  const firstRenderableLine = useMemo(
+    () => lines.find((line) => line.kind !== 'empty') ?? null,
+    [lines]
+  );
+  const firstLineLaneNudge = firstRenderableLine?.kind === 'heading'
+    ? -18
+    : firstRenderableLine?.kind === 'bullet'
+      ? -10
+      : 0;
   const normalizedSpeed = scrollSpeed / baseSpeed;
   const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
   const showSectionTitlesInRail = isSidebarExpanded || overlaySize.width < 1200;
@@ -419,49 +428,44 @@ export function OverlayPrompter() {
   const renderPlaybackControls = (className = '') => (
     <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
-        <div className="overlay-control-hints" aria-hidden="true">
-        <button
-          type="button"
-          className="overlay-icon-button overlay-secondary-button"
-          aria-label="Rewind to start"
-          onClick={() => {
-            setPlaybackState('paused');
-            setScrollPosition(0);
-          }}
-        >
-          <RewindIcon />
-        </button>
-        <span className="overlay-control-hint">
-          <span className="overlay-control-keycap">R</span>
-          <span>Rewind</span>
-        </span>
-
-<br/>
-        <button
-          type="button"
-          className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
-          onClick={() => togglePlayback()}
-          aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
-        >
-          <span className="overlay-play-icon-stack" aria-hidden="true">
-            <span className="overlay-play-icon overlay-play-icon-play">
-              <PlayIcon />
-            </span>
-            <span className="overlay-play-icon overlay-play-icon-pause">
-              <PauseIcon />
-            </span>
+        <div className="overlay-control-group">
+          <button
+            type="button"
+            className="overlay-icon-button overlay-secondary-button"
+            aria-label="Rewind to start"
+            onClick={() => {
+              setPlaybackState('paused');
+              setScrollPosition(0);
+            }}
+          >
+            <RewindIcon />
+          </button>
+          <span className="overlay-control-hint" aria-hidden="true">
+            <span className="overlay-control-keycap">R</span>
+            <span>Rewind</span>
           </span>
-        </button>
-      </div>
-
-
-
-
-        <span className="overlay-control-hint">
-          <span className="overlay-control-keycap">Space</span>
-          <span>Play</span>
-        </span>
-
+        </div>
+        <div className="overlay-control-group">
+          <button
+            type="button"
+            className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
+            onClick={() => togglePlayback()}
+            aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
+          >
+            <span className="overlay-play-icon-stack" aria-hidden="true">
+              <span className="overlay-play-icon overlay-play-icon-play">
+                <PlayIcon />
+              </span>
+              <span className="overlay-play-icon overlay-play-icon-pause">
+                <PauseIcon />
+              </span>
+            </span>
+          </button>
+          <span className="overlay-control-hint" aria-hidden="true">
+            <span className="overlay-control-keycap">Space</span>
+            <span>Play</span>
+          </span>
+        </div>
       </div>
     </footer>
   );
@@ -525,8 +529,9 @@ export function OverlayPrompter() {
   const overlayVars = useMemo(() => ({
     '--overlay-font-scale': overlayFontScale.toString(),
     '--overlay-line-height': `${scaledLineHeight}px`,
-    '--overlay-line-gap': `${overlayLineGapPx}px`
-  } as CSSProperties), [overlayFontScale, scaledLineHeight]);
+    '--overlay-line-gap': `${overlayLineGapPx}px`,
+    '--overlay-lane-padding': `${Math.max(0, Math.round(lanePadding + firstLineLaneNudge))}px`
+  } as CSSProperties), [firstLineLaneNudge, lanePadding, overlayFontScale, scaledLineHeight]);
 
   const closeJumpMenu = useCallback((restoreFocus: boolean) => {
     setIsJumpMenuOpen(false);
@@ -1126,7 +1131,8 @@ export function OverlayPrompter() {
       const horizontalInset = 24;
       const width = Math.max(minWidth, contentRect.width - (horizontalInset * 2));
       const rulerHeight = Math.round(50 * overlayFontScale);
-      const top = lanePadding + ((scaledLineHeight - rulerHeight) / 2);
+      const effectivePadding = Math.max(0, lanePadding + firstLineLaneNudge);
+      const top = effectivePadding + ((scaledLineHeight - rulerHeight) / 2);
 
       setRulerStyle((previous) => {
         const roundedTop = Math.round(top);
@@ -1154,7 +1160,7 @@ export function OverlayPrompter() {
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [anchorLineIndex, lanePadding, lines, overlayFontScale, scaledLineHeight]);
+  }, [anchorLineIndex, firstLineLaneNudge, lanePadding, lines, overlayFontScale, scaledLineHeight]);
 
   return (
     <main
@@ -1218,7 +1224,7 @@ export function OverlayPrompter() {
                 type="range"
                 min={minFontScale}
                 max={maxFontScale}
-                step={fontScaleStep }
+                step={fontScaleStep}
                 value={overlayFontScale}
                 onChange={(event) => commitFontScale(Number(event.target.value))}
                 aria-label="Font size"

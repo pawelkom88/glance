@@ -1,0 +1,32 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tileFill" x1="142" y1="118" x2="900" y2="926" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6F8FC"/>
+      <stop offset="1" stop-color="#ECEFF6"/>
+    </linearGradient>
+    <linearGradient id="eyeStroke" x1="228" y1="510" x2="804" y2="510" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D8CFF"/>
+      <stop offset="1" stop-color="#0A66F3"/>
+    </linearGradient>
+    <linearGradient id="iris" x1="460" y1="386" x2="600" y2="614" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3BB7FF"/>
+      <stop offset="1" stop-color="#0A66F3"/>
+    </linearGradient>
+    <filter id="shadow" x="104" y="98" width="816" height="840" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#7C8BAD" flood-opacity="0.20"/>
+    </filter>
+    <filter id="glyphShadow" x="216" y="326" width="608" height="394" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#0D4DB5" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="140" y="120" width="744" height="744" rx="170" fill="url(#tileFill)"/>
+    <rect x="140.5" y="120.5" width="743" height="743" rx="169.5" stroke="#E6EAF3"/>
+  </g>
+
+  <g filter="url(#glyphShadow)">
+    <path d="M236 510C303 417 402 356 512 356C622 356 721 417 788 510C721 603 622 664 512 664C402 664 303 603 236 510Z" stroke="url(#eyeStroke)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M514 402C588 402 648 459 648 530C648 600 588 658 514 658C500 658 486 656 474 652L428 666L442 622C419 599 406 566 406 530C406 459 466 402 540 402H514Z" fill="url(#iris)"/>
+  </g>
+</svg>

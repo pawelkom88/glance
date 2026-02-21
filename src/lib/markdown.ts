@@ -262,5 +262,13 @@ export function markdownToDisplayLines(markdown: string, options?: DisplayLineOp
     });
   });
 
+  while (output[0]?.kind === 'empty') {
+    output.shift();
+  }
+
+  while (output[output.length - 1]?.kind === 'empty') {
+    output.pop();
+  }
+
   return output;
 }

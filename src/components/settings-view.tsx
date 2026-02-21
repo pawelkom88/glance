@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
 import {
   clearLastOverlayMonitorName,
@@ -6,7 +6,6 @@ import {
   listMonitors,
   moveOverlayToMonitor,
   registerShortcuts,
-  resetOverlayPosition,
   setOverlayAlwaysOnTop
 } from '../lib/tauri';
 import {
@@ -34,6 +33,78 @@ const jumpActions: readonly ShortcutActionId[] = [
   'jump-8',
   'jump-9'
 ];
+
+function isMacPlatform(): boolean {
+  return navigator.platform.includes('Mac');
+}
+
+function normalizeShortcutKey(key: string, code: string): string | null {
+  if (code === 'Space' || key === ' ' || key === 'Spacebar') {
+    return 'Space';
+  }
+
+  if (key === 'ArrowUp') {
+    return 'Up';
+  }
+  if (key === 'ArrowDown') {
+    return 'Down';
+  }
+  if (key === 'ArrowLeft') {
+    return 'Left';
+  }
+  if (key === 'ArrowRight') {
+    return 'Right';
+  }
+
+  if (key === 'Meta' || key === 'Control' || key === 'Alt' || key === 'Shift') {
+    return null;
+  }
+
+  if (key === 'Esc') {
+    return 'Escape';
+  }
+
+  if (key.length === 1) {
+    return key.toUpperCase();
+  }
+
+  return key;
+}
+
+function captureShortcutFromKeyboardEvent(event: ReactKeyboardEvent<HTMLInputElement>): string | null {
+  const normalizedKey = normalizeShortcutKey(event.key, event.code);
+  if (!normalizedKey) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  if (isMacPlatform()) {
+    if (event.metaKey) {
+      parts.push('Cmd');
+    }
+    if (event.ctrlKey) {
+      parts.push('Ctrl');
+    }
+  } else {
+    if (event.ctrlKey) {
+      parts.push('Ctrl');
+    }
+    if (event.metaKey) {
+      parts.push('Meta');
+    }
+  }
+
+  if (event.altKey) {
+    parts.push('Alt');
+  }
+
+  if (event.shiftKey && normalizedKey !== 'Shift') {
+    parts.push('Shift');
+  }
+
+  parts.push(normalizedKey);
+  return parts.join('+');
+}
 
 export function SettingsView() {
   const [monitors, setMonitors] = useState<readonly MonitorInfo[]>([]);
@@ -186,16 +257,53 @@ export function SettingsView() {
         <input
           id={`${idPrefix}-${definition.action}`}
           type="text"
+          readOnly
           value={shortcutConfig[definition.action]}
-          onChange={(event) => {
-            const value = event.target.value;
+          placeholder="Press shortcut"
+          onKeyDown={(event) => {
+            if (event.key === 'Tab') {
+              return;
+            }
+
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+              return;
+            }
+
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.currentTarget.blur();
+              return;
+            }
+
+            const isClearKey = (event.key === 'Backspace' || event.key === 'Delete')
+              && !event.metaKey
+              && !event.ctrlKey
+              && !event.altKey
+              && !event.shiftKey;
+
+            event.preventDefault();
+
+            if (isClearKey) {
+              setShortcutConfig((previous) => ({
+                ...previous,
+                [definition.action]: ''
+              }));
+              return;
+            }
+
+            const captured = captureShortcutFromKeyboardEvent(event);
+            if (!captured) {
+              return;
+            }
+
             setShortcutConfig((previous) => ({
               ...previous,
-              [definition.action]: value
+              [definition.action]: captured
             }));
           }}
           aria-label={`${definition.label} shortcut`}
         />
+        <small className="shortcut-capture-hint">Focus and press keys to record</small>
       </label>
     );
   };
@@ -285,26 +393,6 @@ export function SettingsView() {
           </div>
         </div>
 
-        <div className="setting-row">
-          <div className="setting-copy">
-            <span className="setting-title">Recenter Overlay</span>
-          </div>
-          <button
-            type="button"
-            className="cancel-button"
-            onClick={async () => {
-              try {
-                await resetOverlayPosition();
-                showToast('Overlay recentered', 'success');
-              } catch (error) {
-                const message = error instanceof Error ? error.message : 'Failed to recenter overlay';
-                showToast(message, 'error');
-              }
-            }}
-          >
-            Recenter
-          </button>
-        </div>
       </div>
 
       <section className="shortcut-settings" aria-labelledby="shortcut-settings-title">
