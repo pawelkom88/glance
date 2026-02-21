@@ -1681,7 +1681,6 @@ select {
     opacity 140ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
     grid-template-columns 760ms cubic-bezier(0.22, 1, 0.36, 1);
-  cursor: grab;
   -webkit-app-region: no-drag;
 }
 
@@ -1693,10 +1692,6 @@ select {
 .overlay-root.overlay-closing {
   opacity: 0;
   transform: translateY(2px) scale(0.997);
-}
-
-.overlay-root:active {
-  cursor: grabbing;
 }
 
 .overlay-debug-size {
@@ -1734,6 +1729,11 @@ select {
     padding 760ms cubic-bezier(0.22, 1, 0.36, 1),
     gap 760ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: grab;
+}
+
+.overlay-left-sidebar:active {
+  cursor: grabbing;
 }
 
 .overlay-section-counter {
@@ -2193,6 +2193,11 @@ select {
   place-items: center;
   padding: 16px;
   user-select: none;
+  cursor: grab;
+}
+
+.overlay-right-sidebar:active {
+  cursor: grabbing;
 }
 
 .overlay-controls-row {
@@ -2253,6 +2258,11 @@ select {
   place-items: center;
   padding: 10px 16px;
   -webkit-app-region: no-drag;
+  cursor: grab;
+}
+
+.overlay-speed-footer:active {
+  cursor: grabbing;
 }
 
 .overlay-icon-button {
@@ -2562,14 +2572,14 @@ select {
     border-left: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background: var(--sidebar-bg);
-    padding: 16px;
+    padding: 14px 16px;
     display: block;
   }
 
   .overlay-compact-dock {
     display: grid;
-    gap: 12px;
-    width: min(100%, 920px);
+    gap: 10px;
+    width: min(100%, 880px);
     margin-inline: auto;
   }
 
@@ -2577,10 +2587,10 @@ select {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-height: 36px;
-    padding: 8px 10px;
-    border-radius: 12px;
+    padding: 7px 10px;
+    border-radius: 11px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     position: relative;
@@ -2602,24 +2612,24 @@ select {
     align-items: center;
     justify-content: flex-start;
     flex-wrap: nowrap;
-    gap: 8px;
+    gap: 7px;
     width: 100%;
     overflow: hidden;
   }
 
   .overlay-compact-context-main .overlay-rail-pill {
-    max-width: min(46vw, 360px);
-    font-size: 0.88rem;
+    max-width: min(44vw, 340px);
+    font-size: 0.84rem;
     line-height: 1.1;
-    padding: 6px 10px;
+    padding: 5px 10px;
     text-align: center;
   }
 
   .overlay-compact-utility-cluster {
     display: flex;
     align-items: center;
-    min-height: 32px;
-    padding-left: 10px;
+    min-height: 30px;
+    padding-left: 9px;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
   }
 
@@ -2627,22 +2637,22 @@ select {
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 7px;
     width: auto;
   }
 
   .overlay-compact-utility-cluster .overlay-top-action,
   .overlay-compact-utility-cluster .overlay-close-button {
-    width: 32px;
-    height: 32px;
-    min-height: 32px;
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
   }
 
   .overlay-compact-control-bar {
     display: grid;
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 12px;
+    gap: 7px;
+    padding: 10px 12px 9px;
+    border-radius: 11px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.02);
   }
@@ -2651,29 +2661,29 @@ select {
     width: 100%;
     justify-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   .overlay-compact-control-bar .overlay-controls-row {
     flex-direction: row;
-    gap: 12px;
+    gap: 10px;
     align-self: center;
     justify-content: center;
   }
 
   .overlay-compact-control-bar .overlay-control-hints {
-    margin-top: 4px;
+    margin-top: 2px;
     grid-auto-flow: column;
     justify-content: center;
-    gap: 10px;
+    gap: 9px;
     width: 100%;
   }
 
   .overlay-compact-control-bar .overlay-icon-button,
   .overlay-compact-control-bar .overlay-play-toggle {
-    width: 42px;
-    height: 42px;
-    min-height: 42px;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
   }
 
   .overlay-compact-speed-row {
@@ -2695,8 +2705,8 @@ select {
   }
 
   .overlay-speed-footer-compact .overlay-speed-inline {
-    width: min(520px, 100%);
-    justify-self: stretch;
+    width: min(500px, 100%);
+    /*justify-self: stretch;*/
   }
 
   .overlay-speed-footer-compact .overlay-speed-bubble {
