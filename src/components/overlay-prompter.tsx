@@ -265,8 +265,13 @@ export function OverlayPrompter() {
   });
 
   const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
+  const focusLaneRatio = 0.14;
   const lanePadding = useMemo(
-    () => Math.max(0, (contentMetrics.height * 0.5) - (scaledLineHeight * 0.5)),
+    () => {
+      const preferredOffset = contentMetrics.height * focusLaneRatio;
+      const clampedOffset = Math.max(52, Math.min(contentMetrics.height * 0.24, preferredOffset));
+      return Math.max(0, clampedOffset - (scaledLineHeight * 0.5));
+    },
     [contentMetrics.height, scaledLineHeight]
   );
 
@@ -1160,10 +1165,31 @@ export function OverlayPrompter() {
       </div>
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
         {!isCompactTopBar ? (
-          <>
-            {renderTopActions()}
-            {renderSectionRail()}
-          </>
+          <div className="overlay-left-sidebar-layout">
+            <div className="overlay-left-utility-cluster">
+              {renderTopActions()}
+            </div>
+            <div className="overlay-left-context-cluster">
+              <span className="overlay-section-counter">
+                {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
+              </span>
+            </div>
+            <div className="overlay-left-nav-cluster">
+              <div className="overlay-section-rail" aria-label="Current and next section">
+                <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
+                  {showSectionTitlesInRail
+                    ? (currentSection?.title ?? 'Waiting for headings')
+                    : `${currentSectionIndex + 1}`}
+                </span>
+
+                {nextSection ? (
+                  <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
+                    {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
         ) : null}
 
         {isFontMenuOpen ? (
