@@ -1903,49 +1903,9 @@ select {
   transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1), background-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.overlay-root.overlay-sidebar-expanded .overlay-left-sidebar {
-  justify-items: stretch;
-  gap: 12px;
-  padding: 12px;
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-left-sidebar-layout {
-  justify-items: stretch;
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-left-utility-cluster,
-.overlay-root.overlay-sidebar-expanded .overlay-left-context-cluster,
-.overlay-root.overlay-sidebar-expanded .overlay-left-nav-cluster {
-  justify-items: stretch;
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-top-actions {
-  align-items: flex-start;
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-section-counter {
-  max-width: none;
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-section-rail {
-  justify-items: stretch;
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-rail-pill {
-  min-width: 0;
-  width: auto;
-  padding: 6px 12px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  text-align: left;
-}
 
 .overlay-root.overlay-sidebar-collapsed .overlay-rail-pill {
   transform: translateX(0);
-}
-
-.overlay-root.overlay-sidebar-expanded .overlay-rail-pill {
-  transform: translateX(1px);
 }
 
 .overlay-top-action svg,
@@ -2024,18 +1984,6 @@ select {
   .overlay-root.overlay-sidebar-collapsed .overlay-left-nav-cluster .overlay-rail-pill {
     max-width: 62px;
     width: fit-content;
-  }
-
-  .overlay-root.overlay-sidebar-expanded .overlay-left-utility-cluster {
-    padding: 9px;
-  }
-
-  .overlay-root.overlay-sidebar-expanded .overlay-left-nav-cluster .overlay-rail-pill {
-    max-width: 100%;
-  }
-
-  .overlay-root.overlay-sidebar-expanded .overlay-top-actions {
-    gap: 8px;
   }
 
   .overlay-root.overlay-sidebar-collapsed .overlay-top-actions {
@@ -2745,6 +2693,7 @@ select {
     gap: 10px;
     width: min(100%, 880px);
     margin-inline: auto;
+    position: relative;
   }
 
   .overlay-compact-context-bar {
@@ -2795,6 +2744,17 @@ select {
     min-height: 30px;
     padding-left: 9px;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .overlay-compact-context-bar>.overlay-font-popover-compact {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: auto;
+    right: 0;
+    width: min(280px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+    z-index: 260;
+    box-sizing: border-box;
   }
 
   .overlay-compact-utility-cluster .overlay-top-actions {

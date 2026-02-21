@@ -124,7 +124,7 @@ function FontSizeIcon() {
 function JumpSectionsIcon({ open }: { readonly open: boolean }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      {open ? <path d="m7 14 5-5 5 5" /> : <path d="m7 10 5 5 5-5" />}
+      {open ? <path d="m10 7 5 5-5 5" /> : <path d="m14 7-5 5 5 5" />}
     </svg>
   );
 }
@@ -137,14 +137,6 @@ function CloseIcon() {
   );
 }
 
-function SidebarToggleIcon({ expanded }: { readonly expanded: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M4 5h16v14H4z" />
-      <path d={expanded ? 'M15 5v14' : 'M9 5v14'} />
-    </svg>
-  );
-}
 
 function SlowSpeedIcon() {
   return (
@@ -250,7 +242,7 @@ export function OverlayPrompter() {
   const [isOpening, setIsOpening] = useState(true);
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState(false);
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
   const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
   const [overlaySize, setOverlaySize] = useState(() => ({
@@ -342,23 +334,11 @@ export function OverlayPrompter() {
       : 0;
   const normalizedSpeed = scrollSpeed / baseSpeed;
   const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
-  const showSectionTitlesInRail = isSidebarExpanded || overlaySize.width < 1200;
+  const showSectionTitlesInRail = overlaySize.width < 1200;
   const isCompactTopBar = overlaySize.width < 1200;
 
   const renderTopActions = () => (
     <div className="overlay-top-actions">
-      {!isCompactTopBar ? (
-        <button
-          type="button"
-          className={`overlay-top-action ${isSidebarExpanded ? 'is-active' : ''}`}
-          aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-          title={isSidebarExpanded ? 'Collapse' : 'Expand'}
-          aria-pressed={isSidebarExpanded}
-          onClick={() => setIsSidebarExpanded((previous) => !previous)}
-        >
-          <SidebarToggleIcon expanded={isSidebarExpanded} />
-        </button>
-      ) : null}
       <button
         ref={fontTriggerRef}
         type="button"
@@ -375,22 +355,24 @@ export function OverlayPrompter() {
       >
         <FontSizeIcon />
       </button>
-      <button
-        ref={jumpTriggerRef}
-        type="button"
-        className={`overlay-top-action ${isJumpMenuOpen ? 'is-active' : ''}`}
-        aria-label="Jump to section"
-        title="Jump"
-        aria-haspopup="menu"
-        aria-expanded={isJumpMenuOpen}
-        aria-pressed={isJumpMenuOpen}
-        onClick={() => {
-          setIsFontMenuOpen(false);
-          setIsJumpMenuOpen((previous) => !previous);
-        }}
-      >
-        <JumpSectionsIcon open={isJumpMenuOpen} />
-      </button>
+      {!isCompactTopBar ? (
+        <button
+          ref={jumpTriggerRef}
+          type="button"
+          className={`overlay-top-action ${isJumpMenuOpen ? 'is-active' : ''}`}
+          aria-label="Jump to section"
+          title="Jump"
+          aria-haspopup="menu"
+          aria-expanded={isJumpMenuOpen}
+          aria-pressed={isJumpMenuOpen}
+          onClick={() => {
+            setIsFontMenuOpen(false);
+            setIsJumpMenuOpen((previous) => !previous);
+          }}
+        >
+          <JumpSectionsIcon open={isJumpMenuOpen} />
+        </button>
+      ) : null}
       <button
         type="button"
         className="overlay-close-button"
@@ -1165,7 +1147,7 @@ export function OverlayPrompter() {
   return (
     <main
       ref={overlayRootRef}
-      className={`overlay-root ${isSidebarExpanded ? 'overlay-sidebar-expanded' : 'overlay-sidebar-collapsed'} ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
+      className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
       role="application"
       aria-label="Glance overlay"
       tabIndex={-1}
@@ -1346,6 +1328,51 @@ export function OverlayPrompter() {
               <div className="overlay-compact-utility-cluster">
                 {renderTopActions()}
               </div>
+              {isFontMenuOpen ? (
+                <div ref={fontMenuRef} className="overlay-popover overlay-font-popover overlay-font-popover-compact" role="dialog" aria-label="Font size controls">
+                  <div className="overlay-font-controls">
+                    <button
+                      type="button"
+                      className="overlay-popover-button"
+                      data-font-focus="true"
+                      onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
+                      aria-label="Decrease font size"
+                    >
+                      A−
+                    </button>
+                    <input
+                      type="range"
+                      min={minFontScale}
+                      max={maxFontScale}
+                      step={fontScaleStep}
+                      value={overlayFontScale}
+                      onChange={(event) => commitFontScale(Number(event.target.value))}
+                      aria-label="Font size"
+                    />
+                    <button
+                      type="button"
+                      className="overlay-popover-button"
+                      onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
+                      aria-label="Increase font size"
+                    >
+                      A+
+                    </button>
+                  </div>
+                  <div className="overlay-font-footer">
+                    <span>{Math.round(overlayFontScale * 100)}%</span>
+                    <span className="overlay-font-shortcuts">
+                      {platformModifier()}+/− · {platformModifier()}0
+                    </span>
+                    <button
+                      type="button"
+                      className="overlay-popover-link"
+                      onClick={() => commitFontScale(1)}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="overlay-compact-control-bar">
