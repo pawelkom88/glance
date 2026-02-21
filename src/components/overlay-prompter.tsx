@@ -265,6 +265,10 @@ export function OverlayPrompter() {
   });
 
   const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
+  const lanePadding = useMemo(
+    () => Math.max(0, (contentMetrics.height * 0.5) - (scaledLineHeight * 0.5)),
+    [contentMetrics.height, scaledLineHeight]
+  );
 
   const measureText = useCallback((text: string): number => {
     if (typeof window === 'undefined') {
@@ -306,9 +310,8 @@ export function OverlayPrompter() {
       return 0;
     }
 
-    const anchorOffset = scrollPosition + contentMetrics.height * 0.5;
-    return Math.max(0, Math.min(lines.length - 1, Math.floor(anchorOffset / scaledLineHeight)));
-  }, [contentMetrics.height, lines.length, scaledLineHeight, scrollPosition]);
+    return Math.max(0, Math.min(lines.length - 1, Math.floor(scrollPosition / scaledLineHeight)));
+  }, [lines.length, scaledLineHeight, scrollPosition]);
 
   const currentSectionIndex = useMemo(() => {
     if (sections.length === 0) {
@@ -325,6 +328,185 @@ export function OverlayPrompter() {
   const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
   const showSectionTitlesInRail = isSidebarExpanded || overlaySize.width < 1200;
   const isCompactTopBar = overlaySize.width < 1200;
+
+  const renderTopActions = () => (
+    <div className="overlay-top-actions">
+      {!isCompactTopBar ? (
+        <button
+          type="button"
+          className={`overlay-top-action ${isSidebarExpanded ? 'is-active' : ''}`}
+          aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+          title={isSidebarExpanded ? 'Collapse' : 'Expand'}
+          aria-pressed={isSidebarExpanded}
+          onClick={() => setIsSidebarExpanded((previous) => !previous)}
+        >
+          <SidebarToggleIcon expanded={isSidebarExpanded} />
+        </button>
+      ) : null}
+      <button
+        ref={fontTriggerRef}
+        type="button"
+        className={`overlay-top-action ${isFontMenuOpen ? 'is-active' : ''}`}
+        aria-label="Font size settings"
+        title="Font size"
+        aria-haspopup="dialog"
+        aria-expanded={isFontMenuOpen}
+        aria-pressed={isFontMenuOpen}
+        onClick={() => {
+          setIsJumpMenuOpen(false);
+          setIsFontMenuOpen((previous) => !previous);
+        }}
+      >
+        <FontSizeIcon />
+      </button>
+      <button
+        ref={jumpTriggerRef}
+        type="button"
+        className={`overlay-top-action ${isJumpMenuOpen ? 'is-active' : ''}`}
+        aria-label="Jump to section"
+        title="Jump"
+        aria-haspopup="menu"
+        aria-expanded={isJumpMenuOpen}
+        aria-pressed={isJumpMenuOpen}
+        onClick={() => {
+          setIsFontMenuOpen(false);
+          setIsJumpMenuOpen((previous) => !previous);
+        }}
+      >
+        <JumpSectionsIcon open={isJumpMenuOpen} />
+      </button>
+      <button
+        type="button"
+        className="overlay-close-button"
+        onClick={requestCloseOverlay}
+        aria-label="Close prompter"
+        title="Close"
+      >
+        <CloseIcon />
+      </button>
+    </div>
+  );
+
+  const renderSectionRail = () => (
+    <>
+      <span className="overlay-section-counter">
+        {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
+      </span>
+
+      <div className="overlay-section-rail" aria-label="Current and next section">
+        <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
+          {showSectionTitlesInRail
+            ? (currentSection?.title ?? 'Waiting for headings')
+            : `${currentSectionIndex + 1}`}
+        </span>
+
+        {nextSection ? (
+          <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
+            {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
+          </span>
+        ) : null}
+      </div>
+    </>
+  );
+
+  const renderPlaybackControls = () => (
+    <footer className="overlay-controls">
+      <div className="overlay-controls-row">
+        <button
+          type="button"
+          className="overlay-icon-button overlay-secondary-button"
+          aria-label="Rewind to start"
+          onClick={() => {
+            setPlaybackState('paused');
+            setScrollPosition(0);
+          }}
+        >
+          <RewindIcon />
+        </button>
+        <button
+          type="button"
+          className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
+          onClick={() => togglePlayback()}
+          aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
+        >
+          <span className="overlay-play-icon-stack" aria-hidden="true">
+            <span className="overlay-play-icon overlay-play-icon-play">
+              <PlayIcon />
+            </span>
+            <span className="overlay-play-icon overlay-play-icon-pause">
+              <PauseIcon />
+            </span>
+          </span>
+        </button>
+      </div>
+      <div className="overlay-control-hints" aria-hidden="true">
+        <span className="overlay-control-hint">
+          <span className="overlay-control-keycap">R</span>
+          <span>Rewind</span>
+        </span>
+        <span className="overlay-control-hint">
+          <span className="overlay-control-keycap">Space</span>
+          <span>Play</span>
+        </span>
+      </div>
+    </footer>
+  );
+
+  const renderSpeedControls = (className: string) => (
+    <footer className={className}>
+      <div className="overlay-speed-inline">
+        <span
+          className={`overlay-speed-icon overlay-speed-icon-slow ${animatedSpeedIcon === 'slow' ? 'is-animating' : ''}`}
+          aria-hidden="true"
+        >
+          <SlowSpeedIcon />
+        </span>
+        <div className="overlay-speed-track-wrap">
+          <div
+            className={`overlay-speed-bubble ${isSpeedBubbleVisible ? 'is-visible' : ''}`}
+            aria-hidden="true"
+            style={{ left: `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%` }}
+          >
+            {normalizedSpeed.toFixed(2)}x
+          </div>
+          <input
+            className="overlay-speed-slider"
+            type="range"
+            min={minSpeed}
+            max={maxSpeed}
+            step={0.1}
+            value={scrollSpeed}
+            onChange={(event) => {
+              const nextValue = Number(event.target.value);
+              setScrollSpeed(nextValue);
+              revealSpeedBubble();
+              if (nextValue < scrollSpeed) {
+                triggerSpeedIconAnimation('slow');
+                return;
+              }
+              if (nextValue > scrollSpeed) {
+                triggerSpeedIconAnimation('fast');
+                return;
+              }
+              triggerSpeedIconAnimation(nextValue <= baseSpeed ? 'slow' : 'fast');
+            }}
+            aria-label="Scroll speed"
+            onPointerDown={() => revealSpeedBubble()}
+            onFocus={() => revealSpeedBubble()}
+            style={{
+              '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
+            } as CSSProperties}
+          />
+        </div>
+        <span
+          className={`overlay-speed-icon overlay-speed-icon-fast ${animatedSpeedIcon === 'fast' ? 'is-animating' : ''}`}
+          aria-hidden="true"
+        >
+          <FastSpeedIcon />
+        </span>
+      </div>
+    </footer>
+  );
 
   const overlayVars = useMemo(() => ({
     '--overlay-font-scale': overlayFontScale.toString(),
@@ -426,21 +608,31 @@ export function OverlayPrompter() {
   }, [scrollSpeed]);
 
   useEffect(() => {
+    const maxPosition = Math.max(0, (lines.length - 1) * scaledLineHeight);
+
     engineRef.current = new ScrollEngine({
       getSpeed: () => speedRef.current,
       onTick: (position) => {
-        const maxPosition = Math.max(0, lines.length * scaledLineHeight - window.innerHeight + 160);
         setScrollPosition(Math.min(position, maxPosition));
       }
     });
 
-    engineRef.current.setPosition(useAppStore.getState().scrollPosition);
+    engineRef.current.setPosition(
+      Math.min(useAppStore.getState().scrollPosition, maxPosition)
+    );
 
     return () => {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
   }, [lines.length, scaledLineHeight, setScrollPosition]);
+
+  useEffect(() => {
+    const maxPosition = Math.max(0, (lines.length - 1) * scaledLineHeight);
+    if (scrollPosition > maxPosition) {
+      setScrollPosition(maxPosition);
+    }
+  }, [lines.length, scaledLineHeight, scrollPosition, setScrollPosition]);
 
   useEffect(() => {
     if (!engineRef.current) {
@@ -909,10 +1101,8 @@ export function OverlayPrompter() {
         return;
       }
 
-      const lineElement = lineRefs.current[anchorLineIndex];
       const line = lines[anchorLineIndex];
-      if (!lineElement || !line || line.kind === 'empty') {
-        setRulerStyle((previous) => ({ ...previous, visible: false }));
+      if (!line) {
         return;
       }
 
@@ -921,7 +1111,7 @@ export function OverlayPrompter() {
       const horizontalInset = 24;
       const width = Math.max(minWidth, contentRect.width - (horizontalInset * 2));
       const rulerHeight = Math.round(50 * overlayFontScale);
-      const top = (contentRect.height * 0.5) - (rulerHeight / 2);
+      const top = lanePadding + ((scaledLineHeight - rulerHeight) / 2);
 
       setRulerStyle((previous) => {
         const roundedTop = Math.round(top);
@@ -949,7 +1139,7 @@ export function OverlayPrompter() {
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [anchorLineIndex, lines, overlayFontScale]);
+  }, [anchorLineIndex, lanePadding, lines, overlayFontScale, scaledLineHeight]);
 
   return (
     <main
@@ -969,81 +1159,12 @@ export function OverlayPrompter() {
         {overlaySize.width} × {overlaySize.height}
       </div>
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
-
-        <div className="overlay-top-actions">
-          {!isCompactTopBar ? (
-            <button
-              type="button"
-              className={`overlay-top-action ${isSidebarExpanded ? 'is-active' : ''}`}
-              aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              title={isSidebarExpanded ? 'Collapse' : 'Expand'}
-              aria-pressed={isSidebarExpanded}
-              onClick={() => setIsSidebarExpanded((previous) => !previous)}
-            >
-              <SidebarToggleIcon expanded={isSidebarExpanded} />
-            </button>
-          ) : null}
-          <button
-            ref={fontTriggerRef}
-            type="button"
-            className={`overlay-top-action ${isFontMenuOpen ? 'is-active' : ''}`}
-            aria-label="Font size settings"
-            title="Font size"
-            aria-haspopup="dialog"
-            aria-expanded={isFontMenuOpen}
-            aria-pressed={isFontMenuOpen}
-            onClick={() => {
-              setIsJumpMenuOpen(false);
-              setIsFontMenuOpen((previous) => !previous);
-            }}
-          >
-            <FontSizeIcon />
-          </button>
-          <button
-            ref={jumpTriggerRef}
-            type="button"
-            className={`overlay-top-action ${isJumpMenuOpen ? 'is-active' : ''}`}
-            aria-label="Jump to section"
-            title="Jump"
-            aria-haspopup="menu"
-            aria-expanded={isJumpMenuOpen}
-            aria-pressed={isJumpMenuOpen}
-            onClick={() => {
-              setIsFontMenuOpen(false);
-              setIsJumpMenuOpen((previous) => !previous);
-            }}
-          >
-            <JumpSectionsIcon open={isJumpMenuOpen} />
-          </button>
-          <button
-            type="button"
-            className="overlay-close-button"
-            onClick={requestCloseOverlay}
-            aria-label="Close prompter"
-            title="Close"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-          <br/>
-
-        <span className="overlay-section-counter">
-          {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
-        </span>
-
-        <div className="overlay-section-rail" aria-label="Current and next section">
-          <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
-            {showSectionTitlesInRail
-              ? (currentSection?.title ?? 'Waiting for headings')
-              : `${currentSectionIndex + 1}`}
-          </span>
-
-          {nextSection ? (
-            <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-              {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
-            </span>
-          ) : null}
-        </div>
+        {!isCompactTopBar ? (
+          <>
+            {renderTopActions()}
+            {renderSectionRail()}
+          </>
+        ) : null}
 
         {isFontMenuOpen ? (
           <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label="Font size controls">
@@ -1132,7 +1253,14 @@ export function OverlayPrompter() {
           }}
         />
 
-        <div className="overlay-lines" style={{ transform: `translateY(${-scrollPosition}px)` }}>
+        <div
+          className="overlay-lines"
+          style={{
+            transform: `translateY(${-scrollPosition}px)`,
+            paddingTop: `${lanePadding}px`,
+            paddingBottom: `${lanePadding}px`
+          }}
+        >
           {lines.map((line, index) => (
             <p
               key={line.id}
@@ -1167,101 +1295,29 @@ export function OverlayPrompter() {
       </section>
 
       <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
-        <footer className="overlay-controls">
-          <div className="overlay-controls-row">
-            <button
-              type="button"
-              className="overlay-icon-button overlay-secondary-button"
-              aria-label="Rewind to start"
-              onClick={() => {
-                setPlaybackState('paused');
-                setScrollPosition(0);
-              }}
-            >
-              <RewindIcon />
-            </button>
-            <button
-              type="button"
-              className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
-              onClick={() => togglePlayback()}
-              aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
-            >
-              <span className="overlay-play-icon-stack" aria-hidden="true">
-                <span className="overlay-play-icon overlay-play-icon-play">
-                  <PlayIcon />
-                </span>
-                <span className="overlay-play-icon overlay-play-icon-pause">
-                  <PauseIcon />
-                </span>
-              </span>
-            </button>
+        {isCompactTopBar ? (
+          <div className="overlay-compact-dock">
+            <div className="overlay-compact-context-bar">
+              <div className="overlay-compact-context-main">
+                {renderSectionRail()}
+              </div>
+              <div className="overlay-compact-utility-cluster">
+                {renderTopActions()}
+              </div>
+            </div>
+
+            <div className="overlay-compact-control-bar">
+              {renderPlaybackControls()}
+              <div className="overlay-compact-speed-row">
+                {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact')}
+              </div>
+            </div>
           </div>
-          <div className="overlay-control-hints" aria-hidden="true">
-            <span className="overlay-control-hint">
-              <span className="overlay-control-keycap">R</span>
-              <span>Rewind</span>
-            </span>
-            <span className="overlay-control-hint">
-              <span className="overlay-control-keycap">Space</span>
-              <span>Play</span>
-            </span>
-          </div>
-        </footer>
+        ) : null}
+        {!isCompactTopBar ? renderPlaybackControls() : null}
       </aside>
 
-      <footer className="overlay-speed-footer">
-        <div className="overlay-speed-inline">
-          <span
-            className={`overlay-speed-icon overlay-speed-icon-slow ${animatedSpeedIcon === 'slow' ? 'is-animating' : ''}`}
-            aria-hidden="true"
-          >
-            <SlowSpeedIcon />
-          </span>
-          <div className="overlay-speed-track-wrap">
-            <div
-              className={`overlay-speed-bubble ${isSpeedBubbleVisible ? 'is-visible' : ''}`}
-              aria-hidden="true"
-              style={{ left: `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%` }}
-            >
-              {normalizedSpeed.toFixed(2)}x
-            </div>
-            <input
-              className="overlay-speed-slider"
-              type="range"
-              min={minSpeed}
-              max={maxSpeed}
-              step={0.1}
-              value={scrollSpeed}
-              onChange={(event) => {
-                const nextValue = Number(event.target.value);
-                setScrollSpeed(nextValue);
-                revealSpeedBubble();
-                if (nextValue < scrollSpeed) {
-                  triggerSpeedIconAnimation('slow');
-                  return;
-                }
-                if (nextValue > scrollSpeed) {
-                  triggerSpeedIconAnimation('fast');
-                  return;
-                }
-                triggerSpeedIconAnimation(nextValue <= baseSpeed ? 'slow' : 'fast');
-              }}
-              aria-label="Scroll speed"
-              onPointerDown={() => revealSpeedBubble()}
-              onFocus={() => revealSpeedBubble()}
-              style={{
-                '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
-              } as CSSProperties}
-            />
-          </div>
-          <span
-            className={`overlay-speed-icon overlay-speed-icon-fast ${animatedSpeedIcon === 'fast' ? 'is-animating' : ''}`}
-            aria-hidden="true"
-          >
-            <FastSpeedIcon />
-          </span>
-        </div>
-      </footer>
+      {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer') : null}
     </main>
   );
 }

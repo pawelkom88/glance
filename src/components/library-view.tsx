@@ -5,7 +5,6 @@ import type { SessionSummary } from '../types';
 interface LibraryViewProps {
   readonly sessions: readonly SessionSummary[];
   readonly activeSessionId: string | null;
-  readonly onSelect: (id: string) => void;
   readonly onOpen: (id: string) => void;
   readonly onCreate: (name: string) => void;
   readonly onDelete: (id: string) => void;
@@ -48,7 +47,6 @@ export function LibraryView(props: LibraryViewProps) {
   const {
     sessions,
     activeSessionId,
-    onSelect,
     onOpen,
     onCreate,
     onDelete,
@@ -312,12 +310,6 @@ export function LibraryView(props: LibraryViewProps) {
                 if (exitingSessionIds.has(session.id)) {
                   return;
                 }
-                onSelect(session.id);
-              }}
-              onDoubleClick={() => {
-                if (exitingSessionIds.has(session.id)) {
-                  return;
-                }
                 onOpen(session.id);
               }}
               onKeyDown={(event) => {
@@ -332,7 +324,7 @@ export function LibraryView(props: LibraryViewProps) {
 
                 if (event.key === ' ') {
                   event.preventDefault();
-                  onSelect(session.id);
+                  onOpen(session.id);
                 }
               }}
             >

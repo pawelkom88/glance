@@ -262,9 +262,6 @@ export default function App() {
         <LibraryView
           sessions={sessions}
           activeSessionId={activeSessionId}
-          onSelect={(id) => {
-            void openSession(id);
-          }}
           onOpen={(id) => {
             switchTab('editor');
             void openSession(id);
