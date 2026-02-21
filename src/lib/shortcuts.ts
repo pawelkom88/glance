@@ -27,7 +27,7 @@ export interface ShortcutDefinition {
 
 export const shortcutDefinitions: readonly ShortcutDefinition[] = [
   { action: 'toggle-play', label: 'Play/Pause' },
-  { action: 'start-over', label: 'Start Over' },
+  { action: 'start-over', label: 'Rewind' },
   { action: 'speed-up', label: 'Speed Up' },
   { action: 'speed-down', label: 'Speed Down' },
   { action: 'jump-1', label: 'Jump Section 1' },
@@ -51,11 +51,28 @@ function migrateModifier(accelerator: string): string {
   return accelerator.replace(/CmdOrCtrl/gi, platformPrimaryModifier());
 }
 
+function migrateLegacyDefaults(config: ShortcutConfig): ShortcutConfig {
+  const next = { ...config };
+  const primary = platformPrimaryModifier();
+  const legacyToggle = `${primary}+Shift+S`.toLowerCase();
+  const legacyStartOver = `${primary}+Shift+R`.toLowerCase();
+
+  if ((next['toggle-play'] ?? '').trim().toLowerCase() === legacyToggle) {
+    next['toggle-play'] = 'Space';
+  }
+
+  if ((next['start-over'] ?? '').trim().toLowerCase() === legacyStartOver) {
+    next['start-over'] = 'R';
+  }
+
+  return next;
+}
+
 export function defaultShortcutConfig(): ShortcutConfig {
   const modifier = platformPrimaryModifier();
   return {
-    'toggle-play': `${modifier}+Shift+S`,
-    'start-over': `${modifier}+Shift+R`,
+    'toggle-play': 'Space',
+    'start-over': 'R',
     'speed-up': `${modifier}+Up`,
     'speed-down': `${modifier}+Down`,
     'jump-1': `${modifier}+1`,
@@ -82,7 +99,7 @@ export function loadShortcutConfig(): ShortcutConfig {
     const migrated = Object.fromEntries(
       Object.entries(parsed).map(([key, value]) => [key, typeof value === 'string' ? migrateModifier(value) : value])
     ) as Partial<ShortcutConfig>;
-    return { ...defaults, ...migrated };
+    return migrateLegacyDefaults({ ...defaults, ...migrated });
   } catch {
     return defaults;
   }

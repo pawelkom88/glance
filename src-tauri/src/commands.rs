@@ -279,6 +279,10 @@ pub fn register_shortcuts(
   let mut action_map = std::collections::HashMap::<String, ShortcutAction>::new();
 
   for binding in bindings {
+    if uses_overlay_local_shortcut(&binding.action, &binding.accelerator) {
+      continue;
+    }
+
     let shortcut = Shortcut::from_str(&binding.accelerator)
       .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
     manager.register(shortcut.clone()).map_err(|error| {
@@ -404,6 +408,20 @@ pub fn export_session_to_path(
 }
 
 pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
+  let Some(overlay_window) = app.get_webview_window("overlay") else {
+    return;
+  };
+
+  let is_overlay_visible = overlay_window.is_visible().unwrap_or(false);
+  if !is_overlay_visible {
+    return;
+  }
+
+  let is_overlay_focused = overlay_window.is_focused().unwrap_or(false);
+  if !is_overlay_focused {
+    return;
+  }
+
   let normalized = normalize_shortcut_text(shortcut_text);
   if let Ok(locked) = app.state::<AppState>().shortcut_actions.lock() {
     if let Some(action) = locked.get(&normalized).cloned() {
@@ -476,6 +494,12 @@ fn normalize_shortcut_text(value: &str) -> String {
   value.to_lowercase().replace(' ', "")
 }
 
+fn uses_overlay_local_shortcut(action: &str, accelerator: &str) -> bool {
+  let normalized = normalize_shortcut_text(accelerator);
+  (action == "toggle-play" && normalized == "space")
+    || (action == "start-over" && normalized == "r")
+}
+
 fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
   if action == "toggle-play" {
     return Ok(ShortcutAction {
@@ -532,11 +556,11 @@ fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
   vec![
     ShortcutBinding {
       action: String::from("toggle-play"),
-      accelerator: String::from("CmdOrCtrl+Shift+S"),
+      accelerator: String::from("Space"),
     },
     ShortcutBinding {
       action: String::from("start-over"),
-      accelerator: String::from("CmdOrCtrl+Shift+R"),
+      accelerator: String::from("R"),
     },
     ShortcutBinding {
       action: String::from("speed-up"),

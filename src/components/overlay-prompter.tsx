@@ -24,6 +24,7 @@ import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
 
 const baseLineHeight = 54;
+const overlayLineGapPx = 10;
 const fadeDurationMs = 140;
 const baseSpeed = 42;
 const minSpeed = 10;
@@ -265,6 +266,7 @@ export function OverlayPrompter() {
   });
 
   const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
+  const lineStride = scaledLineHeight + overlayLineGapPx;
   const focusLaneRatio = 0.14;
   const lanePadding = useMemo(
     () => {
@@ -315,8 +317,8 @@ export function OverlayPrompter() {
       return 0;
     }
 
-    return Math.max(0, Math.min(lines.length - 1, Math.floor(scrollPosition / scaledLineHeight)));
-  }, [lines.length, scaledLineHeight, scrollPosition]);
+    return Math.max(0, Math.min(lines.length - 1, Math.floor(scrollPosition / lineStride)));
+  }, [lineStride, lines.length, scrollPosition]);
 
   const currentSectionIndex = useMemo(() => {
     if (sections.length === 0) {
@@ -522,7 +524,8 @@ export function OverlayPrompter() {
 
   const overlayVars = useMemo(() => ({
     '--overlay-font-scale': overlayFontScale.toString(),
-    '--overlay-line-height': `${scaledLineHeight}px`
+    '--overlay-line-height': `${scaledLineHeight}px`,
+    '--overlay-line-gap': `${overlayLineGapPx}px`
   } as CSSProperties), [overlayFontScale, scaledLineHeight]);
 
   const closeJumpMenu = useCallback((restoreFocus: boolean) => {
@@ -553,8 +556,8 @@ export function OverlayPrompter() {
       return;
     }
 
-    setScrollPosition(targetLine * scaledLineHeight);
-  }, [scaledLineHeight, sectionStartLineIndexes, setScrollPosition]);
+    setScrollPosition(targetLine * lineStride);
+  }, [lineStride, sectionStartLineIndexes, setScrollPosition]);
 
   const commitFontScale = useCallback((nextValue: number) => {
     const normalized = normalizeFontScale(nextValue);
@@ -620,7 +623,7 @@ export function OverlayPrompter() {
   }, [scrollSpeed]);
 
   useEffect(() => {
-    const maxPosition = Math.max(0, (lines.length - 1) * scaledLineHeight);
+    const maxPosition = Math.max(0, (lines.length - 1) * lineStride);
 
     engineRef.current = new ScrollEngine({
       getSpeed: () => speedRef.current,
@@ -637,14 +640,14 @@ export function OverlayPrompter() {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
-  }, [lines.length, scaledLineHeight, setScrollPosition]);
+  }, [lineStride, lines.length, setScrollPosition]);
 
   useEffect(() => {
-    const maxPosition = Math.max(0, (lines.length - 1) * scaledLineHeight);
+    const maxPosition = Math.max(0, (lines.length - 1) * lineStride);
     if (scrollPosition > maxPosition) {
       setScrollPosition(maxPosition);
     }
-  }, [lines.length, scaledLineHeight, scrollPosition, setScrollPosition]);
+  }, [lineStride, lines.length, scrollPosition, setScrollPosition]);
 
   useEffect(() => {
     if (!engineRef.current) {

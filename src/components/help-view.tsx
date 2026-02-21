@@ -14,7 +14,8 @@ function modifierKeyLabel(): string {
 export function HelpView() {
   const modifier = modifierKeyLabel();
   const shortcutRows: readonly ShortcutRow[] = [
-    { label: 'Play / Pause', combo: `${modifier}+Shift+S` },
+    { label: 'Play / Pause', combo: 'Space' },
+    { label: 'Rewind', combo: 'R' },
     { label: 'Jump to section', combo: `${modifier}+1…9` },
     { label: 'Adjust speed', combo: `${modifier}+↑ / ${modifier}+↓` }
   ];

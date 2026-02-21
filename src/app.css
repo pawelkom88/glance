@@ -2201,7 +2201,7 @@ select {
 
 .overlay-lines {
   display: grid;
-  gap: 10px;
+  gap: var(--overlay-line-gap, 10px);
   max-width: min(100%, 1260px);
   margin: 0 auto;
   will-change: transform;
