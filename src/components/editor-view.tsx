@@ -38,6 +38,23 @@ function RocketIcon() {
   );
 }
 
+function ImportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 4v9m0 0-3-3m3 3 3-3" />
+      <path d="M5 14.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
 export function EditorView(props: EditorViewProps) {
   const {
     markdown,
@@ -64,11 +81,13 @@ export function EditorView(props: EditorViewProps) {
             <h2>Create your first session</h2>
           </div>
           <div className="header-actions">
-            <button type="button" className="cancel-button" onClick={onImportSession}>
-              Import Markdown
+            <button type="button" className="cancel-button editor-action-button" onClick={onImportSession}>
+              <ImportIcon />
+              <span>Import Markdown</span>
             </button>
-            <button type="button" className="primary-button" onClick={onCreateSession}>
-              New Session
+            <button type="button" className="primary-button editor-action-button" onClick={onCreateSession}>
+              <PlusIcon />
+              <span>New Session</span>
             </button>
           </div>
         </header>
@@ -96,11 +115,12 @@ export function EditorView(props: EditorViewProps) {
             <h2>Select a session</h2>
           </div>
           <div className="header-actions">
-            <button type="button" className="ghost-button" onClick={onCreateSession}>
-              New Session
+            <button type="button" className="ghost-button editor-action-button" onClick={onCreateSession}>
+              <PlusIcon />
+              <span>New Session</span>
             </button>
             <button type="button" className="primary-button" onClick={onOpenSessions}>
-              Go to Sessions
+              <span>Go to Sessions</span>
             </button>
           </div>
         </header>
