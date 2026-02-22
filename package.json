@@ -16,12 +16,14 @@
     "@fontsource-variable/inter": "^5.2.8",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "latest": "^0.2.0",
     "react": "canary",
     "react-dom": "canary",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^0.1.94",
     "@tauri-apps/cli": "^2.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

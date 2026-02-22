@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | Glance</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:ital,wght@0,300..700;1,300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #000;
+            --text: #fff;
+            --text-muted: rgba(255, 255, 255, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --link: #0091FE;
+        }
+
+        body {
+            margin: 0;
+            color: var(--text);
+            background: var(--bg);
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            padding: 24px 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .nav-logo img {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+        }
+
+        .nav-links a {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.65);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .nav-links a:hover {
+            color: #fff;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 80px auto 120px;
+            padding: 0 24px;
+        }
+
+        h1 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 40px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 24px;
+            font-weight: 500;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .last-updated {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 48px;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            color: var(--text-muted);
+            font-size: 16px;
+            padding-left: 20px;
+            margin-bottom: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        a {
+            color: var(--link);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 620px) {
+            nav {
+                padding: 16px 20px;
+            }
+
+            .container {
+                margin-top: 48px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="nav-logo">
+            <img src="/landing-page/glance-new-icon-macos.svg" alt="Glance">
+            Glance
+        </a>
+        <div class="nav-links">
+            <a href="/">&larr; Back to App</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <div class="last-updated">Last Updated: February 2026</div>
+
+        <p>Glance was built with a core philosophy: <strong>your words belong to you.</strong> Because Glance is
+            designed to help you read your private notes, scripts, and presentations, we've built the app to be
+            completely local and private by design.</p>
+
+        <h2>1. Zero Data Collection</h2>
+        <p>We do not collect, store, or transmit any personal information, usage data, or analytics. Glance does not
+            have user accounts, and there is no login required.</p>
+
+        <h2>2. Local Processing Only</h2>
+        <p>All of your Markdown files, notes, and preferences are processed and stored exclusively on your local device.
+            Glance never uploads your documents to the cloud or syncs them to any external servers.</p>
+
+        <h2>3. No Telemetry or Tracking</h2>
+        <p>We do not embed any analytics SDKs, crash reporters, or telemetry tools inside the Glance application. What
+            you do inside the app is entirely your business.</p>
+
+        <h2>4. Network Requests</h2>
+        <p>Glance operates entirely offline. The only time the app interacts with the internet is if you manually click
+            on external links (such as the "Buy me a coffee" link), which will open in your default web browser.</p>
+
+        <h2>5. Changes to this Policy</h2>
+        <p>If we ever decide to introduce optional features that require network access (such as automatic software
+            updates), this policy will be explicitly updated, and those features will always be strictly opt-in.</p>
+
+    </div>
+</body>
+
+</html>

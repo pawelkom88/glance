@@ -27,21 +27,21 @@
   --line-soft: #ffffff14;
   --line-faint: #050505;
 
-  --accent: #0091FE;
-  --danger: #FF520F;
-  --toast-info-bg: #ffffff;
-  --toast-info-border: #d6dde8;
-  --toast-success-bg: #92F488;
-  --toast-success-border: #5ebf54;
-  --toast-warning-bg: #F9F871;
-  --toast-warning-border: #c8c645;
+  --accent: #007AFF;
+  --danger: #FF3B30;
+  --toast-info-bg: #f5f5f7;
+  --toast-info-border: #d2d2d7;
+  --toast-success-bg: #34C759;
+  --toast-success-border: #28a745;
+  --toast-warning-bg: #FFCC00;
+  --toast-warning-border: #e0b400;
   --toast-error-bg: var(--danger);
-  --toast-error-border: #ca3900;
+  --toast-error-border: #d32f2f;
 
-  --radius-xl: 32px;
-  --radius-lg: 22px;
-  --radius-md: 16px;
-  --radius-sm: 12px;
+  --radius-xl: 16px;
+  --radius-lg: 14px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
   --page-heading-size: clamp(1.9rem, 4vw, 2.5rem);
   --page-heading-line-height: 1.1;
   --page-heading-letter-spacing: -0.02em;
@@ -404,7 +404,7 @@ select {
 .cancel-button,
 .sections-customize-button {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   min-height: 42px;
   padding: 0 20px;
   cursor: pointer;
@@ -677,11 +677,17 @@ select {
   border: 0;
   width: 44px;
   height: 44px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: rgba(204, 77, 69, 0.12);
   color: #a83f37;
   cursor: pointer;
-  transition: background-color 160ms ease, transform 160ms ease, color 160ms ease;
+  opacity: 0;
+  transition: background-color 160ms ease, transform 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.session-card-selectable:hover .row-menu-button,
+.session-card-selectable:focus-within .row-menu-button {
+  opacity: 1;
 }
 
 .row-menu-button:hover {
@@ -920,10 +926,15 @@ select {
   min-height: calc(100vh - 260px);
   border-radius: var(--radius-md);
   border: 1px solid var(--line-soft);
+  background: var(--bg-canvas-2);
   color: var(--text-strong);
-  padding: 14px;
+  padding: 20px 24px;
   resize: vertical;
-  line-height: 1.65;
+  line-height: 1.6;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .sections-panel,
@@ -1043,7 +1054,7 @@ select {
   justify-content: center;
   min-height: 32px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: rgba(12, 18, 30, 0.05);
   color: var(--text-strong);
@@ -1076,7 +1087,6 @@ select {
   border-radius: var(--radius-md);
   border: 1px solid var(--line-soft);
   background: var(--bg-canvas-2);
-  box-shadow: var(--shadow-sm);
   padding: 12px 14px;
   display: flex;
   align-items: center;
@@ -1088,7 +1098,7 @@ select {
 .local-only-icon {
   width: 42px;
   height: 42px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
   background: rgba(12, 18, 30, 0.06);
@@ -1295,19 +1305,13 @@ select {
 }
 
 .shortcut-action-bar {
-  position: sticky;
-  bottom: 10px;
-  z-index: 8;
-  margin-top: 14px;
+  margin-top: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line-soft);
-  background: color-mix(in srgb, var(--bg-canvas-2) 92%, white 8%);
-  box-shadow: var(--shadow-sm);
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line-soft);
 }
 
 .shortcut-change-indicator {
@@ -1481,7 +1485,7 @@ select {
 .toast-icon {
   width: 24px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -1802,7 +1806,7 @@ select {
   justify-content: center;
   min-height: 28px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 0.78rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.8);
@@ -1830,7 +1834,7 @@ select {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.18);
   padding: 6px 10px;
   font-size: 0.82rem;
