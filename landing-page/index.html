@@ -230,18 +230,24 @@
     }
 
     .prompter-track {
+      display: flex;
+      flex-direction: column;
+      animation: scrollPrompter 60s linear infinite;
+    }
+
+    .prompter-text {
       font-family: cursive, sans-serif;
       font-size: clamp(24px, 4vw, 44px);
       line-height: 1.6;
       text-transform: none;
-      /* Removed uppercase */
       color: var(--text);
       opacity: 0.05;
       white-space: normal;
       text-align: center;
       width: 150vw;
       font-weight: 500;
-      animation: scrollPrompter 60s linear infinite;
+      padding-bottom: 30px;
+      /* Space before it loops */
     }
 
     @keyframes scrollPrompter {
@@ -1538,35 +1544,24 @@
   <section class="hero" id="home">
     <div class="hero-prompter-bg">
       <div class="prompter-track">
-        <!-- FIRST HALF -->
-        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
-        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
-        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
-        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
-        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
-        call.
-        <br><br><br>
-        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
-        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
-        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
-        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
-        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
-        call.
-        <br><br><br>
-        <!-- SECOND HALF (EXACT DUPLICATE FOR SEAMLESS -50% SCROLLING) -->
-        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
-        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
-        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
-        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
-        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
-        call.
-        <br><br><br>
-        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
-        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
-        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
-        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
-        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
-        call.
+        <div class="prompter-text">
+          read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to
+          them.
+          confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
+          script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
+          engage your audience. your script, invisible to them. confidence in every call. read naturally. present
+          flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
+          call.
+        </div>
+        <div class="prompter-text" aria-hidden="true">
+          read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to
+          them.
+          confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
+          script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
+          engage your audience. your script, invisible to them. confidence in every call. read naturally. present
+          flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
+          call.
+        </div>
       </div>
     </div>
     <span class="hero-eyebrow">
@@ -1584,7 +1579,7 @@
       presentations, and content creation with a tool that just works.
     </p>
     <div class="hero-ctas">
-      <a href="#download-mac" class="hero-dl-btn">
+      <a href="/landing-page/downloads/Glance_0.1.0_aarch64.dmg" download class="hero-dl-btn">
         <span class="dl-btn-icon">
           <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -1595,7 +1590,7 @@
         </span>
         <span>Download for macOS</span>
       </a>
-      <a href="#download-win" class="hero-dl-btn">
+      <a href="/landing-page/downloads/Glance_0.1.0_x64_en-US.msi" download class="hero-dl-btn">
         <span class="dl-btn-icon">
           <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
             xmlns="http://www.w3.org/2000/svg">
@@ -1846,22 +1841,28 @@
   <section class="download-section" id="download">
     <div class="download-card reveal">
       <div class="free-badge">✦ Free</div>
-      <div class="download-tagline">Ready when<br>you <em>are.</em></div>
-      <p class="download-sub">Built with Tauri. No subscription. No account. Just download and go.</p>
-      <div class="download-btns">
-        <a href="#" class="dl-btn">
+      <div class="dl-card-content">
+        <h2>Start Presenting Like a Pro</h2>
+        <p>No subscription. No account needed. Download and go.</p>
+      </div>
+      <div class="dl-card-actions">
+        <a href="/landing-page/downloads/Glance_0.1.0_aarch64.dmg" download class="dl-btn">
           <span class="dl-btn-icon">
-            <svg fill="#00C978" width="14" height="14" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M31,0H1A1,1,0,0,0,0,1V31a1,1,0,0,0,1,1H31a1,1,0,0,0,1-1V1A1,1,0,0,0,31,0ZM2,2H14.36C11.89,7.34,11,15.52,11,15.9a1,1,0,0,0,.25.77A1,1,0,0,0,12,17h4.89a29.9,29.9,0,0,0,.25,7c-.37,0-.75.05-1.14.05A14.07,14.07,0,0,1,5.78,19.38a1,1,0,0,0-1.4-.16,1,1,0,0,0-.16,1.41A15.87,15.87,0,0,0,16,26c.53,0,1.05,0,1.55-.08A18.35,18.35,0,0,0,19.07,30H2ZM30,30H21.39a15.57,15.57,0,0,1-1.86-4.42,15.91,15.91,0,0,0,8.25-4.95,1,1,0,1,0-1.56-1.25,14.13,14.13,0,0,1-7.09,4.24A27.91,27.91,0,0,1,19,16.15,1,1,0,0,0,18,15H13.13c.34-2.59,1.36-9.12,3.46-13H30Z" />
               <path d="M8,13a1,1,0,0,0,1-1V9A1,1,0,0,0,7,9v3A1,1,0,0,0,8,13Z" />
               <path d="M24,13a1,1,0,0,0,1-1V9a1,1,0,0,0-2,0v3A1,1,0,0,0,24,13Z" />
             </svg>
-          </span> <span class="dl-text">Download for macOS</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+
+            Download for macOS
+          </span>
         </a>
-        <a href="#" class="dl-btn">
+        <a href="/landing-page/downloads/Glance_0.1.0_x64_en-US.msi" download class="dl-btn dl-btn-win">
           <span class="dl-btn-icon">
-            <svg fill="#D48F00" width="24" height="24" viewBox="-4 0 32 32" version="1.1"
+            <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
               xmlns="http://www.w3.org/2000/svg">
               <title>windows</title>
               <path

@@ -17,6 +17,7 @@
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
+    "@tauri-apps/plugin-updater": "~2",
     "latest": "^0.2.0",
     "react": "canary",
     "react-dom": "canary",

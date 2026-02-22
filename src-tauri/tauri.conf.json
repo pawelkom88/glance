@@ -22,22 +22,36 @@
     ],
     "security": {
       "csp": null,
-      "capabilities": ["default"]
+      "capabilities": [
+        "default"
+      ]
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "app", "msi", "nsis"],
-    "createUpdaterArtifacts": false,
+    "targets": [
+      "dmg",
+      "app",
+      "msi",
+      "nsis"
+    ],
+    "createUpdaterArtifacts": true,
     "macOS": {
       "minimumSystemVersion": "10.15"
     },
     "icon": [
       "icons/32x32.png",
-      "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://YOUR_APP_DOMAIN.netlify.app/update.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ0NkVCRjM1REE0QjlGRjEKUldUeG4wdmFOYjl1MU0zNkRqN0UrYjl0RlNmOURYTjNveFVmNWJTQzBOMHVXVkFBVFFQSkhOYVgK"
+    }
   }
 }

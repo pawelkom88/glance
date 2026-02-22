@@ -1,0 +1,15 @@
+{
+    "version": "0.1.0",
+    "notes": "Initial release via Auto-Updater",
+    "pub_date": "2025-02-22T00:00:00Z",
+    "platforms": {
+        "darwin-aarch64": {
+            "signature": "REPLACE_WITH_MAC_AARCH64_SIG_CONTENT",
+            "url": "https://YOUR_APP_DOMAIN.netlify.app/downloads/Glance_0.1.0_aarch64.tar.gz"
+        },
+        "windows-x86_64": {
+            "signature": "REPLACE_WITH_WIN_X64_SIG_CONTENT",
+            "url": "https://YOUR_APP_DOMAIN.netlify.app/downloads/Glance_0.1.0_x64_en-US.msi.zip"
+        }
+    }
+}
