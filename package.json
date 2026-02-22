@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "build:mac": "tauri build --target aarch64-apple-darwin",
+    "build:win": "tauri build --target x86_64-pc-windows-msvc"
   },
   "dependencies": {
     "@fontsource-variable/commissioner": "^5.2.10",
