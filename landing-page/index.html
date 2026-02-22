@@ -10,6 +10,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Glance — Look prepared. Sound natural.</title>
+  <link rel="icon" type="image/svg+xml" href="/landing-page/favicon.svg">
+  <link rel="icon" type="image/png" href="/landing-page/favicon.png">
+  <link rel="apple-touch-icon" href="/landing-page/apple-touch-icon.png">
   <style>
     *,
     *::before,
@@ -204,6 +207,51 @@
     .hero-headline em {
       font-style: italic;
       color: var(--blue);
+    }
+
+    /* ── TELEPROMPTER BACKGROUND ── */
+    .hero-prompter-bg {
+      display: none;
+      /* Hidden on desktop */
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 200px;
+      /* Constrained above the main heading */
+      overflow: hidden;
+      z-index: 0;
+      pointer-events: none;
+      justify-content: center;
+      align-items: flex-end;
+      /* Align to bottom of the 200px container */
+      mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    }
+
+    .prompter-track {
+      font-family: cursive, sans-serif;
+      font-size: clamp(24px, 4vw, 44px);
+      line-height: 1.6;
+      text-transform: none;
+      /* Removed uppercase */
+      color: var(--text);
+      opacity: 0.05;
+      white-space: normal;
+      text-align: center;
+      width: 150vw;
+      font-weight: 500;
+      animation: scrollPrompter 60s linear infinite;
+    }
+
+    @keyframes scrollPrompter {
+      0% {
+        transform: translateY(0);
+      }
+
+      100% {
+        transform: translateY(-50%);
+      }
     }
 
     .hero-sub {
@@ -528,8 +576,11 @@
       border-top: none;
       padding: 36px 48px;
       display: flex;
+      gap: 32px;
+      /* Increased gap to push elements apart */
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
+      /* Flow from left to right naturally */
       font-size: 13px;
       color: rgba(255, 255, 255, 0.5);
     }
@@ -634,9 +685,10 @@
       }
 
       footer {
-        flex-direction: column;
+        flex-direction: row;
         gap: 16px;
-        text-align: center;
+        align-items: center;
+        justify-content: space-between;
         padding: 32px 24px;
       }
 
@@ -664,12 +716,17 @@
       }
 
       .footer-links {
-        justify-content: center;
+        justify-content: flex-start;
       }
     }
 
     /* ── MOBILE ≤ 620px ── */
     @media (max-width: 620px) {
+      .hero-prompter-bg {
+        display: flex;
+        /* Show only on mobile */
+      }
+
       nav {
         display: none;
       }
@@ -755,8 +812,17 @@
       }
 
       footer {
-        padding: 28px 20px;
-        font-size: 12px;
+        font-size: 11px;
+        gap: 8px;
+        padding: 24px 16px;
+      }
+
+      .footer-logo-text {
+        display: none;
+        /* Hide text on very small screens to save space */
+      }
+
+      .footer-links {
         gap: 12px;
       }
     }
@@ -1470,8 +1536,39 @@
 
   <!-- HERO -->
   <section class="hero" id="home">
-    <div class="hero-glow"></div>
-
+    <div class="hero-prompter-bg">
+      <div class="prompter-track">
+        <!-- FIRST HALF -->
+        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
+        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
+        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
+        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
+        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
+        call.
+        <br><br><br>
+        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
+        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
+        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
+        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
+        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
+        call.
+        <br><br><br>
+        <!-- SECOND HALF (EXACT DUPLICATE FOR SEAMLESS -50% SCROLLING) -->
+        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
+        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
+        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
+        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
+        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
+        call.
+        <br><br><br>
+        read naturally. present flawlessly. maintain eye contact. engage your audience. your script, invisible to them.
+        confidence in every call. read naturally. present flawlessly. maintain eye contact. engage your audience. your
+        script, invisible to them. confidence in every call. read naturally. present flawlessly. maintain eye contact.
+        engage your audience. your script, invisible to them. confidence in every call. read naturally. present
+        flawlessly. maintain eye contact. engage your audience. your script, invisible to them. confidence in every
+        call.
+      </div>
+    </div>
     <span class="hero-eyebrow">
       <span class="dot"></span>
       Teleprompter · macOS &amp; Windows
@@ -1800,11 +1897,14 @@
       <img src="/landing-page/glance-new-icon-macos.svg" alt="Glance" />
       <span class="footer-logo-text">Glance</span>
     </div>
-    <div class="footer-links">
+
+    <div class="footer-links" style="margin-left: 24px;">
       <a href="privacy.html">Privacy</a>
       <a href="mailto:hello@glance.com">Support</a>
     </div>
-    <a href="https://www.buymeacoffee.com/pawelkomorkiewicz" target="_blank" class="footer-buy-coffee">
+
+    <a href="https://www.buymeacoffee.com/pawelkomorkiewicz" target="_blank" class="footer-buy-coffee"
+      style="margin-left: auto;">
       <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" />
     </a>
   </footer>
