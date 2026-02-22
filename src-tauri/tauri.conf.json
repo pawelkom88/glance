@@ -51,7 +51,7 @@
       "endpoints": [
         "https://YOUR_APP_DOMAIN.netlify.app/update.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ0NkVCRjM1REE0QjlGRjEKUldUeG4wdmFOYjl1MU0zNkRqN0UrYjl0RlNmOURYTjNveFVmNWJTQzBOMHVXVkFBVFFQSkhOYVgK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM4NDVENzk3QjJFQjdEOUIKUldTYmZldXlsOWRGeUVFVVNoWHRUaWpVTVdzcG4wMjVhdllDL0QxWlBJVU9sWTFlejRVaXhOV1MK"
     }
   }
 }
