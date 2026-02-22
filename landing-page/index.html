@@ -1774,11 +1774,106 @@
       opacity: 0.9;
       filter: grayscale(0.2);
     }
+
+    /* ── HERO VIDEO PLAYER ── */
+    .hero-video-wrapper {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 0 0 12px 12px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .hero-video-wrapper video {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: cover;
+    }
+
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.15);
+      transition: opacity 300ms ease, background 300ms ease;
+      z-index: 10;
+      cursor: pointer;
+    }
+
+    .video-overlay:hover {
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .video-overlay:hover .play-btn-glass {
+      transform: scale(1.08);
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .play-btn-glass {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+    }
+
+    .play-icon-svg {
+      width: 32px;
+      height: 32px;
+      fill: #ffffff;
+      margin-left: 6px;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+    }
   </style>
   <script>
     if (navigator.userAgent.indexOf('Win') !== -1) {
       document.documentElement.classList.add('os-win');
     }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const video = document.getElementById("hero-video");
+      const overlay = document.getElementById("video-overlay");
+
+      if (video && overlay) {
+        video.load();
+
+        overlay.addEventListener("click", () => {
+          video.play();
+          video.setAttribute("controls", "controls");
+          overlay.style.opacity = '0';
+          overlay.style.pointerEvents = 'none';
+        });
+      }
+
+      // Fetch the latest GitHub Release to auto-wire the download buttons
+      try {
+        const res = await fetch("https://api.github.com/repos/pawelkomorkiewicz/glance/releases/latest");
+        if (res.ok) {
+          const release = await res.json();
+          const macAsset = release.assets.find(a => a.name.endsWith('.dmg'));
+          const winAsset = release.assets.find(a => a.name.endsWith('.msi'));
+
+          if (macAsset) {
+            document.querySelectorAll('.dl-mac-btn').forEach(btn => btn.href = macAsset.browser_download_url);
+          }
+          if (winAsset) {
+            document.querySelectorAll('.dl-win-btn').forEach(btn => btn.href = winAsset.browser_download_url);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch latest release assets from GitHub", err);
+      }
+    });
   </script>
 </head>
 
@@ -1834,7 +1929,7 @@
       presentations, and content creation with a tool that just works.
     </p>
     <div class="hero-ctas">
-      <a href="/downloads/Glance_0.1.0_aarch64.dmg" download class="hero-dl-btn">
+      <a href="https://github.com/pawelkomorkiewicz/glance/releases/latest" class="hero-dl-btn dl-mac-btn">
         <span class="dl-btn-icon">
           <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -1845,7 +1940,7 @@
         </span>
         <span>Download for macOS</span>
       </a>
-      <a href="/downloads/Glance_0.1.0_x64_en-US.msi" download class="hero-dl-btn">
+      <a href="https://github.com/pawelkomorkiewicz/glance/releases/latest" class="hero-dl-btn dl-win-btn">
         <span class="dl-btn-icon">
           <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
             xmlns="http://www.w3.org/2000/svg">
@@ -1882,41 +1977,13 @@
             </svg>
           </div>
         </div>
-        <div class="screenshot-body">
-          <div class="screenshot-sidebar">
-            <div class="ss-title">Sections</div>
-            <div class="ss-chip active"><span class="ss-dot"></span>Introduction</div>
-            <div class="ss-chip"><span class="ss-dot"></span>Problem &amp; Why Now</div>
-            <div class="ss-chip"><span class="ss-dot"></span>Our Solution</div>
-            <div class="ss-chip"><span class="ss-dot"></span>Live Demo</div>
-            <div class="ss-chip"><span class="ss-dot"></span>Traction</div>
-            <div class="ss-chip"><span class="ss-dot"></span>Team &amp; Ask</div>
-            <div class="ss-chip"><span class="ss-dot"></span>Q&amp;A</div>
-          </div>
-          <div class="screenshot-main">
-            <div class="ss-scroll-area">
-              <div class="ss-highlight-band"></div>
-              <div class="ss-lines">
-                <p class="ss-line">Thank you for having me — excited to share what we’ve built.</p>
-                <p class="ss-line ss-near">I’ll show you something that changed how I present live.</p>
-                <p class="ss-line ss-reading">It started when I bombed a demo in front of fifty investors.</p>
-                <p class="ss-line ss-near">Not because I didn’t know my material.</p>
-                <p class="ss-line">But because I kept looking down at my notes.</p>
-                <p class="ss-line">Feedback: “You seemed unprepared.”</p>
-                <p class="ss-line">Irony? I’d spent forty hours preparing.</p>
-                <p class="ss-line">That’s exactly why Glance exists.</p>
-              </div>
-            </div>
-            <div class="ss-controls">
-              <div class="ss-btns">
-                <span class="ss-btn">⏮</span>
-                <span class="ss-btn ss-play">▶</span>
-                <span class="ss-btn">⏭</span>
-              </div>
-              <div class="ss-progress">
-                <div class="ss-fill"></div>
-              </div>
-              <span class="ss-speed">1.0×</span>
+        <div class="screenshot-body hero-video-wrapper">
+          <video id="hero-video" src="/GLANCE.mp4" poster="/poster.jpg" preload="auto" playsinline></video>
+          <div id="video-overlay" class="video-overlay">
+            <div class="play-btn-glass">
+              <svg class="play-icon-svg" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </div>
           </div>
         </div>
@@ -2136,7 +2203,7 @@
       <div class="download-tagline">Ready when<br>you <em>are.</em></div>
       <p class="download-sub">Built with Tauri. No subscription. No account. Just download and go.</p>
       <div class="download-btns">
-        <a href="/downloads/Glance_0.1.0_aarch64.dmg" download class="dl-btn">
+        <a href="https://github.com/pawelkomorkiewicz/glance/releases/latest" class="dl-btn dl-mac-btn">
           <span class="dl-btn-icon">
             <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
               <path
@@ -2147,7 +2214,7 @@
           </span>
           <span class="dl-text">Download for macOS</span>
         </a>
-        <a href="/downloads/Glance_0.1.0_x64_en-US.msi" download class="dl-btn dl-btn-win">
+        <a href="https://github.com/pawelkomorkiewicz/glance/releases/latest" class="dl-btn dl-btn-win dl-win-btn">
           <span class="dl-btn-icon">
             <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
               xmlns="http://www.w3.org/2000/svg">
