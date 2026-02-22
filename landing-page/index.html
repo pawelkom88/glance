@@ -226,41 +226,52 @@
       justify-content: center;
       position: relative;
       z-index: 1;
+      background: rgba(255, 255, 255, 0.08);
     }
 
-    .btn-primary {
-      background: var(--blue);
-      color: #fff;
-      padding: 13px 30px;
-      border-radius: 100px;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: filter 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 2px 24px rgba(0, 145, 254, 0.25);
-    }
-
-    .btn-primary:hover {
-      filter: brightness(1.08);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 32px rgba(0, 145, 254, 0.35);
-    }
-
-    .btn-secondary {
-      background: transparent;
-      border: 1px solid var(--border);
+    .hero-dl-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.08);
       color: var(--text);
-      padding: 13px 30px;
+      padding: 14px 32px;
+      width: 270px;
+      box-sizing: border-box;
       border-radius: 100px;
       font-size: 15px;
       font-weight: 500;
       text-decoration: none;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
     }
 
-    .btn-secondary:hover {
-      background: var(--bg2);
-      border-color: var(--border);
+    .hero-dl-btn:hover {
+      background: #fafafa;
+      transform: translateY(-2px);
+    }
+
+    .hero-dl-btn:first-of-type {
+      border: 1px solid var(--green);
+      padding: 17px 32px;
+      box-shadow: 0 4px 14px rgba(0, 201, 120, 0.15);
+    }
+
+    .hero-dl-btn:first-of-type:hover {
+      box-shadow: 0 6px 20px rgba(0, 201, 120, 0.25);
+    }
+
+    .hero-dl-btn:nth-last-of-type(1) {
+      border: 1px solid var(--gold);
+      box-shadow: 0 4px 14px rgba(212, 143, 0, 0.15);
+    }
+
+    .hero-dl-btn:nth-last-of-type(1):hover {
+      box-shadow: 0 6px 20px rgba(212, 143, 0, 0.25);
+    }
+
+    .hero-dl-btn svg {
+      margin-top: 1px;
     }
 
     .hero-note strong {
@@ -703,14 +714,15 @@
         width: 100%;
         gap: 10px;
         margin-top: 28px;
+        background: rgba(255, 255, 255, 0.08);
       }
 
-      .btn-primary,
-      .btn-secondary {
+      .hero-dl-btn {
         width: 100%;
         text-align: center;
         justify-content: center;
         padding: 14px 20px;
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .monitor-bar span.monitor-title {
@@ -1475,8 +1487,28 @@
       presentations, and content creation with a tool that just works.
     </p>
     <div class="hero-ctas">
-      <a href="#download-mac" class="btn-primary">Download for macOS</a>
-      <a href="#download-win" class="btn-secondary">Download for Windows</a>
+      <a href="#download-mac" class="hero-dl-btn">
+        <span class="dl-btn-icon">
+          <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M31,0H1A1,1,0,0,0,0,1V31a1,1,0,0,0,1,1H31a1,1,0,0,0,1-1V1A1,1,0,0,0,31,0ZM2,2H14.36C11.89,7.34,11,15.52,11,15.9a1,1,0,0,0,.25.77A1,1,0,0,0,12,17h4.89a29.9,29.9,0,0,0,.25,7c-.37,0-.75.05-1.14.05A14.07,14.07,0,0,1,5.78,19.38a1,1,0,0,0-1.4-.16,1,1,0,0,0-.16,1.41A15.87,15.87,0,0,0,16,26c.53,0,1.05,0,1.55-.08A18.35,18.35,0,0,0,19.07,30H2ZM30,30H21.39a15.57,15.57,0,0,1-1.86-4.42,15.91,15.91,0,0,0,8.25-4.95,1,1,0,1,0-1.56-1.25,14.13,14.13,0,0,1-7.09,4.24A27.91,27.91,0,0,1,19,16.15,1,1,0,0,0,18,15H13.13c.34-2.59,1.36-9.12,3.46-13H30Z" />
+            <path d="M8,13a1,1,0,0,0,1-1V9A1,1,0,0,0,7,9v3A1,1,0,0,0,8,13Z" />
+            <path d="M24,13a1,1,0,0,0,1-1V9a1,1,0,0,0-2,0v3A1,1,0,0,0,24,13Z" />
+          </svg>
+        </span>
+        <span>Download for macOS</span>
+      </a>
+      <a href="#download-win" class="hero-dl-btn">
+        <span class="dl-btn-icon">
+          <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M13.875 7.719l-2.281 7.906s-2.594-1.813-4.5-1.625c-1.875 0.188-4.406 1.125-4.406 1.125l2.313-7.969s4.781-2.563 8.875 0.563zM12.813 16.375l2.281-7.844c0.688 0.469 1.906 1.313 3.875 1.563 1.969 0.219 5.031-1.031 5.031-1.031l-2.281 7.906c-0.344 0.125-1.781 0.938-4.406 1.094-2.656 0.156-4.5-1.688-4.5-1.688zM0 24.469l2.281-7.969s2.563-1.188 4.719-1.031c2.125 0.125 3.844 1.313 4.188 1.594l-2.281 7.969s-2.625-1.719-4.438-1.563-3.406 0.469-4.469 1zM10.125 25.719l2.281-7.906s2.438 1.594 4.031 1.531c1.594-0.031 2.688-0.125 4.844-0.969h0.031c-0.156 0.406-2.281 7.844-2.281 7.844s-2.5 1.188-4.813 1.063c-2.281-0.094-3.656-1.406-4.094-1.563z">
+            </path>
+          </svg>
+        </span>
+        <span>Download for Windows</span>
+      </a>
     </div>
   </section>
 
