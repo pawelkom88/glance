@@ -1833,6 +1833,107 @@
       margin-left: 6px;
       filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
     }
+
+    /* ─── COOKIE BANNER ─── */
+    .cookie-banner {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      max-width: 90%;
+      width: max-content;
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+    }
+
+    .cookie-banner.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .cookie-content p {
+      font-size: 14px;
+      color: var(--text);
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .cookie-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .cookie-btn {
+      border: none;
+      padding: 8px 18px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.1s;
+    }
+
+    .cookie-btn:active {
+      transform: scale(0.96);
+    }
+
+    .cookie-reject {
+      background: var(--bg3);
+      color: var(--text-dim);
+    }
+
+    .cookie-reject:hover {
+      background: #e4e4e6;
+      color: var(--text);
+    }
+
+    .cookie-accept {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .cookie-accept:hover {
+      background: #0077d6;
+    }
+
+    @media (max-width: 620px) {
+      .cookie-banner {
+        flex-direction: column;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        transform: translateY(100px);
+        width: auto;
+        max-width: none;
+        text-align: center;
+        gap: 16px;
+      }
+
+      .cookie-banner.show {
+        transform: translateY(0);
+      }
+
+      .cookie-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .cookie-btn {
+        flex: 1;
+        padding: 12px;
+      }
+    }
   </style>
   <script>
     if (navigator.userAgent.indexOf('Win') !== -1) {
@@ -1875,6 +1976,7 @@
     });
   </script>
   <script type="text/javascript">
+    // Make mixpanel function available as a stub, but only fully initialize if consent is given
     (function (e, c) {
       if (!c.__SV) {
         var l, h; window.mixpanel = c; c._i = []; c.init = function (q, r, f) {
@@ -1885,13 +1987,19 @@
       }
     })(document, window.mixpanel || [])
 
+    window.initMixpanel = function () {
+      mixpanel.init('927b4ff1788257eee511fbcbbcad1591', {
+        api_host: 'https://api-eu.mixpanel.com',
+      });
+      // Set Mixpanel to track clicks on download buttons specifically
+      mixpanel.track_links('.dl-mac-btn', 'Download Button Clicked', { os: 'macOS' });
+      mixpanel.track_links('.dl-win-btn', 'Download Button Clicked', { os: 'Windows' });
+    }
 
-    mixpanel.init('927b4ff1788257eee511fbcbbcad1591', {
-      autocapture: true,
-      record_sessions_percent: 100,
-      api_host: 'https://api-eu.mixpanel.com',
-    })
-
+    // Check if user already consented
+    if (localStorage.getItem('glance_cookie_consent') === 'accepted') {
+      window.initMixpanel();
+    }
   </script>
 </head>
 
@@ -2337,6 +2445,55 @@
     });
   </script>
 
+
+  <!-- COOKIE CONSENT BANNER -->
+  <div id="cookie-banner" class="cookie-banner" style="display: none;">
+    <div class="cookie-content">
+      <p>We use cookies to understand how you use Glance. We only track download button clicks.</p>
+    </div>
+    <div class="cookie-actions">
+      <button id="cookie-reject" class="cookie-btn cookie-reject">Reject</button>
+      <button id="cookie-accept" class="cookie-btn cookie-accept">Accept</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const banner = document.getElementById("cookie-banner");
+      const rejectBtn = document.getElementById("cookie-reject");
+      const acceptBtn = document.getElementById("cookie-accept");
+
+      const consentState = localStorage.getItem("glance_cookie_consent");
+      if (!consentState) {
+        banner.style.display = "flex";
+        // Delay heavily to allow for CSS transitions after display change
+        setTimeout(() => {
+          banner.classList.add("show");
+        }, 50);
+      }
+
+      const hideBanner = () => {
+        banner.classList.remove("show");
+        setTimeout(() => {
+          banner.style.display = "none";
+        }, 400); // Wait for transition
+      };
+
+      rejectBtn.addEventListener("click", () => {
+        localStorage.setItem("glance_cookie_consent", "rejected");
+        hideBanner();
+      });
+
+      acceptBtn.addEventListener("click", () => {
+        localStorage.setItem("glance_cookie_consent", "accepted");
+        hideBanner();
+
+        if (typeof window.initMixpanel === 'function') {
+          window.initMixpanel();
+        }
+      });
+    });
+  </script>
 
   <script>
     // Scroll reveal
