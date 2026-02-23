@@ -1992,8 +1992,12 @@
         api_host: 'https://api-eu.mixpanel.com',
       });
       // Set Mixpanel to track clicks on download buttons specifically
-      mixpanel.track_links('.dl-mac-btn', 'Download Button Clicked', { os: 'macOS' });
-      mixpanel.track_links('.dl-win-btn', 'Download Button Clicked', { os: 'Windows' });
+      mixpanel.track_links('.dl-mac-btn', 'Download Button Clicked', function (ele) {
+        return { os: 'macOS', button_id: ele.id };
+      });
+      mixpanel.track_links('.dl-win-btn', 'Download Button Clicked', function (ele) {
+        return { os: 'Windows', button_id: ele.id };
+      });
     }
 
     // Check if user already consented
@@ -2055,7 +2059,8 @@
       presentations, and content creation with a tool that just works.
     </p>
     <div class="hero-ctas">
-      <a href="https://github.com/pawelkom88/glance/releases/latest" class="hero-dl-btn dl-mac-btn">
+      <a href="https://github.com/pawelkom88/glance/releases/latest" class="hero-dl-btn dl-mac-btn"
+        id="hero-download-mac">
         <span class="dl-btn-icon">
           <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -2066,7 +2071,8 @@
         </span>
         <span>Download for macOS</span>
       </a>
-      <a href="https://github.com/pawelkom88/glance/releases/latest" class="hero-dl-btn dl-win-btn">
+      <a href="https://github.com/pawelkom88/glance/releases/latest" class="hero-dl-btn dl-win-btn"
+        id="hero-download-win">
         <span class="dl-btn-icon">
           <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
             xmlns="http://www.w3.org/2000/svg">
@@ -2329,7 +2335,8 @@
       <div class="download-tagline">Ready when<br>you <em>are.</em></div>
       <p class="download-sub">Built with Tauri. No subscription. No account. Just download and go.</p>
       <div class="download-btns">
-        <a href="https://github.com/pawelkom88/glance/releases/latest" class="dl-btn dl-mac-btn">
+        <a href="https://github.com/pawelkom88/glance/releases/latest" class="dl-btn dl-mac-btn"
+          id="footer-download-mac">
           <span class="dl-btn-icon">
             <svg fill="#00C978" width="15" height="15" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
               <path
@@ -2340,7 +2347,8 @@
           </span>
           <span class="dl-text">Download for macOS</span>
         </a>
-        <a href="https://github.com/pawelkom88/glance/releases/latest" class="dl-btn dl-btn-win dl-win-btn">
+        <a href="https://github.com/pawelkom88/glance/releases/latest" class="dl-btn dl-btn-win dl-win-btn"
+          id="footer-download-win">
           <span class="dl-btn-icon">
             <svg fill="#D48F00" width="22" height="22" viewBox="-4 0 32 32" version="1.1"
               xmlns="http://www.w3.org/2000/svg">
