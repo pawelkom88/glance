@@ -552,41 +552,141 @@ select {
   fill: currentColor;
 }
 
-.new-session-composer {
+/* === New Session Modal === */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(2px) brightness(0.94);
+  -webkit-backdrop-filter: blur(2px) brightness(0.94);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  margin: 0 0 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line-soft);
-  background: var(--bg-card);
+  justify-content: center;
   opacity: 0;
-  transform: translateY(-4px) scale(0.99);
-  animation: composer-in 170ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: modal-overlay-in 170ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.new-session-composer.is-closing {
-  animation: composer-out 140ms ease forwards;
+.modal-overlay.is-closing {
+  animation: modal-overlay-out 140ms ease forwards;
 }
 
-.composer-input {
-  min-height: 42px;
-  min-width: 230px;
+.modal-sheet {
+  width: min(440px, 90vw);
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  animation: modal-sheet-in 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.modal-overlay.is-closing .modal-sheet {
+  animation: modal-sheet-out 140ms ease forwards;
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  margin-bottom: 4px;
+  color: #1C1C1E;
+}
+
+.modal-subtitle {
+  font-size: 12px;
+  color: #AEAEB2;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.modal-input {
   width: 100%;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--surface-input-border);
-  background: var(--surface-input);
-  color: var(--text-strong);
-  padding: 0 14px;
+  border: 1.5px solid #D1D1D6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: inherit;
+  color: #1C1C1E;
+  background: #F2F2F7;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  margin-bottom: 6px;
+  display: block;
 }
 
-.composer-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.modal-input:focus {
+  border-color: #1B6EF3;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(27, 110, 243, 0.12);
 }
+
+.modal-char-count {
+  font-size: 11px;
+  color: #AEAEB2;
+  text-align: right;
+  margin-bottom: 18px;
+  transition: color 0.15s;
+}
+
+.modal-char-count.warn {
+  color: #FF9500;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-btn-cancel {
+  padding: 9px 16px;
+  border-radius: 9px;
+  background: #F2F2F7;
+  border: 1px solid #D1D1D6;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  color: #6C6C70;
+  transition: background 0.12s;
+}
+
+.modal-btn-cancel:hover {
+  background: #E5E5EA;
+}
+
+.modal-btn-create {
+  padding: 9px 18px;
+  border-radius: 9px;
+  background: #1B6EF3;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  color: #FFFFFF;
+  box-shadow: 0 1px 6px rgba(27, 110, 243, 0.40);
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.modal-btn-create:hover {
+  background: #1559D4;
+}
+
+.modal-btn-create:disabled {
+  background: #D1D1D6;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 
 .primary-button,
 .ghost-button,
@@ -649,10 +749,10 @@ select {
 .sessions-new-button:focus-visible,
 .row-menu-button:focus-visible,
 .session-name-input:focus-visible,
-.composer-input:focus-visible,
+.modal-btn-cancel:focus-visible,
+.modal-btn-create:focus-visible,
 .setting-row select:focus-visible,
-.editor-area textarea:focus-visible
-{
+.editor-area textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1842,7 +1942,7 @@ select {
   background: transparent;
 }
 
-.settings-card > :last-child {
+.settings-card> :last-child {
   border-bottom: none;
 }
 
@@ -2456,12 +2556,58 @@ select {
   }
 }
 
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-overlay-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-sheet-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
 
   .floating-menu-backdrop,
   .floating-menu,
   .confirm-backdrop,
   .confirm-sheet,
+  .modal-overlay,
+  .modal-sheet,
   .toast-banner {
     animation: none;
   }
@@ -2568,22 +2714,22 @@ select {
   background: rgba(172, 186, 212, 0.12);
   backdrop-filter: blur(16px) saturate(1.08);
   transition:
-          opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
-          backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-root.overlay-unfocused {
   opacity: 0.84;
   transition:
-          opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
-          backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-root.overlay-unfocused .reading-ruler {
   opacity: 0.55;
   transition:
-          opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
-          backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-root.overlay-sidebar-expanded {
@@ -3777,19 +3923,6 @@ select {
   .panel-header {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .new-session-composer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .composer-input {
-    min-width: 0;
-  }
-
-  .composer-actions {
-    justify-content: flex-end;
   }
 
   .shortcut-grid {

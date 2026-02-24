@@ -12,7 +12,11 @@ interface LibraryViewProps {
 }
 
 function defaultSessionName(): string {
-  return `Session ${new Date().toLocaleDateString()}`;
+  const now = new Date();
+  const day = now.getDate();
+  const month = now.toLocaleDateString('en-GB', { month: 'short' });
+  const year = now.getFullYear();
+  return `Session ${day} ${month} ${year}`;
 }
 
 function SessionDocIcon() {
@@ -281,36 +285,57 @@ export function LibraryView(props: LibraryViewProps) {
       </header>
 
       {showComposer ? (
-        <form
-          className={`new-session-composer ${isComposerClosing ? 'is-closing' : ''}`}
-          onSubmit={(event) => {
-            event.preventDefault();
-            createFromDraft();
-          }}
+        <div
+          className={`modal-overlay ${isComposerClosing ? 'is-closing' : ''}`}
+          onClick={() => closeComposer(true)}
         >
-          <input
-            ref={composerInputRef}
-            type="text"
-            className="composer-input"
-            value={draftSessionName}
-            onChange={(event) => setDraftSessionName(event.target.value)}
-            aria-label="Session name"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                event.preventDefault();
-                closeComposer(true);
-              }
+          <form
+            className="modal-sheet"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={(event) => {
+              event.preventDefault();
+              createFromDraft();
             }}
-          />
-          <div className="composer-actions">
-            <button type="submit" className="primary-button">
-              Create
-            </button>
-            <button type="button" className="cancel-button" onClick={() => closeComposer(true)}>
-              Cancel
-            </button>
-          </div>
-        </form>
+          >
+            <div className="modal-title">New Session</div>
+            <div className="modal-subtitle">Give your session a name. You can rename it at any time.</div>
+            <input
+              ref={composerInputRef}
+              type="text"
+              className="modal-input"
+              value={draftSessionName}
+              maxLength={60}
+              placeholder="e.g. Q2 Sales Call, Podcast Intro…"
+              onChange={(event) => setDraftSessionName(event.target.value)}
+              aria-label="Session name"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  closeComposer(true);
+                }
+              }}
+            />
+            <div className={`modal-char-count${draftSessionName.length >= 50 ? ' warn' : ''}`}>
+              {draftSessionName.length} / 60
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="modal-btn-cancel"
+                onClick={() => closeComposer(true)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="modal-btn-create"
+                disabled={draftSessionName.trim().length === 0}
+              >
+                Create
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
 
       <div className="session-list">
