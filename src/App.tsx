@@ -11,7 +11,9 @@ import { PrivacyGate } from './components/privacy-gate';
 import { parseMarkdown } from './lib/markdown';
 import {
   closeOverlayWindow,
+  emitThemeChanged,
   hideMainWindow,
+  listenForThemeChanged,
   listenForMainWindowShown,
   openOverlayWindow
 } from './lib/tauri';
@@ -150,6 +152,7 @@ export default function App() {
   const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
   const themeMode = useAppStore((state) => state.themeMode);
   const resolvedTheme = useAppStore((state) => state.resolvedTheme);
+  const hydrateThemeFromStorage = useAppStore((state) => state.hydrateThemeFromStorage);
   const syncSystemTheme = useAppStore((state) => state.syncSystemTheme);
 
   const sections = useMemo(() => parseMarkdown(markdown).sections, [markdown]);
@@ -221,6 +224,55 @@ export default function App() {
       media.removeEventListener('change', onChange);
     };
   }, [syncSystemTheme, themeMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'glance-theme-mode-v1') {
+        hydrateThemeFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [hydrateThemeFromStorage]);
+
+  useEffect(() => {
+    let didCancel = false;
+    let unlisten: (() => void) | null = null;
+
+    void (async () => {
+      unlisten = await listenForThemeChanged(({ mode }) => {
+        if (didCancel) {
+          return;
+        }
+
+        const state = useAppStore.getState();
+        if (state.themeMode !== mode) {
+          state.setThemeMode(mode);
+          return;
+        }
+
+        if (mode === 'system') {
+          state.syncSystemTheme();
+        }
+      });
+    })();
+
+    return () => {
+      didCancel = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    void emitThemeChanged(themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     if (!activeSessionId) {
@@ -420,6 +472,7 @@ export default function App() {
                   window.setTimeout(resolve, windowFadeDurationMs);
                 });
                 await openOverlayWindow();
+                await emitThemeChanged(themeMode);
                 await hideMainWindow();
                 setMainWindowTransition('idle');
               } catch (error) {
@@ -458,6 +511,7 @@ export default function App() {
     sessions,
     setMarkdown,
     showToast,
+    themeMode,
     initialized,
     switchTab
   ]);

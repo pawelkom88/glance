@@ -64,6 +64,7 @@ interface AppStoreState {
   readonly changeScrollSpeedBy: (delta: number) => void;
   readonly setOverlayFontScale: (value: number) => void;
   readonly setThemeMode: (mode: ThemeMode) => void;
+  readonly hydrateThemeFromStorage: () => void;
   readonly syncSystemTheme: () => void;
   readonly jumpToSectionByIndex: (index: number) => void;
   readonly setShortcutWarning: (value: string | null) => void;
@@ -482,6 +483,21 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       writeThemeMode(normalized);
       set({
         themeMode: normalized,
+        resolvedTheme: nextResolvedTheme
+      });
+    },
+
+    hydrateThemeFromStorage: () => {
+      const nextMode = readThemeMode();
+      const nextResolvedTheme = resolveTheme(nextMode);
+      const state = get();
+
+      if (state.themeMode === nextMode && state.resolvedTheme === nextResolvedTheme) {
+        return;
+      }
+
+      set({
+        themeMode: nextMode,
         resolvedTheme: nextResolvedTheme
       });
     },

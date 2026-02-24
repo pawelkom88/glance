@@ -1,11 +1,12 @@
 import { LogicalSize } from '@tauri-apps/api/dpi';
-import { listen } from '@tauri-apps/api/event';
+import { emit, listen } from '@tauri-apps/api/event';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { ShortcutBinding } from './shortcuts';
 import type {
   MonitorInfo,
   OverlayBounds,
+  ThemeMode,
   SessionData,
   SessionMeta,
   SessionSummary,
@@ -284,6 +285,34 @@ export async function listenForShortcutEvents(
 
   const unlisten = await listen<ShortcutEventPayload>('shortcut-event', (event) => {
     onShortcut(event.payload);
+  });
+
+  return () => {
+    unlisten();
+  };
+}
+
+interface ThemeChangedPayload {
+  readonly mode: ThemeMode;
+}
+
+export async function emitThemeChanged(mode: ThemeMode): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await emit<ThemeChangedPayload>('glance-theme-changed', { mode });
+}
+
+export async function listenForThemeChanged(
+  onThemeChanged: (payload: ThemeChangedPayload) => void
+): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen<ThemeChangedPayload>('glance-theme-changed', (event) => {
+    onThemeChanged(event.payload);
   });
 
   return () => {
