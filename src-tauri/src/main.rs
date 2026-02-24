@@ -12,6 +12,7 @@ use tauri_plugin_updater::UpdaterExt;
 pub struct AppState {
     pub sessions_root: PathBuf,
     pub shortcut_actions: Mutex<HashMap<String, commands::ShortcutAction>>,
+    pub active_bindings: Mutex<Vec<commands::ShortcutBinding>>,
 }
 
 fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
@@ -58,6 +59,23 @@ fn main() {
         )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Focused(focused) = event {
+                if window.label() == "overlay" {
+                    if *focused {
+                        // Re-register active bindings when overlay gains focus
+                        if let Some(state) = window.try_state::<AppState>() {
+                            if let Ok(bindings) = state.active_bindings.lock() {
+                                let _ = commands::apply_bindings(window.app_handle(), &bindings, &state);
+                            }
+                        }
+                    } else {
+                        // Unregister all global shortcuts when overlay loses focus to prevent bleeding
+                        let _ = window.app_handle().global_shortcut().unregister_all();
+                    }
+                }
+            }
+        })
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -74,6 +92,7 @@ fn main() {
             app.manage(AppState {
                 sessions_root,
                 shortcut_actions: Mutex::new(HashMap::new()),
+                active_bindings: Mutex::new(Vec::new()),
             });
             create_overlay_window_if_missing(app.handle())?;
 

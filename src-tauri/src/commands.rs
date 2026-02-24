@@ -55,11 +55,54 @@ pub struct ShortcutAction {
     delta: Option<i8>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShortcutBinding {
     pub action: String,
     pub accelerator: String,
+}
+
+pub fn apply_bindings(
+    app: &AppHandle,
+    bindings: &[ShortcutBinding],
+    state: &AppState,
+) -> Result<(), String> {
+    let manager = app.global_shortcut();
+    let _ = manager.unregister_all(); // Ignore error on unregister
+
+    let mut action_map = std::collections::HashMap::<String, ShortcutAction>::new();
+
+    for binding in bindings {
+        if uses_overlay_local_shortcut(&binding.action, &binding.accelerator) {
+            continue;
+        }
+
+        if is_os_reserved_shortcut(&binding.accelerator) {
+            return Err(format!(
+                "OS Reserved: The shortcut '{}' is reserved by your operating system. Please choose another combination.",
+                binding.accelerator
+            ));
+        }
+
+        let shortcut = Shortcut::from_str(&binding.accelerator)
+            .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
+        
+        manager.register(shortcut.clone()).map_err(|error| {
+            format!(
+                "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
+                binding.action, binding.accelerator, error
+            )
+        })?;
+
+        let mapped = binding_to_shortcut_action(&binding.action)?;
+        action_map.insert(normalize_shortcut_text(&shortcut.to_string()), mapped);
+    }
+
+    if let Ok(mut locked) = state.shortcut_actions.lock() {
+        *locked = action_map;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -285,36 +328,23 @@ pub fn register_shortcuts(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let manager = app.global_shortcut();
-    manager
-        .unregister_all()
-        .map_err(|error| error.to_string())?;
-
-    let mut action_map = std::collections::HashMap::<String, ShortcutAction>::new();
-
-    for binding in bindings {
-        if uses_overlay_local_shortcut(&binding.action, &binding.accelerator) {
-            continue;
-        }
-
-        let shortcut = Shortcut::from_str(&binding.accelerator)
-            .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
-        manager.register(shortcut.clone()).map_err(|error| {
-            format!(
-        "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
-        binding.action, binding.accelerator, error
-      )
-        })?;
-
-        let mapped = binding_to_shortcut_action(&binding.action)?;
-        action_map.insert(normalize_shortcut_text(&shortcut.to_string()), mapped);
+    // Save bindings to state so they can be re-applied on focus
+    if let Ok(mut locked) = state.active_bindings.lock() {
+        *locked = bindings.clone();
     }
 
-    let mut locked = state
-        .shortcut_actions
-        .lock()
-        .map_err(|_| String::from("Unable to update shortcut mappings"))?;
-    *locked = action_map;
+    // Only actually register them if the overlay is visible/focused?
+    // Let's just register them now to validate they don't conflict, 
+    // but the window focus event handler will manage them later.
+    apply_bindings(&app, &bindings, &state)?;
+    
+    // If the overlay IS NOT currently focused, unregister them immediately
+    // so we don't bleed.
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        if !overlay.is_focused().unwrap_or(false) {
+            let _ = app.global_shortcut().unregister_all();
+        }
+    }
 
     Ok(())
 }
@@ -522,6 +552,17 @@ fn apply_overlay_bounds(
 
 fn normalize_shortcut_text(value: &str) -> String {
     value.to_lowercase().replace(' ', "")
+}
+
+fn is_os_reserved_shortcut(accelerator: &str) -> bool {
+    let normalized = normalize_shortcut_text(accelerator);
+    let reserved = [
+        "cmdorctrl+c", "cmdorctrl+v", "cmdorctrl+x", "cmdorctrl+z", "cmdorctrl+q", "cmdorctrl+w", "cmdorctrl+tab",
+        "cmd+c", "cmd+v", "cmd+x", "cmd+z", "cmd+q", "cmd+w", "cmd+tab",
+        "ctrl+c", "ctrl+v", "ctrl+x", "ctrl+z", "ctrl+q", "ctrl+w", "ctrl+tab",
+        "alt+tab", "super+tab"
+    ];
+    reserved.iter().any(|&r| normalize_shortcut_text(r) == normalized)
 }
 
 fn uses_overlay_local_shortcut(action: &str, accelerator: &str) -> bool {

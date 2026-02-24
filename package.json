@@ -28,12 +28,17 @@
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.94",
     "@tauri-apps/cli": "^2.10.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.1",
     "babel-plugin-react-compiler": "^1.0.0",
+    "jsdom": "^28.1.0",
     "typescript": "^5.5.4",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vitest": "^4.0.18"
   },
   "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
 }

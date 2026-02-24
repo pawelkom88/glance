@@ -853,6 +853,30 @@ export function OverlayPrompter() {
       if (event.key === '0') {
         event.preventDefault();
         commitFontScale(1);
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        changeScrollSpeedBy(1);
+        revealSpeedBubble();
+        triggerSpeedIconAnimation('fast');
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        changeScrollSpeedBy(-1);
+        revealSpeedBubble();
+        triggerSpeedIconAnimation('slow');
+        return;
+      }
+
+      // Cmd+1..9 for section jumps
+      const numKey = parseInt(event.key, 10);
+      if (numKey >= 1 && numKey <= 9) {
+        event.preventDefault();
+        jumpToSection(numKey - 1);
       }
     };
 

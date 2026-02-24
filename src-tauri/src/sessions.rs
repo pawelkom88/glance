@@ -157,6 +157,30 @@ pub fn load_session(session_root: &Path, id: String) -> Result<SessionData, Stri
     Ok(SessionData { id, markdown, meta })
 }
 
+fn rotate_backups(session_dir: &Path, base_name: &str) -> Result<(), String> {
+    let max_backups = 5;
+
+    // Shift existing backups: .5 -> deleted (implicitly by move), .4 -> .5, ..., .1 -> .2
+    for i in (1..max_backups).rev() {
+        let current_backup = session_dir.join(format!("{}.bak.{}", base_name, i));
+        let next_backup = session_dir.join(format!("{}.bak.{}", base_name, i + 1));
+
+        if current_backup.exists() {
+            let _ = fs::rename(&current_backup, &next_backup);
+        }
+    }
+
+    // Move current file to .1
+    let current_file = session_dir.join(base_name);
+    let first_backup = session_dir.join(format!("{}.bak.1", base_name));
+    
+    if current_file.exists() {
+        let _ = fs::rename(&current_file, &first_backup);
+    }
+
+    Ok(())
+}
+
 pub fn save_session(
     session_root: &Path,
     id: String,
@@ -167,6 +191,10 @@ pub fn save_session(
 
     let session_dir = session_root.join(&id);
     fs::create_dir_all(&session_dir).map_err(|error| error.to_string())?;
+
+    // Create backups before overwriting
+    let _ = rotate_backups(&session_dir, CONTENT_FILE);
+    let _ = rotate_backups(&session_dir, META_FILE);
 
     fs::write(session_dir.join(CONTENT_FILE), markdown).map_err(|error| error.to_string())?;
     write_json(session_dir.join(META_FILE), &meta)?;
@@ -291,4 +319,97 @@ fn default_markdown(title: &str) -> String {
     format!(
     "# {title}\n\n- Add your opening lines\n\n# Key Points\n\n- Add your strongest bullets\n\n# Closing\n\n- Add your close"
   )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_persistence_non_ascii() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        
+        let markdown = "# Hello 🌍\n\n- Zażółć gęślą jaźń\n- 漢字";
+        let summary = create_session_from_markdown(root, "Intl Session".to_string(), markdown.to_string()).unwrap();
+        
+        let loaded = load_session(root, summary.id).unwrap();
+        assert_eq!(loaded.markdown, markdown);
+        assert_eq!(loaded.meta.title, "Intl Session");
+    }
+
+    #[test]
+    fn test_safe_delete_flow() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        
+        let s1 = create_session(root, "One".to_string()).unwrap();
+        let s2 = create_session(root, "Two".to_string()).unwrap();
+        
+        assert_eq!(list_sessions(root).unwrap().len(), 2);
+        
+        delete_session(root, s1.id.clone()).unwrap();
+        
+        let remaining = list_sessions(root).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, s2.id);
+        
+        // Assert directory is gone
+        assert!(!root.join(&s1.id).exists());
+    }
+
+    #[test]
+    fn test_crash_recovery() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        
+        let summary = create_session(root, "Crash Test".to_string()).unwrap();
+        let mut data = load_session(root, summary.id.clone()).unwrap();
+        
+        data.markdown = "New content".to_string();
+        data.meta.scroll.position = 100.0;
+        
+        save_session(root, summary.id.clone(), data.markdown.clone(), data.meta.clone()).unwrap();
+        
+        // Simulate crash by creating a new reference to the same directory
+        let recovered = load_session(root, summary.id).unwrap();
+        assert_eq!(recovered.markdown, "New content");
+        assert_eq!(recovered.meta.scroll.position, 100.0);
+    }
+
+    #[test]
+    fn test_backup_rotation_policy() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        
+        let summary = create_session(root, "Backup Test".to_string()).unwrap();
+        let mut data = load_session(root, summary.id.clone()).unwrap();
+        
+        for i in 1..=6 {
+            data.markdown = format!("Content v{}", i);
+            save_session(root, summary.id.clone(), data.markdown.clone(), data.meta.clone()).unwrap();
+        }
+        
+        let session_dir = root.join(&summary.id);
+        
+        // After 6 saves, we should have the main file + 5 backups
+        assert!(session_dir.join(CONTENT_FILE).exists());
+        assert!(session_dir.join(format!("{}.bak.1", CONTENT_FILE)).exists());
+        assert!(session_dir.join(format!("{}.bak.2", CONTENT_FILE)).exists());
+        assert!(session_dir.join(format!("{}.bak.3", CONTENT_FILE)).exists());
+        assert!(session_dir.join(format!("{}.bak.4", CONTENT_FILE)).exists());
+        assert!(session_dir.join(format!("{}.bak.5", CONTENT_FILE)).exists());
+        
+        // .bak.6 should NOT exist
+        assert!(!session_dir.join(format!("{}.bak.6", CONTENT_FILE)).exists());
+        
+        // Verify .bak.1 is Content v5 (since v6 is the main file)
+        let bak1 = fs::read_to_string(session_dir.join(format!("{}.bak.1", CONTENT_FILE))).unwrap();
+        assert_eq!(bak1, "Content v5");
+        
+        // Verify .bak.5 is Content v1
+        let bak5 = fs::read_to_string(session_dir.join(format!("{}.bak.5", CONTENT_FILE))).unwrap();
+        assert_eq!(bak5, "Content v1");
+    }
 }

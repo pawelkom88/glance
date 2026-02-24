@@ -112,6 +112,7 @@ export function SettingsView() {
   const [selectedMonitor, setSelectedMonitor] = useState('');
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [savedShortcutConfig, setSavedShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
+  const [shortcutErrors, setShortcutErrors] = useState<Record<string, string>>({});
   const [isDisplayMenuOpen, setIsDisplayMenuOpen] = useState(false);
   const [showAdvancedJumpMappings, setShowAdvancedJumpMappings] = useState(false);
   const displayMenuRef = useRef<HTMLDivElement | null>(null);
@@ -191,6 +192,7 @@ export function SettingsView() {
     const validationError = validateShortcutConfig(nextConfig);
     if (validationError) {
       setShortcutWarning(validationError);
+      setShortcutErrors({});
       showToast(validationError, 'warning');
       return;
     }
@@ -207,11 +209,20 @@ export function SettingsView() {
       saveShortcutConfig(nextConfig);
       setSavedShortcutConfig(nextConfig);
       setShortcutWarning(null);
+      setShortcutErrors({});
       showToast('Shortcuts updated', 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Shortcut registration failed';
       setShortcutWarning(message);
-      showToast(message, 'error');
+      
+      // Attempt to map the error to a specific action
+      const matchedAction = shortcutDefinitions.find((def) => message.includes(`for '${def.action}'`) || message.includes(`for ${def.action}`));
+      if (matchedAction) {
+        setShortcutErrors({ [matchedAction.action]: message });
+      } else {
+        setShortcutErrors({});
+        showToast(message, 'error');
+      }
     }
   };
 
@@ -300,10 +311,17 @@ export function SettingsView() {
               ...previous,
               [definition.action]: captured
             }));
+            setShortcutErrors((prev) => ({ ...prev, [definition.action]: '' }));
           }}
           aria-label={`${definition.label} shortcut`}
         />
-        <small className="shortcut-capture-hint">Focus and press keys to record</small>
+        {shortcutErrors[definition.action] ? (
+          <small className="shortcut-capture-hint error" style={{ color: 'var(--color-danger, #ef4444)' }}>
+            {shortcutErrors[definition.action]}
+          </small>
+        ) : (
+          <small className="shortcut-capture-hint">Focus and press keys to record</small>
+        )}
       </label>
     );
   };
