@@ -128,6 +128,8 @@ export default function App() {
   const warningSignatureRef = useRef<string>('');
   const fadeInFrameRef = useRef<number | null>(null);
   const tabSwitchTimeoutRef = useRef<number | null>(null);
+  const themeTransitionTimeoutRef = useRef<number | null>(null);
+  const hasAppliedInitialThemeRef = useRef(false);
 
   const initialized = useAppStore((state) => state.initialized);
   const sessions = useAppStore((state) => state.sessions);
@@ -163,6 +165,29 @@ export default function App() {
 
     document.documentElement.setAttribute('data-theme', resolvedTheme);
     document.documentElement.setAttribute('data-theme-mode', themeMode);
+
+    if (!hasAppliedInitialThemeRef.current) {
+      hasAppliedInitialThemeRef.current = true;
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme-transitioning', 'true');
+    if (themeTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(themeTransitionTimeoutRef.current);
+    }
+
+    themeTransitionTimeoutRef.current = window.setTimeout(() => {
+      document.documentElement.removeAttribute('data-theme-transitioning');
+      themeTransitionTimeoutRef.current = null;
+    }, 180);
+
+    return () => {
+      if (themeTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(themeTransitionTimeoutRef.current);
+        themeTransitionTimeoutRef.current = null;
+      }
+      document.documentElement.removeAttribute('data-theme-transitioning');
+    };
   }, [resolvedTheme, themeMode]);
 
   useEffect(() => {

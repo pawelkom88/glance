@@ -65,7 +65,7 @@ export function HelpView() {
 
       <div className="local-only-banner-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-canvas-2)', padding: '16px 20px', borderRadius: '12px', marginTop: '24px', border: '1px solid var(--line-soft)' }}>
         <p className="local-only-banner" role="note" aria-label="Local privacy notice" style={{ margin: 0, padding: 0, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="local-only-icon" aria-hidden="true" style={{ display: 'flex' }}>
+          <span className="local-only-icon" aria-hidden="true">
             <svg width="24" height="24" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" /></svg>
           </span>
           <span style={{ fontSize: '0.95rem', color: 'var(--text-body)' }}>Local by default. No account, no cloud sync, no remote storage.</span>
