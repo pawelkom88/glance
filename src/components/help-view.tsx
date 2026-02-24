@@ -1,10 +1,5 @@
 import { open } from '@tauri-apps/plugin-shell';
 
-interface ShortcutRow {
-  readonly label: string;
-  readonly combo: string;
-}
-
 function modifierKeyLabel(): string {
   if (typeof navigator === 'undefined') {
     return 'Ctrl';
@@ -15,12 +10,6 @@ function modifierKeyLabel(): string {
 
 export function HelpView() {
   const modifier = modifierKeyLabel();
-  const shortcutRows: readonly ShortcutRow[] = [
-    { label: 'Play / Pause', combo: 'Space' },
-    { label: 'Rewind', combo: 'R' },
-    { label: 'Jump to section', combo: `${modifier}+1…9` },
-    { label: 'Adjust speed', combo: `${modifier}+↑ / ${modifier}+↓` }
-  ];
 
   const handleDonationClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -28,49 +17,91 @@ export function HelpView() {
   };
 
   return (
-    <section className="panel help-panel">
-      <header className="panel-header">
-        <div>
-          <h2>Shortcuts & Flow</h2>
-        </div>
+    <section className="help-pane">
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <h2 className="help-heading">Help</h2>
       </header>
 
-      <div className="help-grid">
-        <article className="help-card" aria-labelledby="help-shortcuts-title">
-          <h3 id="help-shortcuts-title">Shortcuts</h3>
-          <dl className="help-shortcuts-list" aria-label="Shortcut list">
-            {shortcutRows.map((row) => (
-              <div key={row.label} className="help-shortcut-row">
-                <dt>{row.label}</dt>
-                <dd>
-                  <span className="help-keycap">{row.combo}</span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="help-shortcuts-note">Section hotkeys control the first 9 headings.</p>
-        </article>
-
-        <article className="help-card" aria-labelledby="help-flow-title">
-          <h3 id="help-flow-title">5-step call flow</h3>
-          <ol className="help-flow-list" aria-label="Call flow steps">
-            <li>Create a session in Sessions.</li>
-            <li>Write one # heading per call phase.</li>
-            <li>Launch Prompter.</li>
-            <li>Press Play and set your pace.</li>
-            <li>Jump sections as the conversation shifts.</li>
-          </ol>
-        </article>
+      {/* Keyboard Shortcuts card */}
+      <div>
+        <div className="setting-group-label">Keyboard Shortcuts</div>
+        <div className="help-shortcut-card" aria-label="Keyboard shortcuts">
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Play / Pause</span>
+            <span className="hsr-keys"><kbd>Space</kbd></span>
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Restart</span>
+            <span className="hsr-keys"><kbd>R</kbd></span>
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Jump to section</span>
+            <span className="hsr-keys">
+              <kbd>{modifier}1</kbd>
+              <span className="ks">…</span>
+              <kbd>{modifier}9</kbd>
+            </span>
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Adjust speed</span>
+            <span className="hsr-keys">
+              <kbd>{modifier}↑</kbd>
+              <span className="ks">/</span>
+              <kbd>{modifier}↓</kbd>
+            </span>
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Font size</span>
+            <span className="hsr-keys">
+              <kbd>{modifier}+</kbd>
+              <span className="ks">/</span>
+              <kbd>{modifier}−</kbd>
+            </span>
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Close prompter</span>
+            <span className="hsr-keys"><kbd>Esc</kbd></span>
+          </div>
+        </div>
       </div>
 
-      <div className="local-only-banner-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-canvas-2)', padding: '16px 20px', borderRadius: '12px', marginTop: '24px', border: '1px solid var(--line-soft)' }}>
-        <p className="local-only-banner" role="note" aria-label="Local privacy notice" style={{ margin: 0, padding: 0, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="local-only-icon" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" /></svg>
-          </span>
-          <span style={{ fontSize: '0.95rem', color: 'var(--text-body)' }}>Local by default. No account, no cloud sync, no remote storage.</span>
-        </p>
+      {/* 5-Step Call Flow card */}
+      <div>
+        <div className="setting-group-label">5-Step Call Flow</div>
+        <div className="help-flow-card" aria-label="5-step call flow">
+          <div className="flow-step">
+            <div className="flow-step-num">1</div>
+            <div className="flow-step-text">Create a session in <strong>Sessions</strong>.</div>
+          </div>
+          <div className="flow-step">
+            <div className="flow-step-num">2</div>
+            <div className="flow-step-text">Write one <strong># heading</strong> per call phase.</div>
+          </div>
+          <div className="flow-step">
+            <div className="flow-step-num">3</div>
+            <div className="flow-step-text">Launch the <strong>Prompter</strong>.</div>
+          </div>
+          <div className="flow-step">
+            <div className="flow-step-num">4</div>
+            <div className="flow-step-text">Press <strong>Play</strong> and set your pace.</div>
+          </div>
+          <div className="flow-step">
+            <div className="flow-step-num">5</div>
+            <div className="flow-step-text">Jump <strong>sections</strong> as the conversation shifts.</div>
+          </div>
+        </div>
+      </div>
 
+      {/* Footer */}
+      <div className="help-footer">
+        <div className="help-footer-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" />
+          </svg>
+        </div>
+        <p className="help-footer-text" role="note" aria-label="Local privacy notice">
+          <strong>Local by default.</strong> No account, no cloud sync, no remote storage.
+        </p>
         <a
           href="https://buymeacoffee.com/ordo"
           onClick={handleDonationClick}
