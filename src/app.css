@@ -2492,6 +2492,10 @@ select {
       var(--overlay-dim-strong) 100%);
 }
 
+.overlay-content.overlay-content-no-ruler::before {
+  content: none;
+}
+
 .overlay-content::after {
   content: none;
 }
@@ -3325,11 +3329,34 @@ select {
   padding: 24px;
 }
 
+.privacy-gate-icon-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  justify-content: flex-start;
+}
+
+.privacy-gate-icon-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-body);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
 .privacy-gate-container {
   max-width: 540px;
   width: 100%;
   text-align: left;
   animation: slide-up-fade 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.privacy-gate-logo {
+  display: block;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .privacy-gate-title {
@@ -3339,6 +3366,18 @@ select {
   margin-bottom: 24px;
   font-weight: 700;
   color: var(--text-strong);
+}
+
+.privacy-gate-title-sub {
+  font-family: 'Commissioner Variable', 'Inter Variable', sans-serif;
+  font-style: oblique 10deg;
+  font-variation-settings: 'slnt' -10;
+  color: var(--accent);
+}
+
+.privacy-gate-footer {
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .privacy-gate-body {
@@ -3355,6 +3394,29 @@ select {
   padding: 18px 20px;
   margin-bottom: 40px;
   color: var(--text-body);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.privacy-gate-notice-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.privacy-gate-notice-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.privacy-gate-notice-copy {
+  min-width: 0;
 }
 
 .privacy-gate-notice strong {
@@ -3375,6 +3437,17 @@ select {
   padding: 0 32px;
   min-height: 52px;
   border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.privacy-gate-button-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex: 0 0 auto;
 }
 
 @keyframes slide-up-fade {

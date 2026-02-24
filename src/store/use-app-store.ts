@@ -41,6 +41,7 @@ interface AppStoreState {
   readonly scrollPosition: number;
   readonly scrollSpeed: number;
   readonly overlayFontScale: number;
+  readonly showReadingRuler: boolean;
   readonly themeMode: ThemeMode;
   readonly resolvedTheme: ResolvedTheme;
   readonly shortcutWarning: string | null;
@@ -63,6 +64,7 @@ interface AppStoreState {
   readonly setScrollSpeed: (value: number) => void;
   readonly changeScrollSpeedBy: (delta: number) => void;
   readonly setOverlayFontScale: (value: number) => void;
+  readonly setShowReadingRuler: (value: boolean) => void;
   readonly setThemeMode: (mode: ThemeMode) => void;
   readonly hydrateThemeFromStorage: () => void;
   readonly syncSystemTheme: () => void;
@@ -78,6 +80,7 @@ function readLocalOnboardingState(): boolean {
 }
 
 const themeModeStorageKey = 'glance-theme-mode-v1';
+const showReadingRulerStorageKey = 'glance-show-reading-ruler-v1';
 
 function readThemeMode(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -114,6 +117,27 @@ function writeThemeMode(mode: ThemeMode): void {
   }
 
   window.localStorage.setItem(themeModeStorageKey, mode);
+}
+
+function readShowReadingRuler(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  const raw = window.localStorage.getItem(showReadingRulerStorageKey);
+  if (raw === null) {
+    return true;
+  }
+
+  return raw !== 'false';
+}
+
+function writeShowReadingRuler(value: boolean): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(showReadingRulerStorageKey, value ? 'true' : 'false');
 }
 
 function writeLocalOnboardingState(completed: boolean): void {
@@ -169,7 +193,8 @@ function buildSessionMeta(state: AppStoreState): SessionMeta {
       running: state.playbackState === 'running'
     },
     overlay: {
-      fontScale: state.overlayFontScale
+      fontScale: state.overlayFontScale,
+      showReadingRuler: state.showReadingRuler
     }
   };
 }
@@ -202,6 +227,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
   const initialParsed = parseMarkdown('# Intro\n\n- Start here');
   const initialThemeMode = readThemeMode();
   const initialResolvedTheme = resolveTheme(initialThemeMode);
+  const initialShowReadingRuler = readShowReadingRuler();
 
   return {
     sessions: [],
@@ -214,6 +240,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     scrollPosition: storedScrollState.position,
     scrollSpeed: storedScrollState.speed,
     overlayFontScale: 1,
+    showReadingRuler: initialShowReadingRuler,
     themeMode: initialThemeMode,
     resolvedTheme: initialResolvedTheme,
     shortcutWarning: null,
@@ -382,7 +409,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           scrollPosition: loaded.meta.scroll.position,
           scrollSpeed: loaded.meta.scroll.speed,
           playbackState: loaded.meta.scroll.running ? 'running' : 'paused',
-          overlayFontScale: normalizeFontScale(loaded.meta.overlay?.fontScale)
+          overlayFontScale: normalizeFontScale(loaded.meta.overlay?.fontScale),
+          showReadingRuler: loaded.meta.overlay?.showReadingRuler ?? readShowReadingRuler()
         });
         setLastActiveSessionId(loaded.id);
       } catch (error) {
@@ -470,6 +498,25 @@ export const useAppStore = create<AppStoreState>((set, get) => {
               ...currentMeta,
               overlay: {
                 fontScale: normalized
+              }
+            }
+            : currentMeta
+        };
+      });
+    },
+
+    setShowReadingRuler: (value: boolean) => {
+      writeShowReadingRuler(value);
+      set((state) => {
+        const currentMeta = state.activeSessionMeta;
+        return {
+          showReadingRuler: value,
+          activeSessionMeta: currentMeta
+            ? {
+              ...currentMeta,
+              overlay: {
+                fontScale: state.overlayFontScale,
+                showReadingRuler: value
               }
             }
             : currentMeta

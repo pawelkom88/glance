@@ -25,9 +25,6 @@
     <rect x="147" y="147" width="730" height="730" rx="165" stroke="#CED6E7" stroke-width="6"/>
     <rect x="164" y="164" width="696" height="696" rx="146" stroke="white" stroke-opacity="0.75" stroke-width="2"/>
   </g>
-
-  <ellipse cx="512" cy="760" rx="360" ry="220" fill="url(#innerGlow)"/>
-
   <g filter="url(#glyphShadow)">
     <path d="M254 526C334 425 426 373 512 373C598 373 690 425 770 526C690 627 598 679 512 679C426 679 334 627 254 526Z" stroke="url(#glyphGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
 

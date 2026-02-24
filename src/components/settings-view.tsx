@@ -127,6 +127,8 @@ export function SettingsView() {
   const showToast = useAppStore((state) => state.showToast);
   const themeMode = useAppStore((state) => state.themeMode);
   const setThemeMode = useAppStore((state) => state.setThemeMode);
+  const showReadingRuler = useAppStore((state) => state.showReadingRuler);
+  const setShowReadingRuler = useAppStore((state) => state.setShowReadingRuler);
   const setShortcutWarning = useAppStore((state) => state.setShortcutWarning);
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
@@ -391,6 +393,27 @@ export function SettingsView() {
               );
             })}
           </div>
+        </div>
+
+        <div className="setting-row">
+          <div className="setting-copy">
+            <span className="setting-title">Reading Ruler</span>
+            <span className="setting-subtitle">Show a focus band over the current line in the prompter overlay.</span>
+          </div>
+          <button
+            type="button"
+            className={`setting-switch ${showReadingRuler ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={showReadingRuler}
+            aria-label="Show reading ruler"
+            onClick={() => {
+              const next = !showReadingRuler;
+              setShowReadingRuler(next);
+              showToast(next ? 'Reading ruler enabled' : 'Reading ruler disabled', 'success');
+            }}
+          >
+            <span className="setting-switch-thumb" />
+          </button>
         </div>
 
         <div className="setting-row">

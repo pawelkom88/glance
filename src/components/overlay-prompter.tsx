@@ -213,6 +213,7 @@ export function OverlayPrompter() {
   const scrollPosition = useAppStore((state) => state.scrollPosition);
   const scrollSpeed = useAppStore((state) => state.scrollSpeed);
   const overlayFontScale = useAppStore((state) => state.overlayFontScale);
+  const showReadingRuler = useAppStore((state) => state.showReadingRuler);
   const openSession = useAppStore((state) => state.openSession);
   const togglePlayback = useAppStore((state) => state.togglePlayback);
   const setPlaybackState = useAppStore((state) => state.setPlaybackState);
@@ -1469,7 +1470,7 @@ export function OverlayPrompter() {
       </aside>
 
       <section
-        className="overlay-content"
+        className={`overlay-content ${showReadingRuler ? '' : 'overlay-content-no-ruler'}`.trim()}
         aria-live="polite"
         ref={contentRef}
         data-overlay-no-drag="true"
@@ -1478,11 +1479,13 @@ export function OverlayPrompter() {
           '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
         } as CSSProperties}
       >
-        <div
-          className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
-          aria-hidden="true"
-          style={{ top: `${rulerStyle.top}px` }}
-        />
+        {showReadingRuler ? (
+          <div
+            className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
+            aria-hidden="true"
+            style={{ top: `${rulerStyle.top}px` }}
+          />
+        ) : null}
 
         <div
           className="overlay-lines"

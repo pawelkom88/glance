@@ -14,6 +14,7 @@ export interface ScrollState {
 
 export interface OverlayPreferences {
   readonly fontScale: number;
+  readonly showReadingRuler?: boolean;
 }
 
 export interface SessionMeta {
