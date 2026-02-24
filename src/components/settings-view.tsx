@@ -1,6 +1,7 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
+import { save } from '@tauri-apps/plugin-dialog';
 import {
   clearLastOverlayMonitorName,
   exportDiagnostics,
@@ -499,22 +500,32 @@ export function SettingsView() {
           </div>
         </div>
 
-        <div className="setting-row" style={{ marginTop: '16px', paddingBottom: '16px' }}>
+        <div className="setting-row" style={{ margin: '16px 0', paddingBottom: '16px' }}>
           <div className="setting-copy">
             <span className="setting-title">Diagnostic Bundle</span>
             <span className="setting-subtitle">Zips your local application logs to your Desktop. No data is sent automatically.</span>
           </div>
           <button
             type="button"
-            className="ghost-button"
+            className="cancel-button"
             onClick={async () => {
               if (!isTauri()) {
                 showToast('Diagnostics export is only available in the desktop app.', 'info');
                 return;
               }
               try {
-                await exportDiagnostics();
-                showToast('Logs exported to Desktop', 'success');
+                const selectedPath = await save({
+                  title: 'Export Diagnostic Logs',
+                  defaultPath: 'Glance_Diagnostics.zip',
+                  filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
+                });
+
+                if (!selectedPath || Array.isArray(selectedPath)) {
+                  return;
+                }
+
+                await exportDiagnostics(selectedPath);
+                showToast('Logs exported successfully', 'success');
               } catch (error) {
                 const message = error instanceof Error ? error.message : 'Export failed';
                 showToast(message, 'error');
@@ -532,7 +543,7 @@ export function SettingsView() {
           </div>
           <button
             type="button"
-            className="ghost-button"
+            className="cancel-button"
             onClick={() => {
               void openUrl('https://github.com/pawelkom88/glance/issues');
             }}

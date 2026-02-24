@@ -465,10 +465,9 @@ pub fn export_session_to_path(
 }
 
 #[tauri::command]
-pub fn export_diagnostics(app: AppHandle) -> Result<String, String> {
+pub fn export_diagnostics(app: AppHandle, path: String) -> Result<String, String> {
     let log_dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
-    let desktop_dir = app.path().desktop_dir().map_err(|e| e.to_string())?;
-    let archive_path = desktop_dir.join("Glance_Diagnostics.zip");
+    let archive_path = std::path::PathBuf::from(&path);
 
     let file = fs::File::create(&archive_path).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
@@ -484,9 +483,12 @@ pub fn export_diagnostics(app: AppHandle) -> Result<String, String> {
             let path = entry.path();
             if path.is_file() {
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name.ends_with(".log") {
+                    if name.starts_with("glance.log") {
                         let mut f = fs::File::open(&path).map_err(|e| e.to_string())?;
-                        zip.start_file(name, options.clone()).map_err(|e| e.to_string())?;
+                        
+                        // Append .txt so users can click and open the log natively on Mac/Win
+                        let zip_name = format!("{}.txt", name);
+                        zip.start_file(&zip_name, options.clone()).map_err(|e| e.to_string())?;
                         std::io::copy(&mut f, &mut zip).map_err(|e| e.to_string())?;
                     }
                 }
