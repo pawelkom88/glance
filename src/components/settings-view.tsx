@@ -345,6 +345,7 @@ export function SettingsView() {
         <div className="setting-row">
           <div className="setting-copy">
             <span className="setting-title">Always on Top</span>
+            <span className="setting-subtitle">Keep the overlay visible even when other windows are in focus.</span>
           </div>
           <button
             type="button"
