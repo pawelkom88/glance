@@ -291,7 +291,7 @@ select {
 .app-shell {
   position: relative;
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr);
+  grid-template-columns: 60px minmax(0, 1fr);
   align-items: stretch;
   width: 100%;
   min-height: 100vh;
@@ -324,7 +324,10 @@ select {
   background: var(--sidebar-rail-bg);
   backdrop-filter: none;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 18px 0;
   width: 100%;
   z-index: 20;
   overflow: visible;
@@ -333,88 +336,72 @@ select {
 .icon-nav {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   width: 100%;
-  height: 100%;
-  min-height: 100%;
-  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  gap: 2px;
   overflow: visible;
+}
+
+.icon-nav-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.icon-nav-spacer {
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-icon-button {
   position: relative;
   border: 0;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   margin: 0 auto;
   border-radius: 10px;
   background: transparent;
-  color: var(--sidebar-icon-color);
+  color: color-mix(in srgb, var(--sidebar-icon-color) 30%, transparent);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background 160ms ease, transform 180ms ease, color 160ms ease;
+  transition: background 150ms ease, color 150ms ease;
   z-index: 1;
-}
-
-.nav-icon-button::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%) translateX(-4px);
-  background: var(--sidebar-icon-tooltip-bg);
-  color: var(--sidebar-icon-tooltip-color);
-  font-size: 0.78rem;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  padding: 8px 10px;
-  border-radius: 9px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 140ms ease, transform 140ms ease;
-  box-shadow: var(--shadow-sm);
-  z-index: 12;
-}
-
-.nav-icon-button:hover::before,
-.nav-icon-button:hover::after,
-.nav-icon-button:focus-visible::before,
-.nav-icon-button:focus-visible::after {
-  opacity: 1;
-}
-
-.nav-icon-button:hover::before,
-.nav-icon-button:focus-visible::before {
-  transform: translateY(-50%) rotate(45deg) translateX(0);
-}
-
-.nav-icon-button:hover::after,
-.nav-icon-button:focus-visible::after {
-  transform: translateY(-50%) translateX(0);
 }
 
 .nav-icon-button svg {
   width: 18px;
   height: 18px;
-  stroke: currentColor;
+  stroke: var(--bg-canvas-2);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.nav-icon-button:hover {
-  background: var(--sidebar-icon-hover-bg);
-  color: var(--sidebar-icon-hover-color);
-  transform: translateY(-1px);
+.nav-icon-button:hover:not(.active) {
+  background: color-mix(in srgb, var(--sidebar-icon-hover-bg) 10%, transparent);
+  color: color-mix(in srgb, var(--sidebar-icon-color) 60%, transparent);
 }
 
 .nav-icon-button.active {
-  background: var(--accent);
-  color: var(--sidebar-icon-active-color);
+  color: var(--accent);
+  background: var(--bg-canvas-2);
+}
+
+.nav-icon-button.active svg {
+  stroke: var(--sidebar-bg);
+}
+
+.nav-icon-button.active:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--accent);
 }
 
 .nav-icon-button:focus-visible {
@@ -2057,11 +2044,6 @@ select {
     transition: none;
   }
 
-  .nav-icon-button::before,
-  .nav-icon-button::after {
-    transition: none;
-  }
-
   html[data-theme-ready='true'] body,
   html[data-theme-ready='true'] .app-shell,
   html[data-theme-ready='true'] .sidebar,
@@ -3326,7 +3308,7 @@ select {
   }
 
   .app-shell {
-    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-columns: 60px minmax(0, 1fr);
   }
 
   .panel {

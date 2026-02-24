@@ -528,21 +528,41 @@ export default function App() {
     <main className={`app-shell main-window-transition-${mainWindowTransition}`}>
       <aside className="sidebar" aria-label="Primary navigation">
         <nav className="icon-nav">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
-              aria-label={tab.label}
-              data-tooltip={tab.label}
-              onClick={() => {
-                switchTab(tab.id);
-              }}
-            >
-              <tab.icon />
-              <span className="sr-only">{tab.label}</span>
-            </button>
-          ))}
+          <div className="icon-nav-group">
+            {tabs.slice(0, 2).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
+                aria-label={tab.label}
+                title={tab.id === 'library' ? 'Sessions' : 'Scripts'}
+                onClick={() => {
+                  switchTab(tab.id);
+                }}
+              >
+                <tab.icon />
+                <span className="sr-only">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="icon-nav-spacer" aria-hidden="true" />
+          <div className="icon-nav-group">
+            {tabs.slice(2).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
+                aria-label={tab.label}
+                title={tab.id === 'settings' ? 'Settings' : 'Help'}
+                onClick={() => {
+                  switchTab(tab.id);
+                }}
+              >
+                <tab.icon />
+                <span className="sr-only">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </nav>
       </aside>
 
