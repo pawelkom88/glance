@@ -8,11 +8,13 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 pub struct AppState {
     pub sessions_root: PathBuf,
     pub shortcut_actions: Mutex<HashMap<String, commands::ShortcutAction>>,
     pub active_bindings: Mutex<Vec<commands::ShortcutBinding>>,
+    pub _log_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
 fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
@@ -89,10 +91,26 @@ fn main() {
             let sessions_root = app_data_dir.join("sessions");
             sessions::ensure_storage(&sessions_root)?;
 
+            let app_log_dir = app
+                .path()
+                .app_log_dir()
+                .map_err(|error| error.to_string())?;
+            std::fs::create_dir_all(&app_log_dir).map_err(|error| error.to_string())?;
+
+            let file_appender = tracing_appender::rolling::daily(&app_log_dir, "glance.log");
+            let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+            
+            tracing_subscriber::fmt()
+                .with_writer(non_blocking)
+                .init();
+            
+            tracing::info!("Glance started");
+
             app.manage(AppState {
                 sessions_root,
                 shortcut_actions: Mutex::new(HashMap::new()),
                 active_bindings: Mutex::new(Vec::new()),
+                _log_guard: guard,
             });
             create_overlay_window_if_missing(app.handle())?;
 
@@ -117,7 +135,8 @@ fn main() {
             commands::set_overlay_always_on_top,
             commands::list_monitors,
             commands::move_overlay_to_monitor,
-            commands::export_session_to_path
+            commands::export_session_to_path,
+            commands::export_diagnostics
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Glance application");

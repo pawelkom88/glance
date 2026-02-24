@@ -7,6 +7,7 @@ import { LibraryView } from './components/library-view';
 import { OverlayPrompter } from './components/overlay-prompter';
 import { ReactViewTransition } from './components/react-view-transition';
 import { SettingsView } from './components/settings-view';
+import { PrivacyGate } from './components/privacy-gate';
 import { parseMarkdown } from './lib/markdown';
 import {
   closeOverlayWindow,
@@ -59,11 +60,11 @@ const tabs: ReadonlyArray<{
   readonly label: string;
   readonly icon: () => ReactElement;
 }> = [
-  { id: 'library', label: 'Session Library', icon: LibraryIcon },
-  { id: 'editor', label: 'Session Editor', icon: EditorIcon },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
-  { id: 'help', label: 'Help', icon: HelpIcon }
-];
+    { id: 'library', label: 'Session Library', icon: LibraryIcon },
+    { id: 'editor', label: 'Session Editor', icon: EditorIcon },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon },
+    { id: 'help', label: 'Help', icon: HelpIcon }
+  ];
 
 function isOverlayRoute(): boolean {
   return typeof window !== 'undefined' && window.location.hash.includes('overlay');
@@ -90,7 +91,7 @@ function defaultSessionTitle(): string {
 function ToastIcon({ variant }: { variant: ToastVariant }) {
   if (variant === 'success') {
     return (
-    <svg width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="white" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.808 536.384-99.52-99.584a38.4 38.4 0 1 0-54.336 54.336l126.72 126.72a38.272 38.272 0 0 0 54.336 0l262.4-262.464a38.4 38.4 0 1 0-54.272-54.336L456.192 600.384z"/></svg>
+      <svg width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="white" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.808 536.384-99.52-99.584a38.4 38.4 0 1 0-54.336 54.336l126.72 126.72a38.272 38.272 0 0 0 54.336 0l262.4-262.464a38.4 38.4 0 1 0-54.272-54.336L456.192 600.384z" /></svg>
     );
   }
 
@@ -144,6 +145,7 @@ export default function App() {
   const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const clearToast = useAppStore((state) => state.clearToast);
   const showToast = useAppStore((state) => state.showToast);
+  const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
 
   const sections = useMemo(() => parseMarkdown(markdown).sections, [markdown]);
 
@@ -393,6 +395,10 @@ export default function App() {
 
   if (isOverlay) {
     return <OverlayPrompter />;
+  }
+
+  if (initialized && !hasCompletedOnboarding) {
+    return <PrivacyGate />;
   }
 
   return (

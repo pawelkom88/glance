@@ -2974,3 +2974,76 @@ select {
     width: min(420px, 100%);
   }
 }
+/* Privacy Gate */
+.privacy-gate-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-canvas-2);
+  display: grid;
+  place-items: center;
+  z-index: 10000;
+  padding: 24px;
+}
+
+.privacy-gate-container {
+  max-width: 540px;
+  width: 100%;
+  text-align: left;
+  animation: slide-up-fade 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.privacy-gate-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 24px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.privacy-gate-body {
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--text-body);
+  margin-bottom: 32px;
+}
+
+.privacy-gate-notice {
+  background: var(--toast-info-bg);
+  border: 1px solid var(--toast-info-border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 40px;
+  color: var(--text-body);
+}
+
+.privacy-gate-notice strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  color: var(--text-strong);
+}
+
+.privacy-gate-notice p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.privacy-gate-button {
+  font-size: 1.1rem;
+  padding: 0 32px;
+  min-height: 52px;
+  border-radius: 26px;
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

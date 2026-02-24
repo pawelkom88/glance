@@ -17,6 +17,7 @@ import {
   saveSession
 } from '../lib/tauri';
 import { loadShortcutConfig, toShortcutBindings } from '../lib/shortcuts';
+import { SAMPLE_SESSION_MARKDOWN } from '../lib/sample-session';
 import type { ParseWarning, SessionMeta, SessionSummary, ToastMessage, ToastVariant } from '../types';
 
 type PlaybackState = 'paused' | 'running';
@@ -35,6 +36,8 @@ interface AppStoreState {
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
   readonly initialized: boolean;
+  readonly hasCompletedOnboarding: boolean;
+  readonly completeOnboarding: () => Promise<void>;
   readonly loadInitialState: () => Promise<void>;
   readonly createSessionWithName: (name: string) => Promise<void>;
   readonly duplicateSessionById: (id: string) => Promise<void>;
@@ -54,6 +57,15 @@ interface AppStoreState {
   readonly setShortcutWarning: (value: string | null) => void;
   readonly showToast: (message: string, variant?: ToastVariant) => void;
   readonly clearToast: () => void;
+}
+
+function readLocalOnboardingState(): boolean {
+  if (typeof window === 'undefined') return true;
+  return window.localStorage.getItem('glance-onboarding-completed') === 'true';
+}
+
+function writeLocalOnboardingState(completed: boolean): void {
+  window.localStorage.setItem('glance-onboarding-completed', completed ? 'true' : 'false');
 }
 
 function readLocalScrollState() {
@@ -151,6 +163,15 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     shortcutWarning: null,
     toastMessage: null,
     initialized: false,
+    hasCompletedOnboarding: readLocalOnboardingState(),
+
+    completeOnboarding: async () => {
+      writeLocalOnboardingState(true);
+      set({ hasCompletedOnboarding: true });
+      if (get().sessions.length === 0) {
+        await get().importMarkdown('Getting Started', SAMPLE_SESSION_MARKDOWN);
+      }
+    },
 
     loadInitialState: async () => {
       const sessions = await listSessions();
@@ -390,11 +411,11 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           overlayFontScale: normalized,
           activeSessionMeta: currentMeta
             ? {
-                ...currentMeta,
-                overlay: {
-                  fontScale: normalized
-                }
+              ...currentMeta,
+              overlay: {
+                fontScale: normalized
               }
+            }
             : currentMeta
         };
       });

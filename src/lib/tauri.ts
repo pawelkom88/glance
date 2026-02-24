@@ -166,6 +166,10 @@ export async function exportSessionToPath(id: string, path: string): Promise<str
   return invoke<string>('export_session_to_path', { id, path });
 }
 
+export async function exportDiagnostics(): Promise<string> {
+  return invoke<string>('export_diagnostics');
+}
+
 export async function registerDefaultShortcuts(): Promise<void> {
   await invoke('register_default_shortcuts');
 }

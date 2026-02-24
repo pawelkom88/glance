@@ -464,6 +464,57 @@ pub fn export_session_to_path(
     Ok(output_path.display().to_string())
 }
 
+#[tauri::command]
+pub fn export_diagnostics(app: AppHandle) -> Result<String, String> {
+    let log_dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    let desktop_dir = app.path().desktop_dir().map_err(|e| e.to_string())?;
+    let archive_path = desktop_dir.join("Glance_Diagnostics.zip");
+
+    let file = fs::File::create(&archive_path).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipWriter::new(file);
+    
+    // In zip >= 0.6, FileOptions or SimpleFileOptions is used. Try SimpleFileOptions first.
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    if log_dir.exists() {
+        for entry in fs::read_dir(log_dir).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    if name.ends_with(".log") {
+                        let mut f = fs::File::open(&path).map_err(|e| e.to_string())?;
+                        zip.start_file(name, options.clone()).map_err(|e| e.to_string())?;
+                        std::io::copy(&mut f, &mut zip).map_err(|e| e.to_string())?;
+                    }
+                }
+            }
+        }
+    }
+
+    zip.finish().map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open")
+            .arg("-R")
+            .arg(&archive_path)
+            .spawn();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("explorer")
+            .arg("/select,")
+            .arg(archive_path.to_string_lossy().as_ref())
+            .spawn();
+    }
+
+    Ok(archive_path.display().to_string())
+}
+
 pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
     let Some(overlay_window) = app.get_webview_window("overlay") else {
         return;

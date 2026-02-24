@@ -1,7 +1,9 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
+import { open as openUrl } from '@tauri-apps/plugin-shell';
 import {
   clearLastOverlayMonitorName,
+  exportDiagnostics,
   getLastOverlayMonitorName,
   listMonitors,
   moveOverlayToMonitor,
@@ -214,7 +216,7 @@ export function SettingsView() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Shortcut registration failed';
       setShortcutWarning(message);
-      
+
       // Attempt to map the error to a specific action
       const matchedAction = shortcutDefinitions.find((def) => message.includes(`for '${def.action}'`) || message.includes(`for ${def.action}`));
       if (matchedAction) {
@@ -486,6 +488,57 @@ export function SettingsView() {
               Apply shortcuts
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="support-settings" aria-labelledby="support-settings-title" style={{ marginTop: '32px' }}>
+        <div className="shortcut-settings-head">
+          <div>
+            <h3 id="support-settings-title">Support</h3>
+            <p className="shortcut-settings-subtitle">Manually export logs if you hit a bug.</p>
+          </div>
+        </div>
+
+        <div className="setting-row" style={{ marginTop: '16px', paddingBottom: '16px' }}>
+          <div className="setting-copy">
+            <span className="setting-title">Diagnostic Bundle</span>
+            <span className="setting-subtitle">Zips your local application logs to your Desktop. No data is sent automatically.</span>
+          </div>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={async () => {
+              if (!isTauri()) {
+                showToast('Diagnostics export is only available in the desktop app.', 'info');
+                return;
+              }
+              try {
+                await exportDiagnostics();
+                showToast('Logs exported to Desktop', 'success');
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Export failed';
+                showToast(message, 'error');
+              }
+            }}
+          >
+            Export Logs
+          </button>
+        </div>
+
+        <div className="setting-row" style={{ marginTop: '0px', paddingBottom: '16px', borderTop: 'none' }}>
+          <div className="setting-copy">
+            <span className="setting-title">Known Issues & Feedback</span>
+            <span className="setting-subtitle">Check our public issue tracker, report bugs, or request features on GitHub.</span>
+          </div>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              void openUrl('https://github.com/pawelkom88/glance/issues');
+            }}
+          >
+            Open GitHub
+          </button>
         </div>
       </section>
     </section>
