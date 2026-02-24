@@ -107,3 +107,6 @@ export interface ToastMessage {
   readonly message: string;
   readonly variant: ToastVariant;
 }
+
+export type ThemeMode = 'system' | 'light' | 'dark';
+export type ResolvedTheme = 'light' | 'dark';

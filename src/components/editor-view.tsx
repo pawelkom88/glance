@@ -70,6 +70,7 @@ export function EditorView(props: EditorViewProps) {
     onLaunchOverlay,
     onExportMarkdown
   } = props;
+  void onOpenShortcutSettings;
   const hasSections = sections.length > 0;
 
   if (!hasSessions) {
@@ -176,28 +177,27 @@ export function EditorView(props: EditorViewProps) {
             spellCheck={false}
           />
         </div>
-
+<br/>
         <div className="sections-column">
-          <div className="editor-column-head editor-column-head-sections">
-            <span className="editor-area-span">Sections</span>
-            <button
-              type="button"
-              className="sections-customize-button"
-              onClick={onOpenShortcutSettings}
-            >
-              Customize Shortcuts
-            </button>
-          </div>
+            <div>
+              <span className="editor-area-span">Quick Navigation</span>
+              <p className="sections-help-text">Auto-generated shortcuts from your headings</p>
+            </div>
           <aside className="sections-panel" aria-label="Derived sections">
             {hasSections ? (
               <ul>
-                {sections.map((section) => (
+                {sections.map((section, index) => (
+                    <>
                   <li key={section.id}>
                     <span className="section-item-title">{section.title}</span>
                     <span className="section-item-hotkey">
                       {section.hotkeyIndex ? shortcutLabel(section.hotkeyIndex) : 'Click only'}
                     </span>
                   </li>
+                      {index < sections.length - 1 &&
+                      <div className="section-item-divider"></div>
+                      }
+                    </>
                 ))}
               </ul>
             ) : (

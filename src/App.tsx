@@ -146,12 +146,56 @@ export default function App() {
   const clearToast = useAppStore((state) => state.clearToast);
   const showToast = useAppStore((state) => state.showToast);
   const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
+  const themeMode = useAppStore((state) => state.themeMode);
+  const resolvedTheme = useAppStore((state) => state.resolvedTheme);
+  const syncSystemTheme = useAppStore((state) => state.syncSystemTheme);
 
   const sections = useMemo(() => parseMarkdown(markdown).sections, [markdown]);
 
   useEffect(() => {
     void loadInitialState();
   }, [loadInitialState]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    document.documentElement.setAttribute('data-theme-mode', themeMode);
+  }, [resolvedTheme, themeMode]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme-ready', 'false');
+    const frameId = window.requestAnimationFrame(() => {
+      document.documentElement.setAttribute('data-theme-ready', 'true');
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (themeMode !== 'system' || typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => {
+      syncSystemTheme();
+    };
+
+    syncSystemTheme();
+    media.addEventListener('change', onChange);
+    return () => {
+      media.removeEventListener('change', onChange);
+    };
+  }, [syncSystemTheme, themeMode]);
 
   useEffect(() => {
     if (!activeSessionId) {

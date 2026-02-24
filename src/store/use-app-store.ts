@@ -18,7 +18,15 @@ import {
 } from '../lib/tauri';
 import { loadShortcutConfig, toShortcutBindings } from '../lib/shortcuts';
 import { SAMPLE_SESSION_MARKDOWN } from '../lib/sample-session';
-import type { ParseWarning, SessionMeta, SessionSummary, ToastMessage, ToastVariant } from '../types';
+import type {
+  ParseWarning,
+  ResolvedTheme,
+  SessionMeta,
+  SessionSummary,
+  ThemeMode,
+  ToastMessage,
+  ToastVariant
+} from '../types';
 
 type PlaybackState = 'paused' | 'running';
 
@@ -33,6 +41,8 @@ interface AppStoreState {
   readonly scrollPosition: number;
   readonly scrollSpeed: number;
   readonly overlayFontScale: number;
+  readonly themeMode: ThemeMode;
+  readonly resolvedTheme: ResolvedTheme;
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
   readonly initialized: boolean;
@@ -53,6 +63,8 @@ interface AppStoreState {
   readonly setScrollSpeed: (value: number) => void;
   readonly changeScrollSpeedBy: (delta: number) => void;
   readonly setOverlayFontScale: (value: number) => void;
+  readonly setThemeMode: (mode: ThemeMode) => void;
+  readonly syncSystemTheme: () => void;
   readonly jumpToSectionByIndex: (index: number) => void;
   readonly setShortcutWarning: (value: string | null) => void;
   readonly showToast: (message: string, variant?: ToastVariant) => void;
@@ -62,6 +74,45 @@ interface AppStoreState {
 function readLocalOnboardingState(): boolean {
   if (typeof window === 'undefined') return true;
   return window.localStorage.getItem('glance-onboarding-completed') === 'true';
+}
+
+const themeModeStorageKey = 'glance-theme-mode-v1';
+
+function readThemeMode(): ThemeMode {
+  if (typeof window === 'undefined') {
+    return 'system';
+  }
+
+  const raw = window.localStorage.getItem(themeModeStorageKey);
+  if (raw === 'light' || raw === 'dark' || raw === 'system') {
+    return raw;
+  }
+
+  return 'system';
+}
+
+function readSystemTheme(): ResolvedTheme {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'light';
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function resolveTheme(mode: ThemeMode): ResolvedTheme {
+  if (mode === 'system') {
+    return readSystemTheme();
+  }
+
+  return mode;
+}
+
+function writeThemeMode(mode: ThemeMode): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(themeModeStorageKey, mode);
 }
 
 function writeLocalOnboardingState(completed: boolean): void {
@@ -148,6 +199,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     : readLocalScrollState();
 
   const initialParsed = parseMarkdown('# Intro\n\n- Start here');
+  const initialThemeMode = readThemeMode();
+  const initialResolvedTheme = resolveTheme(initialThemeMode);
 
   return {
     sessions: [],
@@ -160,6 +213,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     scrollPosition: storedScrollState.position,
     scrollSpeed: storedScrollState.speed,
     overlayFontScale: 1,
+    themeMode: initialThemeMode,
+    resolvedTheme: initialResolvedTheme,
     shortcutWarning: null,
     toastMessage: null,
     initialized: false,
@@ -419,6 +474,30 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             : currentMeta
         };
       });
+    },
+
+    setThemeMode: (mode: ThemeMode) => {
+      const normalized: ThemeMode = mode === 'light' || mode === 'dark' || mode === 'system' ? mode : 'system';
+      const nextResolvedTheme = resolveTheme(normalized);
+      writeThemeMode(normalized);
+      set({
+        themeMode: normalized,
+        resolvedTheme: nextResolvedTheme
+      });
+    },
+
+    syncSystemTheme: () => {
+      const state = get();
+      if (state.themeMode !== 'system') {
+        return;
+      }
+
+      const nextResolvedTheme = readSystemTheme();
+      if (state.resolvedTheme === nextResolvedTheme) {
+        return;
+      }
+
+      set({ resolvedTheme: nextResolvedTheme });
     },
 
     jumpToSectionByIndex: (index: number) => {

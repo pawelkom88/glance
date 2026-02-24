@@ -22,7 +22,7 @@ import {
   validateShortcutConfig
 } from '../lib/shortcuts';
 import { useAppStore } from '../store/use-app-store';
-import type { MonitorInfo } from '../types';
+import type { MonitorInfo, ThemeMode } from '../types';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
 const jumpActions: readonly ShortcutActionId[] = [
@@ -125,6 +125,8 @@ export function SettingsView() {
   const displayMenuRef = useRef<HTMLDivElement | null>(null);
   const displayMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const showToast = useAppStore((state) => state.showToast);
+  const themeMode = useAppStore((state) => state.themeMode);
+  const setThemeMode = useAppStore((state) => state.setThemeMode);
   const setShortcutWarning = useAppStore((state) => state.setShortcutWarning);
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
@@ -342,6 +344,55 @@ export function SettingsView() {
       </header>
 
       <div className="settings-list">
+        <div className="setting-row setting-row-appearance">
+          <div className="setting-copy">
+            <span className="setting-title">Appearance</span>
+            <span className="setting-subtitle">Choose app appearance or follow your system.</span>
+          </div>
+          <div className="theme-segmented" role="radiogroup" aria-label="Appearance">
+            {(['system', 'light', 'dark'] as const).map((mode) => {
+              const labels: Record<ThemeMode, string> = {
+                system: 'System',
+                light: 'Light',
+                dark: 'Dark'
+              };
+              const isSelected = themeMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  className={`theme-segmented-option ${isSelected ? 'is-selected' : ''}`}
+                  onClick={() => {
+                    if (mode === themeMode) {
+                      return;
+                    }
+                    setThemeMode(mode);
+                    showToast(`Appearance set to ${labels[mode]}`, 'success');
+                  }}
+                  onKeyDown={(event) => {
+                    if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    const themeModes: ThemeMode[] = ['system', 'light', 'dark'];
+                    const currentIndex = themeModes.indexOf(themeMode);
+                    const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
+                    const nextIndex = (currentIndex + step + themeModes.length) % themeModes.length;
+                    const nextMode = themeModes[nextIndex];
+                    setThemeMode(nextMode);
+                    showToast(`Appearance set to ${labels[nextMode]}`, 'success');
+                  }}
+                >
+                  {labels[mode]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="setting-row">
           <div className="setting-copy">
             <span className="setting-title">Always on Top</span>
@@ -481,14 +532,14 @@ export function SettingsView() {
               <code>R</code>
             </div>
             <div className="shortcut-static-row">
-              <span>Change Font Size</span>
+              <span>Change Font Size / Reset</span>
               <code>{platformModifier()}+ / {platformModifier()}− / {platformModifier()}0</code>
             </div>
             <div className="shortcut-static-row">
               <span>Change Speed</span>
               <code>Up / Down Arrows</code>
             </div>
-            <p className="shortcut-helper">These keys are immediately active whenever the prompter is open.</p>
+            <p className="shortcut-helper">These keys are active when the prompter window is focused.</p>
           </section>
         </div>
 
