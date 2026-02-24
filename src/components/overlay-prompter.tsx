@@ -848,9 +848,6 @@ export function OverlayPrompter() {
       const isTextLikeTarget = isTypingTarget(target);
 
       if (event.key === 'Escape') {
-        if (tauriRuntime) {
-          return;
-        }
         event.preventDefault();
         if (isJumpMenuOpen) {
           closeJumpMenu(true);

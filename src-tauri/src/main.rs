@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_updater::UpdaterExt;
 
 pub struct AppState {
@@ -71,6 +72,9 @@ fn main() {
                                 let _ = commands::apply_bindings(window.app_handle(), &bindings, &state);
                             }
                         }
+                    } else {
+                        // Do not hijack keys in other apps when overlay is unfocused.
+                        let _ = window.app_handle().global_shortcut().unregister_all();
                     }
                 }
             }

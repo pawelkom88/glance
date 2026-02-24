@@ -447,7 +447,7 @@ export function SettingsView() {
             <p className="shortcut-helper">Hotkeys cover first 9 sections.</p>
             <button
               type="button"
-              className="ghost-button shortcut-disclosure-button"
+              className="cancel-button shortcut-disclosure-button"
               aria-expanded={showAdvancedJumpMappings}
               onClick={() => setShowAdvancedJumpMappings((previous) => !previous)}
             >

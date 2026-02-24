@@ -97,41 +97,45 @@ pub fn apply_bindings(
 
     // Overlay-scoped fallback shortcuts: keep core controls responsive even
     // when focus is transiently lost after native drag operations.
-    let mut register_optional_shortcut = |accelerator: &str, action: ShortcutAction| {
-        let Ok(shortcut) = Shortcut::from_str(accelerator) else {
-            return;
+    let mut register_optional_shortcuts =
+        |accelerators: &[&str], action: ShortcutAction| {
+            for accelerator in accelerators {
+                let Ok(shortcut) = Shortcut::from_str(accelerator) else {
+                    continue;
+                };
+                if manager.register(shortcut.clone()).is_ok() {
+                    action_map.insert(normalize_shortcut_text(&shortcut.to_string()), action.clone());
+                    break;
+                }
+            }
         };
-        if manager.register(shortcut.clone()).is_ok() {
-            action_map.insert(normalize_shortcut_text(&shortcut.to_string()), action);
-        }
-    };
 
-    register_optional_shortcut(
-        "Escape",
+    register_optional_shortcuts(
+        &["Escape", "Esc"],
         ShortcutAction {
             action: String::from("escape-pressed"),
             index: None,
             delta: None,
         },
     );
-    register_optional_shortcut(
-        "CmdOrCtrl+=",
+    register_optional_shortcuts(
+        &["CmdOrCtrl+=", "CmdOrCtrl+Plus", "CmdOrCtrl+NumpadAdd"],
         ShortcutAction {
             action: String::from("font-scale-change"),
             index: None,
             delta: Some(1),
         },
     );
-    register_optional_shortcut(
-        "CmdOrCtrl+-",
+    register_optional_shortcuts(
+        &["CmdOrCtrl+-", "CmdOrCtrl+Minus", "CmdOrCtrl+NumpadSubtract"],
         ShortcutAction {
             action: String::from("font-scale-change"),
             index: None,
             delta: Some(-1),
         },
     );
-    register_optional_shortcut(
-        "CmdOrCtrl+0",
+    register_optional_shortcuts(
+        &["CmdOrCtrl+0", "CmdOrCtrl+Numpad0"],
         ShortcutAction {
             action: String::from("font-scale-reset"),
             index: None,
@@ -388,9 +392,9 @@ pub fn register_shortcuts(
     // Register to validate conflicts and activate shortcuts.
     apply_bindings(&app, &bindings, &state)?;
     
-    // If overlay is hidden, unregister to avoid shortcut bleed in other apps.
+    // If overlay is not focused, unregister to avoid shortcut bleed in other apps.
     if let Some(overlay) = app.get_webview_window("overlay") {
-        if !overlay.is_visible().unwrap_or(false) {
+        if !overlay.is_focused().unwrap_or(false) {
             let _ = app.global_shortcut().unregister_all();
         }
     }
@@ -571,8 +575,8 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
         return;
     };
 
-    let is_overlay_visible = overlay_window.is_visible().unwrap_or(false);
-    if !is_overlay_visible {
+    let is_overlay_focused = overlay_window.is_focused().unwrap_or(false);
+    if !is_overlay_focused {
         return;
     }
 
