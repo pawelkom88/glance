@@ -23,6 +23,7 @@ type OverlayLayoutMap = Record<string, OverlayLayoutEntry>;
 
 const overlayLayoutStorageKey = 'glance-overlay-layout-v2';
 const overlayLastMonitorStorageKey = 'glance-overlay-last-monitor-v2';
+const overlayAlwaysOnTopStorageKey = 'glance-overlay-always-on-top-v1';
 const lastActiveSessionStorageKey = 'glance-last-active-session-v1';
 
 function inTauri(): boolean {
@@ -103,6 +104,27 @@ export function clearLastOverlayMonitorName(): void {
   window.localStorage.removeItem(overlayLastMonitorStorageKey);
 }
 
+export function getOverlayAlwaysOnTopPreference(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  const raw = window.localStorage.getItem(overlayAlwaysOnTopStorageKey);
+  if (raw === null) {
+    return true;
+  }
+
+  return raw === 'true';
+}
+
+export function setOverlayAlwaysOnTopPreference(enabled: boolean): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(overlayAlwaysOnTopStorageKey, String(enabled));
+}
+
 export function getLastActiveSessionId(): string | null {
   if (typeof window === 'undefined') {
     return null;
@@ -181,6 +203,7 @@ export async function registerShortcuts(bindings: readonly ShortcutBinding[]): P
 
 export async function setOverlayAlwaysOnTop(enabled: boolean): Promise<void> {
   await invoke('set_overlay_always_on_top', { enabled });
+  setOverlayAlwaysOnTopPreference(enabled);
 }
 
 export async function listMonitors(): Promise<readonly MonitorInfo[]> {
@@ -221,6 +244,7 @@ export async function openOverlayWindow(): Promise<ShowOverlayResult | null> {
   if (result.monitorName) {
     setLastOverlayMonitorName(result.monitorName);
   }
+  await setOverlayAlwaysOnTop(getOverlayAlwaysOnTopPreference());
 
   return result;
 }

@@ -6,6 +6,7 @@ import {
   clearLastOverlayMonitorName,
   exportDiagnostics,
   getLastOverlayMonitorName,
+  getOverlayAlwaysOnTopPreference,
   listMonitors,
   moveOverlayToMonitor,
   registerShortcuts,
@@ -36,6 +37,7 @@ const jumpActions: readonly ShortcutActionId[] = [
   'jump-8',
   'jump-9'
 ];
+type SettingsTab = 'general' | 'shortcuts' | 'support';
 
 function isMacPlatform(): boolean {
   return navigator.platform.includes('Mac');
@@ -114,8 +116,9 @@ function captureShortcutFromKeyboardEvent(event: ReactKeyboardEvent<HTMLInputEle
 }
 
 export function SettingsView() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [monitors, setMonitors] = useState<readonly MonitorInfo[]>([]);
-  const [alwaysOnTop, setAlwaysOnTopState] = useState(true);
+  const [alwaysOnTop, setAlwaysOnTopState] = useState(() => getOverlayAlwaysOnTopPreference());
   const [selectedMonitor, setSelectedMonitor] = useState('');
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [savedShortcutConfig, setSavedShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
@@ -157,6 +160,7 @@ export function SettingsView() {
     }),
     [savedShortcutConfig, shortcutConfig]
   );
+  const shouldShowDisplaySetting = monitors.length > 1;
 
   useEffect(() => {
     void listMonitors().then((items) => {
@@ -266,314 +270,365 @@ export function SettingsView() {
     setSelectedMonitor(monitorName);
     await moveOverlayToMonitor(monitorName);
   };
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    setIsDisplayMenuOpen(false);
+  };
 
   const renderShortcutInput = (action: ShortcutActionId, idPrefix: string = 'shortcut') => {
     const definition = shortcutDefinitionMap.get(action);
     if (!definition) {
       return null;
     }
+    const shortcutError = shortcutErrors[definition.action];
+    const captureHint = 'Focus and press keys to record';
 
     return (
-      <label key={definition.action} className="shortcut-row" htmlFor={`${idPrefix}-${definition.action}`}>
-        <span>{definition.label}</span>
-        <input
-          id={`${idPrefix}-${definition.action}`}
-          type="text"
-          readOnly
-          value={shortcutConfig[definition.action]}
-          placeholder="Press shortcut"
-          onKeyDown={(event) => {
-            if (event.key === 'Tab') {
-              return;
-            }
+      <div key={definition.action} className={`shortcut-row ${shortcutError ? 'has-error' : ''}`}>
+        <label className="shortcut-row-main" htmlFor={`${idPrefix}-${definition.action}`}>
+          <span className="shortcut-action-label">{definition.label}</span>
+          <input
+            id={`${idPrefix}-${definition.action}`}
+            type="text"
+            readOnly
+            value={shortcutConfig[definition.action]}
+            placeholder="Press shortcut"
+            title={captureHint}
+            className={shortcutError ? 'has-error' : ''}
+            aria-invalid={Boolean(shortcutError)}
+            onKeyDown={(event) => {
+              if (event.key === 'Tab') {
+                return;
+              }
 
-            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-              return;
-            }
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                return;
+              }
 
-            if (event.key === 'Escape') {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                event.currentTarget.blur();
+                return;
+              }
+
+              const isClearKey = (event.key === 'Backspace' || event.key === 'Delete')
+                && !event.metaKey
+                && !event.ctrlKey
+                && !event.altKey
+                && !event.shiftKey;
+
               event.preventDefault();
-              event.currentTarget.blur();
-              return;
-            }
 
-            const isClearKey = (event.key === 'Backspace' || event.key === 'Delete')
-              && !event.metaKey
-              && !event.ctrlKey
-              && !event.altKey
-              && !event.shiftKey;
+              if (isClearKey) {
+                setShortcutConfig((previous) => ({
+                  ...previous,
+                  [definition.action]: ''
+                }));
+                return;
+              }
 
-            event.preventDefault();
+              const captured = captureShortcutFromKeyboardEvent(event);
+              if (!captured) {
+                return;
+              }
 
-            if (isClearKey) {
               setShortcutConfig((previous) => ({
                 ...previous,
-                [definition.action]: ''
+                [definition.action]: captured
               }));
-              return;
-            }
-
-            const captured = captureShortcutFromKeyboardEvent(event);
-            if (!captured) {
-              return;
-            }
-
-            setShortcutConfig((previous) => ({
-              ...previous,
-              [definition.action]: captured
-            }));
-            setShortcutErrors((prev) => ({ ...prev, [definition.action]: '' }));
-          }}
-          aria-label={`${definition.label} shortcut`}
-        />
-        {shortcutErrors[definition.action] ? (
-          <small className="shortcut-capture-hint error" style={{ color: 'var(--color-danger, #ef4444)' }}>
-            {shortcutErrors[definition.action]}
-          </small>
-        ) : (
-          <small className="shortcut-capture-hint">Focus and press keys to record</small>
-        )}
-      </label>
+              setShortcutErrors((prev) => ({ ...prev, [definition.action]: '' }));
+            }}
+            aria-label={`${definition.label} shortcut`}
+          />
+        </label>
+        {shortcutError ? <small className="shortcut-row-error">{shortcutError}</small> : null}
+      </div>
     );
   };
 
   return (
     <section className="panel settings-panel">
-      <header className="panel-header">
-        <div>
-          <h2>Settings</h2>
+      <header className="panel-header settings-header">
+        <h2>Settings</h2>
+        <div className="tab-strip" role="tablist" aria-label="Settings tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'general'}
+            className={`tab ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => handleTabChange('general')}
+          >
+            General
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'shortcuts'}
+            className={`tab ${activeTab === 'shortcuts' ? 'active' : ''}`}
+            onClick={() => handleTabChange('shortcuts')}
+          >
+            Shortcuts
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'support'}
+            className={`tab ${activeTab === 'support' ? 'active' : ''}`}
+            onClick={() => handleTabChange('support')}
+          >
+            Support
+          </button>
         </div>
       </header>
 
-      <div className="settings-list">
-        <div className="setting-row setting-row-appearance">
-          <div className="setting-copy">
-            <span className="setting-title">Appearance</span>
-            <span className="setting-subtitle">Choose app appearance or follow your system.</span>
-          </div>
-          <div className="theme-segmented" role="radiogroup" aria-label="Appearance">
-            {(['system', 'light', 'dark'] as const).map((mode) => {
-              const labels: Record<ThemeMode, string> = {
-                system: 'System',
-                light: 'Light',
-                dark: 'Dark'
-              };
-              const isSelected = themeMode === mode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  className={`theme-segmented-option ${isSelected ? 'is-selected' : ''}`}
-                  onClick={() => {
-                    if (mode === themeMode) {
-                      return;
-                    }
-                    setThemeMode(mode);
-                    showToast(`Appearance set to ${labels[mode]}`, 'success');
-                  }}
-                  onKeyDown={(event) => {
-                    if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    const themeModes: ThemeMode[] = ['system', 'light', 'dark'];
-                    const currentIndex = themeModes.indexOf(themeMode);
-                    const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
-                    const nextIndex = (currentIndex + step + themeModes.length) % themeModes.length;
-                    const nextMode = themeModes[nextIndex];
-                    setThemeMode(nextMode);
-                    showToast(`Appearance set to ${labels[nextMode]}`, 'success');
-                  }}
-                >
-                  {labels[mode]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="setting-row">
-          <div className="setting-copy">
-            <span className="setting-title">Reading Ruler</span>
-            <span className="setting-subtitle">Show a focus band over the current line in the prompter overlay.</span>
-          </div>
-          <button
-            type="button"
-            className={`setting-switch ${showReadingRuler ? 'is-on' : ''}`}
-            role="switch"
-            aria-checked={showReadingRuler}
-            aria-label="Show reading ruler"
-            onClick={() => {
-              const next = !showReadingRuler;
-              setShowReadingRuler(next);
-              showToast(next ? 'Reading ruler enabled' : 'Reading ruler disabled', 'success');
-            }}
-          >
-            <span className="setting-switch-thumb" />
-          </button>
-        </div>
-
-        <div className="setting-row">
-          <div className="setting-copy">
-            <span className="setting-title">Always on Top</span>
-            <span className="setting-subtitle">Keep the overlay visible even when other windows are in focus.</span>
-          </div>
-          <button
-            type="button"
-            className={`setting-switch ${alwaysOnTop ? 'is-on' : ''}`}
-            role="switch"
-            aria-checked={alwaysOnTop}
-            aria-label="Always on top"
-            onClick={async () => {
-              const value = !alwaysOnTop;
-              setAlwaysOnTopState(value);
-              await setOverlayAlwaysOnTop(value);
-            }}
-          >
-            <span className="setting-switch-thumb" />
-          </button>
-        </div>
-
-        <div className="setting-row setting-row-display">
-          <div className="setting-copy">
-            <span className="setting-title">Display</span>
-            <span className="setting-subtitle">Choose where overlay opens by default.</span>
-          </div>
-          <div className="display-picker" ref={displayMenuRef}>
-            <button
-              ref={displayMenuButtonRef}
-              type="button"
-              className="display-picker-button"
-              aria-haspopup="menu"
-              aria-expanded={isDisplayMenuOpen}
-              onClick={() => setIsDisplayMenuOpen((previous) => !previous)}
-            >
-              <span>{selectedMonitorLabel}</span>
-              <span className="display-picker-chevron" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d={isDisplayMenuOpen ? "M9 6L15 12L9 18" : "M15 6L9 12L15 18"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg></span>
-            </button>
-
-            {isDisplayMenuOpen ? (
-              <div className="display-picker-menu" role="menu" aria-label="Display options">
-                <button
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={selectedMonitor === ''}
-                  className="display-picker-option"
-                  onClick={() => {
-                    void updateDisplay(null);
-                  }}
-                >
-                  <span>Auto (Current Display)</span>
-                  <span className="display-picker-check" aria-hidden="true">{selectedMonitor === '' ? '✓' : ''}</span>
-                </button>
-
-                {monitors.map((monitor) => {
-                  const isSelected = selectedMonitor === monitor.name;
+      <div className={`tab-content ${activeTab === 'general' ? 'visible' : ''}`}>
+        <section className="settings-group" aria-labelledby="settings-appearance-label">
+          <h3 id="settings-appearance-label" className="settings-group-label">Appearance</h3>
+          <div className="settings-card">
+            <div className="setting-row setting-row-appearance">
+              <div className="setting-copy">
+                <span className="setting-title">Theme</span>
+                <span className="setting-subtitle">Follow system, or set manually.</span>
+              </div>
+              <div className="theme-segmented" role="radiogroup" aria-label="Appearance">
+                {(['system', 'light', 'dark'] as const).map((mode) => {
+                  const labels: Record<ThemeMode, string> = {
+                    system: 'System',
+                    light: 'Light',
+                    dark: 'Dark'
+                  };
+                  const isSelected = themeMode === mode;
                   return (
                     <button
-                      key={monitor.name}
+                      key={mode}
                       type="button"
-                      role="menuitemradio"
+                      role="radio"
                       aria-checked={isSelected}
-                      className="display-picker-option"
+                      className={`theme-segmented-option ${isSelected ? 'is-selected' : ''}`}
                       onClick={() => {
-                        void updateDisplay(monitor.name);
+                        if (mode === themeMode) {
+                          return;
+                        }
+                        setThemeMode(mode);
+                        showToast(`Appearance set to ${labels[mode]}`, 'success');
+                      }}
+                      onKeyDown={(event) => {
+                        if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+                          return;
+                        }
+
+                        event.preventDefault();
+                        const themeModes: ThemeMode[] = ['system', 'light', 'dark'];
+                        const currentIndex = themeModes.indexOf(themeMode);
+                        const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
+                        const nextIndex = (currentIndex + step + themeModes.length) % themeModes.length;
+                        const nextMode = themeModes[nextIndex];
+                        setThemeMode(nextMode);
+                        showToast(`Appearance set to ${labels[nextMode]}`, 'success');
                       }}
                     >
-                      <span>{monitor.name} ({monitor.size}){monitor.primary ? ' • Primary' : ''}</span>
-                      <span className="display-picker-check" aria-hidden="true">{isSelected ? '✓' : ''}</span>
+                      {labels[mode]}
                     </button>
                   );
                 })}
               </div>
+            </div>
+
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">Reading Ruler</span>
+                <span className="setting-subtitle">Show a focus band in the prompter overlay.</span>
+              </div>
+              <button
+                type="button"
+                className={`setting-switch ${showReadingRuler ? 'is-on' : ''}`}
+                role="switch"
+                aria-checked={showReadingRuler}
+                aria-label="Show reading ruler"
+                onClick={() => {
+                  const next = !showReadingRuler;
+                  setShowReadingRuler(next);
+                  showToast(next ? 'Reading ruler enabled' : 'Reading ruler disabled', 'success');
+                }}
+              >
+                <span className="setting-switch-thumb" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-group" aria-labelledby="settings-overlay-label">
+          <h3 id="settings-overlay-label" className="settings-group-label">Overlay</h3>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">Always on Top</span>
+                <span className="setting-subtitle">Stays visible during screen share.</span>
+              </div>
+              <button
+                type="button"
+                className={`setting-switch ${alwaysOnTop ? 'is-on' : ''}`}
+                role="switch"
+                aria-checked={alwaysOnTop}
+                aria-label="Always on top"
+                onClick={async () => {
+                  const value = !alwaysOnTop;
+                  setAlwaysOnTopState(value);
+                  await setOverlayAlwaysOnTop(value);
+                }}
+              >
+                <span className="setting-switch-thumb" />
+              </button>
+            </div>
+
+            {shouldShowDisplaySetting ? (
+              <div className="setting-row setting-row-display">
+                <div className="setting-copy">
+                  <span className="setting-title">Display</span>
+                  <span className="setting-subtitle">Where the overlay opens by default.</span>
+                </div>
+                <div className="display-picker" ref={displayMenuRef}>
+                  <button
+                    ref={displayMenuButtonRef}
+                    type="button"
+                    className="display-picker-button"
+                    aria-haspopup="menu"
+                    aria-expanded={isDisplayMenuOpen}
+                    onClick={() => setIsDisplayMenuOpen((previous) => !previous)}
+                  >
+                    <span>{selectedMonitorLabel}</span>
+                    <span className="display-picker-chevron" aria-hidden="true">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d={isDisplayMenuOpen ? "M9 6L15 12L9 18" : "M15 6L9 12L15 18"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+
+                  {isDisplayMenuOpen ? (
+                    <div className="display-picker-menu" role="menu" aria-label="Display options">
+                      <button
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={selectedMonitor === ''}
+                        className="display-picker-option"
+                        onClick={() => {
+                          void updateDisplay(null);
+                        }}
+                      >
+                        <span>Auto (Current Display)</span>
+                        <span className="display-picker-check" aria-hidden="true">{selectedMonitor === '' ? '✓' : ''}</span>
+                      </button>
+
+                      {monitors.map((monitor) => {
+                        const isSelected = selectedMonitor === monitor.name;
+                        return (
+                          <button
+                            key={monitor.name}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={isSelected}
+                            className="display-picker-option"
+                            onClick={() => {
+                              void updateDisplay(monitor.name);
+                            }}
+                          >
+                            <span>{monitor.name} ({monitor.size}){monitor.primary ? ' • Primary' : ''}</span>
+                            <span className="display-picker-check" aria-hidden="true">{isSelected ? '✓' : ''}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             ) : null}
           </div>
-        </div>
-
+        </section>
       </div>
 
-      <section className="shortcut-settings" aria-labelledby="shortcut-settings-title">
-        <div className="shortcut-settings-head">
-          <div>
-            <h3 id="shortcut-settings-title">Shortcuts</h3>
-            <p className="shortcut-settings-subtitle">Assign keys without overloading the interface.</p>
-          </div>
-        </div>
-
-        <div className="shortcut-groups">
-          <section className="shortcut-group" aria-labelledby="shortcuts-playback">
-            <h4 id="shortcuts-playback">Playback</h4>
-            <div className="shortcut-grid">
+      <div className={`tab-content ${activeTab === 'shortcuts' ? 'visible' : ''}`}>
+        <section className="shortcut-settings">
+          <div className="settings-group" aria-labelledby="shortcuts-playback">
+            <h3 id="shortcuts-playback" className="settings-group-label">Playback Shortcuts</h3>
+            <p className="shortcut-edit-hint">Click a shortcut field, then press keys to record. Press Delete to clear.</p>
+            <div className="settings-card shortcut-group">
               {playbackActions.map((action) => renderShortcutInput(action))}
-            </div>
-          </section>
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">Jump to Section</span>
+                <span className="shortcut-keycaps">
+                  <kbd>{jumpPattern}</kbd>
+                </span>
+              </div>
+              <div className="shortcut-navigation-actions">
+                <button
+                  type="button"
+                  className="cancel-button shortcut-disclosure-button"
+                  aria-expanded={showAdvancedJumpMappings}
+                  onClick={() => setShowAdvancedJumpMappings((previous) => !previous)}
+                >
+                  {showAdvancedJumpMappings ? 'Hide Advanced Jump Keys' : 'Customize Jump Keys'}
+                </button>
+              </div>
 
-          <section className="shortcut-group" aria-labelledby="shortcuts-navigation">
-            <h4 id="shortcuts-navigation">Section Navigation</h4>
-            <div className="shortcut-static-row">
-              <span>Jump to Section</span>
-              <code>{jumpPattern}</code>
-            </div>
-            <p className="shortcut-helper">Hotkeys cover first 9 sections.</p>
-            <button
-              type="button"
-              className="cancel-button shortcut-disclosure-button"
-              aria-expanded={showAdvancedJumpMappings}
-              onClick={() => setShowAdvancedJumpMappings((previous) => !previous)}
-            >
-              {showAdvancedJumpMappings ? 'Hide Advanced Jump Keys' : 'Customize Jump Keys'}
-            </button>
-
-            <div
-              className="shortcut-advanced-wrapper"
-            >
               {showAdvancedJumpMappings ? (
-                <div className="shortcut-grid shortcut-grid-advanced">
+                <div className="shortcut-advanced-wrapper">
+                  <p className="shortcut-edit-hint shortcut-edit-hint-advanced">Advanced jump keys can also be edited the same way.</p>
                   {jumpActions.map((action) => renderShortcutInput(action, 'shortcut-advanced'))}
                 </div>
               ) : null}
             </div>
-          </section>
+          </div>
 
-          <section className="shortcut-group" aria-labelledby="shortcuts-builtin">
-            <h4 id="shortcuts-builtin">Built-In Prompter Controls</h4>
-            <div className="shortcut-static-row">
-              <span>Close Prompter</span>
-              <code>Esc / {platformModifier()}W</code>
+          <div className="settings-group" aria-labelledby="shortcuts-builtin">
+            <h3 id="shortcuts-builtin" className="settings-group-label">Built-In Controls</h3>
+            <div className="settings-card shortcut-group">
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">Close Prompter</span>
+                <span className="shortcut-keycaps">
+                  <kbd>Esc</kbd>
+                  <span className="shortcut-keycaps-separator">/</span>
+                  <kbd>{platformModifier()}W</kbd>
+                </span>
+              </div>
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">Play / Pause</span>
+                <span className="shortcut-keycaps">
+                  <kbd>Space</kbd>
+                </span>
+              </div>
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">Restart Script</span>
+                <span className="shortcut-keycaps">
+                  <kbd>R</kbd>
+                </span>
+              </div>
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">Font Size</span>
+                <span className="shortcut-keycaps">
+                  <kbd>{platformModifier()}+</kbd>
+                  <span className="shortcut-keycaps-separator">/</span>
+                  <kbd>{platformModifier()}−</kbd>
+                  <span className="shortcut-keycaps-separator">/</span>
+                  <kbd>{platformModifier()}0</kbd>
+                </span>
+              </div>
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">Change Speed</span>
+                <span className="shortcut-keycaps">
+                  <kbd>↑</kbd>
+                  <span className="shortcut-keycaps-separator">/</span>
+                  <kbd>↓</kbd>
+                </span>
+              </div>
             </div>
-            <div className="shortcut-static-row">
-              <span>Play / Pause</span>
-              <code>Spacebar</code>
-            </div>
-            <div className="shortcut-static-row">
-              <span>Restart Script</span>
-              <code>R</code>
-            </div>
-            <div className="shortcut-static-row">
-              <span>Change Font Size / Reset</span>
-              <code>{platformModifier()}+ / {platformModifier()}− / {platformModifier()}0</code>
-            </div>
-            <div className="shortcut-static-row">
-              <span>Change Speed</span>
-              <code>Up / Down Arrows</code>
-            </div>
-            <p className="shortcut-helper">These keys are active when the prompter window is focused.</p>
-          </section>
-        </div>
+          </div>
+        </section>
 
         <div className="shortcut-action-bar" role="region" aria-label="Shortcut actions">
-          <p className={`shortcut-change-indicator ${hasUnsavedShortcutChanges ? 'is-dirty' : ''}`}>
-            {hasUnsavedShortcutChanges ? 'Unsaved shortcut changes' : 'All shortcut changes applied'}
-          </p>
           <div className="shortcut-settings-actions">
             <button
               type="button"
-              className="cancel-button"
+              className="cancel-button shortcut-restore-button"
               onClick={() => {
                 const defaults = defaultShortcutConfig();
                 setShortcutConfig(defaults);
@@ -584,7 +639,7 @@ export function SettingsView() {
             </button>
             <button
               type="button"
-              className="primary-button"
+              className="primary-button shortcut-apply-button"
               disabled={!hasUnsavedShortcutChanges}
               onClick={() => {
                 void applyShortcutConfig(shortcutConfig);
@@ -594,68 +649,71 @@ export function SettingsView() {
             </button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="support-settings" aria-labelledby="support-settings-title" style={{ marginTop: '32px' }}>
-        <div className="shortcut-settings-head">
-          <div>
-            <h3 id="support-settings-title">Support</h3>
-            <p className="shortcut-settings-subtitle">Manually export logs if you hit a bug.</p>
+      <div className={`tab-content support-settings ${activeTab === 'support' ? 'visible' : ''}`}>
+        <section className="settings-group" aria-labelledby="support-diagnostics">
+          <h3 id="support-diagnostics" className="settings-group-label">Diagnostics</h3>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">Diagnostic Bundle</span>
+                <span className="setting-subtitle">Zips local logs to your Desktop. Nothing sent automatically.</span>
+              </div>
+              <button
+                type="button"
+                className="cancel-button support-action-button"
+                onClick={async () => {
+                  if (!isTauri()) {
+                    showToast('Diagnostics export is only available in the desktop app.', 'info');
+                    return;
+                  }
+                  try {
+                    const selectedPath = await save({
+                      title: 'Export Diagnostic Logs',
+                      defaultPath: 'Glance_Diagnostics.zip',
+                      filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
+                    });
+
+                    if (!selectedPath || Array.isArray(selectedPath)) {
+                      return;
+                    }
+
+                    await exportDiagnostics(selectedPath);
+                    showToast('Logs exported successfully', 'success');
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : 'Export failed';
+                    showToast(message, 'error');
+                  }
+                }}
+              >
+                Export Logs
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="setting-row" style={{ margin: '16px 0', paddingBottom: '16px' }}>
-          <div className="setting-copy">
-            <span className="setting-title">Diagnostic Bundle</span>
-            <span className="setting-subtitle">Zips your local application logs to your Desktop. No data is sent automatically.</span>
+        <section className="settings-group" aria-labelledby="support-feedback">
+          <h3 id="support-feedback" className="settings-group-label">Feedback</h3>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">Known Issues & Feedback</span>
+                <span className="setting-subtitle">Browse issues or request features on GitHub.</span>
+              </div>
+              <button
+                type="button"
+                className="cancel-button support-action-button"
+                onClick={() => {
+                  void openUrl('https://github.com/pawelkom88/glance/issues');
+                }}
+              >
+                Open GitHub
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            className="cancel-button"
-            onClick={async () => {
-              if (!isTauri()) {
-                showToast('Diagnostics export is only available in the desktop app.', 'info');
-                return;
-              }
-              try {
-                const selectedPath = await save({
-                  title: 'Export Diagnostic Logs',
-                  defaultPath: 'Glance_Diagnostics.zip',
-                  filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
-                });
-
-                if (!selectedPath || Array.isArray(selectedPath)) {
-                  return;
-                }
-
-                await exportDiagnostics(selectedPath);
-                showToast('Logs exported successfully', 'success');
-              } catch (error) {
-                const message = error instanceof Error ? error.message : 'Export failed';
-                showToast(message, 'error');
-              }
-            }}
-          >
-            Export Logs
-          </button>
-        </div>
-
-        <div className="setting-row" style={{ marginTop: '0px', paddingBottom: '16px', borderTop: 'none' }}>
-          <div className="setting-copy">
-            <span className="setting-title">Known Issues & Feedback</span>
-            <span className="setting-subtitle">Check our public issue tracker, report bugs, or request features on GitHub.</span>
-          </div>
-          <button
-            type="button"
-            className="cancel-button"
-            onClick={() => {
-              void openUrl('https://github.com/pawelkom88/glance/issues');
-            }}
-          >
-            Open GitHub
-          </button>
-        </div>
-      </section>
+        </section>
+      </div>
     </section>
   );
 }
