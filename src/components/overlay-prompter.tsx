@@ -15,6 +15,7 @@ import {
   getLastActiveSessionId,
   getLastOverlayMonitorName,
   listenForShortcutEvents,
+  recoverOverlayFocus,
   saveOverlayBoundsForMonitor,
   startOverlayDrag,
   setLastOverlayMonitorName,
@@ -240,6 +241,7 @@ export function OverlayPrompter() {
   const speedBubbleTimeoutRef = useRef<number | null>(null);
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resizeTimeoutRef = useRef<number | null>(null);
+  const moveTimeoutRef = useRef<number | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
@@ -699,56 +701,6 @@ export function OverlayPrompter() {
     engineRef.current.pause();
   }, [playbackState]);
 
-  useEffect(() => {
-    let isDisposed = false;
-    let unlisten: (() => void) | null = null;
-
-    void listenForShortcutEvents((payload) => {
-      if (payload.action === 'toggle-play') {
-        togglePlayback();
-      }
-
-      if (payload.action === 'jump-section' && typeof payload.index === 'number') {
-        jumpToSection(payload.index);
-      }
-
-      if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
-        changeScrollSpeedBy(payload.delta);
-        revealSpeedBubble();
-        if (payload.delta < 0) {
-          triggerSpeedIconAnimation('slow');
-        } else if (payload.delta > 0) {
-          triggerSpeedIconAnimation('fast');
-        }
-      }
-
-      if (payload.action === 'start-over') {
-        setPlaybackState('paused');
-        setScrollPosition(0);
-      }
-    }).then((fn) => {
-      if (isDisposed) {
-        fn();
-        return;
-      }
-
-      unlisten = fn;
-    });
-
-    return () => {
-      isDisposed = true;
-      unlisten?.();
-    };
-  }, [
-    changeScrollSpeedBy,
-    jumpToSection,
-    revealSpeedBubble,
-    setPlaybackState,
-    setScrollPosition,
-    togglePlayback,
-    triggerSpeedIconAnimation
-  ]);
-
   const requestCloseOverlay = useCallback(() => {
     if (isClosing) {
       return;
@@ -772,6 +724,89 @@ export function OverlayPrompter() {
       })();
     }, fadeDurationMs);
   }, [isClosing, persistActiveSession, setPlaybackState, showToast]);
+
+  useEffect(() => {
+    let isDisposed = false;
+    let unlisten: (() => void) | null = null;
+
+    void listenForShortcutEvents((payload) => {
+      if (payload.action === 'toggle-play') {
+        togglePlayback();
+        return;
+      }
+
+      if (payload.action === 'jump-section' && typeof payload.index === 'number') {
+        jumpToSection(payload.index);
+        return;
+      }
+
+      if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
+        changeScrollSpeedBy(payload.delta);
+        revealSpeedBubble();
+        if (payload.delta < 0) {
+          triggerSpeedIconAnimation('slow');
+        } else if (payload.delta > 0) {
+          triggerSpeedIconAnimation('fast');
+        }
+        return;
+      }
+
+      if (payload.action === 'start-over') {
+        setPlaybackState('paused');
+        setScrollPosition(0);
+        return;
+      }
+
+      if (payload.action === 'font-scale-change' && typeof payload.delta === 'number') {
+        commitFontScale(overlayFontScale + payload.delta * fontScaleStep);
+        return;
+      }
+
+      if (payload.action === 'font-scale-reset') {
+        commitFontScale(1);
+        return;
+      }
+
+      if (payload.action === 'escape-pressed') {
+        if (isJumpMenuOpen) {
+          closeJumpMenu(true);
+          return;
+        }
+        if (isFontMenuOpen) {
+          closeFontMenu(true);
+          return;
+        }
+        requestCloseOverlay();
+      }
+    }).then((fn) => {
+      if (isDisposed) {
+        fn();
+        return;
+      }
+
+      unlisten = fn;
+    });
+
+    return () => {
+      isDisposed = true;
+      unlisten?.();
+    };
+  }, [
+    changeScrollSpeedBy,
+    closeFontMenu,
+    closeJumpMenu,
+    commitFontScale,
+    isFontMenuOpen,
+    isJumpMenuOpen,
+    overlayFontScale,
+    requestCloseOverlay,
+    jumpToSection,
+    revealSpeedBubble,
+    setPlaybackState,
+    setScrollPosition,
+    togglePlayback,
+    triggerSpeedIconAnimation
+  ]);
 
   useEffect(() => {
     const syncActiveSession = () => {
@@ -806,11 +841,16 @@ export function OverlayPrompter() {
   }, [activeSessionId, openSession]);
 
   useEffect(() => {
+    const tauriRuntime = isTauriRuntime();
+
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isTextLikeTarget = isTypingTarget(target);
 
       if (event.key === 'Escape') {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         if (isJumpMenuOpen) {
           closeJumpMenu(true);
@@ -826,7 +866,7 @@ export function OverlayPrompter() {
 
       const withModifier = event.metaKey || event.ctrlKey;
 
-      if (!withModifier && !isTextLikeTarget) {
+      if (!withModifier && !isTextLikeTarget && !tauriRuntime) {
         const isSpaceKey = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
 
         if (isSpaceKey) {
@@ -856,24 +896,36 @@ export function OverlayPrompter() {
       }
 
       if (event.key === '=' || event.key === '+') {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         commitFontScale(overlayFontScale + fontScaleStep);
         return;
       }
 
       if (event.key === '-' || event.key === '_') {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         commitFontScale(overlayFontScale - fontScaleStep);
         return;
       }
 
       if (event.key === '0') {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         commitFontScale(1);
         return;
       }
 
       if (event.key === 'ArrowUp') {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         changeScrollSpeedBy(1);
         revealSpeedBubble();
@@ -882,6 +934,9 @@ export function OverlayPrompter() {
       }
 
       if (event.key === 'ArrowDown') {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         changeScrollSpeedBy(-1);
         revealSpeedBubble();
@@ -892,6 +947,9 @@ export function OverlayPrompter() {
       // Cmd+1..9 for section jumps
       const numKey = parseInt(event.key, 10);
       if (numKey >= 1 && numKey <= 9) {
+        if (tauriRuntime) {
+          return;
+        }
         event.preventDefault();
         jumpToSection(numKey - 1);
       }
@@ -1070,7 +1128,18 @@ export function OverlayPrompter() {
       }
     });
 
-    void appWindow.onMoved(() => persistBounds()).then((fn) => {
+    void appWindow.onMoved(() => {
+      persistBounds();
+      if (moveTimeoutRef.current !== null) {
+        window.clearTimeout(moveTimeoutRef.current);
+      }
+      moveTimeoutRef.current = window.setTimeout(() => {
+        void recoverOverlayFocus().catch(() => {
+          getCurrentWindow().setFocus().catch(() => { });
+        });
+        overlayRootRef.current?.focus({ preventScroll: true });
+      }, 80);
+    }).then((fn) => {
       unlistenMoved = fn;
     });
 
@@ -1093,11 +1162,24 @@ export function OverlayPrompter() {
     };
   }, []);
 
-  const startWindowDrag = useCallback(() => {
-    void startOverlayDrag().catch(() => {
-      // best-effort
-    });
+  const queueFocusRecovery = useCallback(() => {
+    const retryDelays = [0, 80, 180, 320, 520];
+    for (const delay of retryDelays) {
+      window.setTimeout(() => {
+        void recoverOverlayFocus().catch(() => {
+          getCurrentWindow().setFocus().catch(() => { });
+        });
+        overlayRootRef.current?.focus({ preventScroll: true });
+      }, delay);
+    }
   }, []);
+
+  const startWindowDrag = useCallback(() => {
+    queueFocusRecovery();
+    void startOverlayDrag().finally(() => {
+      queueFocusRecovery();
+    });
+  }, [queueFocusRecovery]);
 
   const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 0 || isJumpMenuOpen || isFontMenuOpen) {

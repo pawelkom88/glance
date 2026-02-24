@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_updater::UpdaterExt;
-use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 pub struct AppState {
     pub sessions_root: PathBuf,
@@ -72,9 +71,6 @@ fn main() {
                                 let _ = commands::apply_bindings(window.app_handle(), &bindings, &state);
                             }
                         }
-                    } else {
-                        // Unregister all global shortcuts when overlay loses focus to prevent bleeding
-                        let _ = window.app_handle().global_shortcut().unregister_all();
                     }
                 }
             }
@@ -131,6 +127,7 @@ fn main() {
             commands::hide_main_window,
             commands::show_main_window,
             commands::start_overlay_drag,
+            commands::recover_overlay_focus,
             commands::register_shortcuts,
             commands::register_default_shortcuts,
             commands::set_overlay_always_on_top,

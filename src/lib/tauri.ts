@@ -254,6 +254,13 @@ export async function startOverlayDrag(): Promise<void> {
   await invoke('start_overlay_drag');
 }
 
+export async function recoverOverlayFocus(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+  await invoke('recover_overlay_focus');
+}
+
 export async function listenForMainWindowShown(onShown: () => void): Promise<() => void> {
   if (!inTauri()) {
     return () => undefined;

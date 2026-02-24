@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Duration;
 use tauri::{
     AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition, PhysicalSize, Position,
     Size, State,
@@ -73,10 +74,6 @@ pub fn apply_bindings(
     let mut action_map = std::collections::HashMap::<String, ShortcutAction>::new();
 
     for binding in bindings {
-        if uses_overlay_local_shortcut(&binding.action, &binding.accelerator) {
-            continue;
-        }
-
         if is_os_reserved_shortcut(&binding.accelerator) {
             return Err(format!(
                 "OS Reserved: The shortcut '{}' is reserved by your operating system. Please choose another combination.",
@@ -97,6 +94,50 @@ pub fn apply_bindings(
         let mapped = binding_to_shortcut_action(&binding.action)?;
         action_map.insert(normalize_shortcut_text(&shortcut.to_string()), mapped);
     }
+
+    // Overlay-scoped fallback shortcuts: keep core controls responsive even
+    // when focus is transiently lost after native drag operations.
+    let mut register_optional_shortcut = |accelerator: &str, action: ShortcutAction| {
+        let Ok(shortcut) = Shortcut::from_str(accelerator) else {
+            return;
+        };
+        if manager.register(shortcut.clone()).is_ok() {
+            action_map.insert(normalize_shortcut_text(&shortcut.to_string()), action);
+        }
+    };
+
+    register_optional_shortcut(
+        "Escape",
+        ShortcutAction {
+            action: String::from("escape-pressed"),
+            index: None,
+            delta: None,
+        },
+    );
+    register_optional_shortcut(
+        "CmdOrCtrl+=",
+        ShortcutAction {
+            action: String::from("font-scale-change"),
+            index: None,
+            delta: Some(1),
+        },
+    );
+    register_optional_shortcut(
+        "CmdOrCtrl+-",
+        ShortcutAction {
+            action: String::from("font-scale-change"),
+            index: None,
+            delta: Some(-1),
+        },
+    );
+    register_optional_shortcut(
+        "CmdOrCtrl+0",
+        ShortcutAction {
+            action: String::from("font-scale-reset"),
+            index: None,
+            delta: None,
+        },
+    );
 
     if let Ok(mut locked) = state.shortcut_actions.lock() {
         *locked = action_map;
@@ -167,6 +208,7 @@ pub fn save_session(
 pub fn show_overlay_window(
     request: ShowOverlayRequest,
     app: AppHandle,
+    state: State<'_, AppState>,
 ) -> Result<ShowOverlayResult, String> {
     let overlay = app
         .get_webview_window("overlay")
@@ -266,6 +308,7 @@ pub fn show_overlay_window(
 
     overlay.show().map_err(|error| error.to_string())?;
     overlay.set_focus().map_err(|error| error.to_string())?;
+    recover_overlay_focus_inner(&app, &state)?;
 
     Ok(ShowOverlayResult {
         monitor_name: target_monitor_name,
@@ -279,7 +322,9 @@ pub fn hide_overlay_window(app: AppHandle) -> Result<(), String> {
         .get_webview_window("overlay")
         .ok_or_else(|| String::from("Overlay window is not available"))?;
 
-    overlay.hide().map_err(|error| error.to_string())
+    overlay.hide().map_err(|error| error.to_string())?;
+    let _ = app.global_shortcut().unregister_all();
+    Ok(())
 }
 
 #[tauri::command]
@@ -304,7 +349,7 @@ pub fn show_main_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn start_overlay_drag(app: AppHandle) -> Result<(), String> {
+pub fn start_overlay_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let overlay = app
         .get_webview_window("overlay")
         .ok_or_else(|| String::from("Overlay window is not available"))?;
@@ -319,7 +364,14 @@ pub fn start_overlay_drag(app: AppHandle) -> Result<(), String> {
         overlay.unmaximize().map_err(|error| error.to_string())?;
     }
 
-    overlay.start_dragging().map_err(|error| error.to_string())
+    overlay.start_dragging().map_err(|error| error.to_string())?;
+
+    recover_overlay_focus_inner(&app, &state)
+}
+
+#[tauri::command]
+pub fn recover_overlay_focus(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    recover_overlay_focus_inner(&app, &state)
 }
 
 #[tauri::command]
@@ -333,15 +385,12 @@ pub fn register_shortcuts(
         *locked = bindings.clone();
     }
 
-    // Only actually register them if the overlay is visible/focused?
-    // Let's just register them now to validate they don't conflict, 
-    // but the window focus event handler will manage them later.
+    // Register to validate conflicts and activate shortcuts.
     apply_bindings(&app, &bindings, &state)?;
     
-    // If the overlay IS NOT currently focused, unregister them immediately
-    // so we don't bleed.
+    // If overlay is hidden, unregister to avoid shortcut bleed in other apps.
     if let Some(overlay) = app.get_webview_window("overlay") {
-        if !overlay.is_focused().unwrap_or(false) {
+        if !overlay.is_visible().unwrap_or(false) {
             let _ = app.global_shortcut().unregister_all();
         }
     }
@@ -527,11 +576,6 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
         return;
     }
 
-    let is_overlay_focused = overlay_window.is_focused().unwrap_or(false);
-    if !is_overlay_focused {
-        return;
-    }
-
     let normalized = normalize_shortcut_text(shortcut_text);
     if let Ok(locked) = app.state::<AppState>().shortcut_actions.lock() {
         if let Some(action) = locked.get(&normalized).cloned() {
@@ -603,6 +647,42 @@ fn apply_overlay_bounds(
         .map_err(|error| error.to_string())
 }
 
+fn recover_overlay_focus_inner(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    let overlay = app
+        .get_webview_window("overlay")
+        .ok_or_else(|| String::from("Overlay window is not available"))?;
+
+    // On macOS/Windows dragging can transiently drop focus. Try a few times
+    // before giving up to make shortcut handling deterministic.
+    let retry_delays_ms = [0_u64, 40, 120, 240];
+    let mut last_focus_error: Option<String> = None;
+
+    for delay in retry_delays_ms {
+        if delay > 0 {
+            std::thread::sleep(Duration::from_millis(delay));
+        }
+
+        match overlay.set_focus() {
+            Ok(()) => {
+                let bindings = state
+                    .active_bindings
+                    .lock()
+                    .map(|locked| locked.clone())
+                    .unwrap_or_default();
+                if !bindings.is_empty() {
+                    let _ = apply_bindings(app, &bindings, state);
+                }
+                return Ok(());
+            }
+            Err(error) => {
+                last_focus_error = Some(error.to_string());
+            }
+        }
+    }
+
+    Err(last_focus_error.unwrap_or_else(|| String::from("Failed to recover overlay focus")))
+}
+
 fn normalize_shortcut_text(value: &str) -> String {
     value.to_lowercase().replace(' ', "")
 }
@@ -616,12 +696,6 @@ fn is_os_reserved_shortcut(accelerator: &str) -> bool {
         "alt+tab", "super+tab"
     ];
     reserved.iter().any(|&r| normalize_shortcut_text(r) == normalized)
-}
-
-fn uses_overlay_local_shortcut(action: &str, accelerator: &str) -> bool {
-    let normalized = normalize_shortcut_text(accelerator);
-    (action == "toggle-play" && normalized == "space")
-        || (action == "start-over" && normalized == "r")
 }
 
 fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
