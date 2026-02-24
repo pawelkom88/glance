@@ -41,6 +41,10 @@ function isMacPlatform(): boolean {
   return navigator.platform.includes('Mac');
 }
 
+function platformModifier(): string {
+  return isMacPlatform() ? '⌘' : 'Ctrl+';
+}
+
 function normalizeShortcutKey(key: string, code: string): string | null {
   if (code === 'Space' || key === ' ' || key === 'Spacebar') {
     return 'Space';
@@ -459,6 +463,31 @@ export function SettingsView() {
                 </div>
               ) : null}
             </div>
+          </section>
+
+          <section className="shortcut-group" aria-labelledby="shortcuts-builtin">
+            <h4 id="shortcuts-builtin">Built-In Prompter Controls</h4>
+            <div className="shortcut-static-row">
+              <span>Close Prompter</span>
+              <code>Esc / {platformModifier()}W</code>
+            </div>
+            <div className="shortcut-static-row">
+              <span>Play / Pause</span>
+              <code>Spacebar</code>
+            </div>
+            <div className="shortcut-static-row">
+              <span>Restart Script</span>
+              <code>R</code>
+            </div>
+            <div className="shortcut-static-row">
+              <span>Change Font Size</span>
+              <code>{platformModifier()}+ / {platformModifier()}− / {platformModifier()}0</code>
+            </div>
+            <div className="shortcut-static-row">
+              <span>Change Speed</span>
+              <code>Up / Down Arrows</code>
+            </div>
+            <p className="shortcut-helper">These keys are immediately active whenever the prompter is open.</p>
           </section>
         </div>
 

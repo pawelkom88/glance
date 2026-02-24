@@ -105,10 +105,11 @@ function PauseIcon() {
   );
 }
 
-function RewindIcon() {
+function RestartIcon() {
   return (
-    <svg className="overlay-rewind-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M11.2 6.8a.9.9 0 0 0-1.3 0l-4.2 4a.9.9 0 0 0 0 1.3l4.2 4a.9.9 0 1 0 1.3-1.3l-2.7-2.5h6.6a4 4 0 1 1 0 8h-6.2a.9.9 0 1 0 0 1.8h6.2a5.8 5.8 0 0 0 0-11.6H8.5L11.2 8a.9.9 0 0 0 0-1.2Z" />
+    <svg className="overlay-rewind-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none">
+      <polygon points="19 20 9 12 19 4 19 20" fill="currentColor"></polygon>
+      <line x1="5" y1="19" x2="5" y2="5"></line>
     </svg>
   );
 }
@@ -436,24 +437,30 @@ export function OverlayPrompter() {
           <button
             type="button"
             className="overlay-icon-button overlay-secondary-button"
-            aria-label="Rewind to start"
-            onClick={() => {
+            aria-label="Restart"
+            onClick={(e) => {
               setPlaybackState('paused');
               setScrollPosition(0);
+              e.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
             }}
           >
-            <RewindIcon />
+            <RestartIcon />
           </button>
           <span className="overlay-control-hint" aria-hidden="true">
             <span className="overlay-control-keycap">R</span>
-            <span>Rewind</span>
+            <span>Restart</span>
           </span>
         </div>
         <div className="overlay-control-group">
           <button
             type="button"
             className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
-            onClick={() => togglePlayback()}
+            onClick={(e) => {
+              togglePlayback();
+              e.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
+            }}
             aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
           >
             <span className="overlay-play-icon-stack" aria-hidden="true">
@@ -515,6 +522,10 @@ export function OverlayPrompter() {
             aria-label="Scroll speed"
             onPointerDown={() => revealSpeedBubble()}
             onFocus={() => revealSpeedBubble()}
+            onPointerUp={(e) => {
+              e.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
+            }}
             style={{
               '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
             } as CSSProperties}
@@ -645,6 +656,10 @@ export function OverlayPrompter() {
     engineRef.current.setPosition(
       Math.min(useAppStore.getState().scrollPosition, maxPosition)
     );
+
+    if (useAppStore.getState().playbackState === 'running') {
+      engineRef.current.play();
+    }
 
     return () => {
       engineRef.current?.destroy();
@@ -1083,7 +1098,25 @@ export function OverlayPrompter() {
       return;
     }
 
-    void startWindowDrag();
+    const startX = event.clientX;
+    const startY = event.clientY;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = Math.abs(moveEvent.clientX - startX);
+      const dy = Math.abs(moveEvent.clientY - startY);
+      if (dx > 3 || dy > 3) {
+        cleanup();
+        void startWindowDrag();
+      }
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', cleanup);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', cleanup);
   }, [isFontMenuOpen, isJumpMenuOpen, startWindowDrag]);
 
   const handleRootMouseDownCapture = useCallback((event: ReactMouseEvent<HTMLElement>) => {
@@ -1387,7 +1420,11 @@ export function OverlayPrompter() {
                       type="button"
                       className="overlay-popover-button"
                       data-font-focus="true"
-                      onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
+                      onClick={(e) => {
+                        commitFontScale(overlayFontScale - fontScaleStep);
+                        e.currentTarget.blur();
+                        overlayRootRef.current?.focus({ preventScroll: true });
+                      }}
                       aria-label="Decrease font size"
                     >
                       A−
@@ -1399,12 +1436,20 @@ export function OverlayPrompter() {
                       step={fontScaleStep}
                       value={overlayFontScale}
                       onChange={(event) => commitFontScale(Number(event.target.value))}
+                      onPointerUp={(e) => {
+                        e.currentTarget.blur();
+                        overlayRootRef.current?.focus({ preventScroll: true });
+                      }}
                       aria-label="Font size"
                     />
                     <button
                       type="button"
                       className="overlay-popover-button"
-                      onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
+                      onClick={(e) => {
+                        commitFontScale(overlayFontScale + fontScaleStep);
+                        e.currentTarget.blur();
+                        overlayRootRef.current?.focus({ preventScroll: true });
+                      }}
                       aria-label="Increase font size"
                     >
                       A+
