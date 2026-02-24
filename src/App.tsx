@@ -126,6 +126,7 @@ export default function App() {
   const [isTabSwitchAnimating, setIsTabSwitchAnimating] = useState(false);
   const [mainWindowTransition, setMainWindowTransition] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
   const [isToastClosing, setIsToastClosing] = useState(false);
+  const [editorAutosaveStatus, setEditorAutosaveStatus] = useState<'saving' | 'saved'>('saved');
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
   const fadeInFrameRef = useRef<number | null>(null);
@@ -136,6 +137,7 @@ export default function App() {
   const initialized = useAppStore((state) => state.initialized);
   const sessions = useAppStore((state) => state.sessions);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
+  const activeSessionTitle = useAppStore((state) => state.activeSessionTitle);
   const markdown = useAppStore((state) => state.markdown);
   const parseWarnings = useAppStore((state) => state.parseWarnings);
   const toastMessage = useAppStore((state) => state.toastMessage);
@@ -276,14 +278,22 @@ export default function App() {
 
   useEffect(() => {
     if (!activeSessionId) {
+      setEditorAutosaveStatus('saved');
       return;
     }
 
+    setEditorAutosaveStatus('saving');
+    let didCancel = false;
     const timeoutId = window.setTimeout(() => {
-      void persistActiveSession();
+      void persistActiveSession().finally(() => {
+        if (!didCancel) {
+          setEditorAutosaveStatus('saved');
+        }
+      });
     }, 700);
 
     return () => {
+      didCancel = true;
       window.clearTimeout(timeoutId);
     };
   }, [activeSessionId, markdown, persistActiveSession]);
@@ -407,6 +417,8 @@ export default function App() {
       return (
         <EditorView
           markdown={markdown}
+          activeSessionTitle={activeSessionTitle}
+          autosaveStatus={editorAutosaveStatus}
           sections={sections}
           warnings={parseWarnings}
           hasSessions={sessions.length > 0}
@@ -499,6 +511,7 @@ export default function App() {
     return <HelpView />;
   }, [
     activeSessionId,
+    activeSessionTitle,
     activeTab,
     createSessionWithName,
     deleteSessionById,
@@ -510,6 +523,7 @@ export default function App() {
     sections,
     sessions,
     setMarkdown,
+    editorAutosaveStatus,
     showToast,
     themeMode,
     initialized,

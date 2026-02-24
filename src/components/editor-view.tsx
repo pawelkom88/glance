@@ -2,6 +2,8 @@ import type { ParseWarning, SectionItem } from '../types';
 
 interface EditorViewProps {
   readonly markdown: string;
+  readonly activeSessionTitle: string;
+  readonly autosaveStatus: 'saving' | 'saved';
   readonly sections: readonly SectionItem[];
   readonly warnings: readonly ParseWarning[];
   readonly hasSessions: boolean;
@@ -16,8 +18,15 @@ interface EditorViewProps {
   readonly onExportMarkdown: () => void;
 }
 
-function shortcutLabel(index: number): string {
-  return navigator.platform.includes('Mac') ? `⌘${index}` : `Ctrl+${index}`;
+function estimateReadDuration(words: number): string {
+  const totalSeconds = Math.max(0, Math.round((words / 130) * 60));
+  if (totalSeconds < 60) {
+    return `~${totalSeconds}s`;
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `~${minutes}m ${seconds}s`;
 }
 
 function ExportIcon() {
@@ -58,6 +67,8 @@ function PlusIcon() {
 export function EditorView(props: EditorViewProps) {
   const {
     markdown,
+    activeSessionTitle,
+    autosaveStatus,
     sections,
     warnings,
     hasSessions,
@@ -71,7 +82,12 @@ export function EditorView(props: EditorViewProps) {
     onExportMarkdown
   } = props;
   void onOpenShortcutSettings;
+  void warnings;
   const hasSections = sections.length > 0;
+  const sectionCount = (markdown.match(/^#{1,6}\s/gm) ?? []).length;
+  const wordCount = markdown.trim() ? markdown.trim().split(/\s+/).filter(Boolean).length : 0;
+  const scriptWordsLabel = `~${wordCount}`;
+  const estimatedRead = estimateReadDuration(wordCount);
 
   if (!hasSessions) {
     return (
@@ -142,79 +158,110 @@ export function EditorView(props: EditorViewProps) {
   }
 
   return (
-    <section className="panel editor-panel">
-      <header className="panel-header">
-        <div>
-          <h2>Session Editor</h2>
-          <p className="editor-autosave-note">Changes are saved automatically on this device.</p>
+    <section className="panel editor-panel editor-panel-layout">
+      <div className="editor-topbar">
+        <button
+          type="button"
+          className="editor-breadcrumb-link editor-breadcrumb-mobile"
+          onClick={onOpenSessions}
+        >
+          ‹ Sessions
+        </button>
+        <div className="editor-breadcrumb editor-breadcrumb-desktop">
+          <button type="button" className="editor-breadcrumb-link" onClick={onOpenSessions}>Sessions</button>
+          <span className="editor-breadcrumb-separator" aria-hidden="true">›</span>
+          <span className="editor-breadcrumb-current" title={activeSessionTitle}>{activeSessionTitle}</span>
         </div>
-        <div className="header-actions">
-          <button type="button" className="ghost-button editor-action-button" onClick={onExportMarkdown}>
-            <ExportIcon />
-            Export Markdown
-          </button>
-          <button
-            type="button"
-            className="primary-button editor-action-button"
-            onClick={onLaunchOverlay}
-            disabled={!hasSections}
-          >
-            <RocketIcon />
-            Launch Prompter
-          </button>
-        </div>
-      </header>
+        <div className="editor-topbar-spacer" aria-hidden="true" />
+        <span className={`autosave-badge ${autosaveStatus === 'saving' ? 'is-saving' : ''}`}>
+          {autosaveStatus === 'saving' ? 'Saving…' : 'Saved'}
+        </span>
+      </div>
 
-      <div className="editor-grid">
-        <div className="editor-area">
-          <div className="editor-column-head">
-            <label className="editor-area-span" htmlFor="session-markdown">Markdown</label>
-          </div>
+      <div className="editor-mobile-actions">
+        <button
+          type="button"
+          className="editor-mobile-launch"
+          onClick={onLaunchOverlay}
+          disabled={!hasSections}
+        >
+          <RocketIcon />
+          Launch
+        </button>
+        <button type="button" className="editor-mobile-export" onClick={onExportMarkdown}>
+          <ExportIcon />
+          Export
+        </button>
+      </div>
+
+      <div className="editor-body">
+        <div className="editor-canvas">
           <textarea
             id="session-markdown"
+            className="editor-textarea"
             value={markdown}
             onChange={(event) => onChange(event.target.value)}
             spellCheck={false}
           />
-        </div>
-<br/>
-        <div className="sections-column">
-            <div>
-              <span className="editor-area-span">Quick Navigation</span>
-              <p className="sections-help-text">Auto-generated shortcuts from your headings</p>
-            </div>
-          <aside className="sections-panel" aria-label="Derived sections">
-            {hasSections ? (
-              <ul>
-                {sections.map((section, index) => (
-                    <>
-                  <li key={section.id}>
-                    <span className="section-item-title">{section.title}</span>
-                    <span className="section-item-hotkey">
-                      {section.hotkeyIndex ? shortcutLabel(section.hotkeyIndex) : 'Click only'}
-                    </span>
-                  </li>
-                      {index < sections.length - 1 &&
-                      <div className="section-item-divider"></div>
-                      }
-                    </>
-                ))}
-              </ul>
-            ) : (
-              <p className="warning-text">Add at least one `# Heading` to enable the prompter.</p>
-            )}
 
-            {warnings.length > 0 ? (
-              <div className="inline-warning-list" role="status" aria-live="polite">
-                {warnings.map((warning) => (
-                  <p key={`${warning.code}-${warning.lineIndex ?? 0}`} className="warning-text">
-                    {warning.message}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-          </aside>
+          <div className="editor-mobile-infostrip">
+            <span className="editor-info-pill">
+              <span className="editor-info-pill-label">Sections</span>
+              <span className="editor-info-pill-value">{sectionCount}</span>
+            </span>
+            <span className="editor-info-pill">
+              <span className="editor-info-pill-label">Words</span>
+              <span className="editor-info-pill-value">{scriptWordsLabel}</span>
+            </span>
+            <span className="editor-info-pill">
+              <span className="editor-info-pill-label">Est. read</span>
+              <span className="editor-info-pill-value">{estimatedRead}</span>
+            </span>
+          </div>
+
+          <div className="editor-statusbar">
+            <span>Markdown</span>
+            <span aria-hidden="true">·</span>
+            <span>UTF-8</span>
+            <span className="editor-statusbar-wordcount" aria-hidden="true">·</span>
+            <span className="editor-statusbar-wordcount">{wordCount} words</span>
+          </div>
         </div>
+
+        <aside className="editor-sidebar">
+          <section className="editor-sidebar-panel">
+            <span className="editor-sidebar-label">Actions</span>
+            <button
+              type="button"
+              className="editor-sidebar-launch"
+              onClick={onLaunchOverlay}
+              disabled={!hasSections}
+            >
+              <RocketIcon />
+              Launch Prompter
+            </button>
+            <button type="button" className="editor-sidebar-export" onClick={onExportMarkdown}>
+              <ExportIcon />
+              Export Markdown
+            </button>
+          </section>
+
+          <section className="editor-sidebar-panel">
+            <span className="editor-sidebar-label">Script Info</span>
+            <div className="editor-script-info-row">
+              <span className="editor-script-info-label">Sections</span>
+              <span className="editor-script-info-value">{sectionCount}</span>
+            </div>
+            <div className="editor-script-info-row">
+              <span className="editor-script-info-label">Words</span>
+              <span className="editor-script-info-value">{scriptWordsLabel}</span>
+            </div>
+            <div className="editor-script-info-row">
+              <span className="editor-script-info-label">Est. read</span>
+              <span className="editor-script-info-value">{estimatedRead}</span>
+            </div>
+          </section>
+        </aside>
       </div>
     </section>
   );
