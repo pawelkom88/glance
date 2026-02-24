@@ -15,19 +15,12 @@ function defaultSessionName(): string {
   return `Session ${new Date().toLocaleDateString()}`;
 }
 
-function ImportIcon() {
+function SessionDocIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M12 4v9m0 0-3-3m3 3 3-3" />
-      <path d="M5 14.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M12 5v14M5 12h14" />
+      <path d="M6.5 3h7L18 7.5V20a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M13.5 3.6V8H18" />
+      <path d="M8.5 11.5h7M8.5 14.5h7M8.5 17.5H13" />
     </svg>
   );
 }
@@ -41,6 +34,35 @@ function TrashIcon() {
       <path d="M31,37V19a2,2,0,0,0-4,0V37a2,2,0,0,0,4,0Z" />
     </svg>
   );
+}
+
+function formatUpdatedLabel(updatedAt: string): string {
+  const updated = new Date(updatedAt);
+  if (Number.isNaN(updated.getTime())) {
+    return 'Updated recently';
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfUpdatedDay = new Date(updated.getFullYear(), updated.getMonth(), updated.getDate());
+  const dayDiff = Math.floor((startOfToday.getTime() - startOfUpdatedDay.getTime()) / 86_400_000);
+  const timeLabel = updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  if (dayDiff <= 0) {
+    return `Updated today at ${timeLabel}`;
+  }
+
+  if (dayDiff === 1) {
+    return `Updated yesterday at ${timeLabel}`;
+  }
+
+  if (dayDiff < 7) {
+    const weekday = updated.toLocaleDateString([], { weekday: 'long' });
+    return `Updated ${weekday} at ${timeLabel}`;
+  }
+
+  const fullDate = updated.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `Updated ${fullDate}`;
 }
 
 export function LibraryView(props: LibraryViewProps) {
@@ -220,25 +242,24 @@ export function LibraryView(props: LibraryViewProps) {
   }, [deleteCandidate]);
 
   return (
-    <section className="panel library-panel">
-      <header className="library-toolbar">
-        <h2 className="library-title">Sessions</h2>
+    <section className="panel library-panel sessions-pane">
+      <header className="sessions-header">
+        <h2 className="sessions-title">Sessions</h2>
 
-        <div className="library-toolbar-actions">
+        <div className="sessions-header-actions">
           <button
             type="button"
-            className="ghost-button library-import-button"
+            className="sessions-import-button"
             aria-label="Import Markdown"
             onClick={onImport}
           >
-            <ImportIcon />
-            <span>Import Markdown</span>
+            <span>↓ Import</span>
           </button>
 
           <button
             ref={newSessionButtonRef}
             type="button"
-            className="primary-button"
+            className="sessions-new-button"
             aria-expanded={isCreatingSession}
             onClick={() => {
               if (isCreatingSession) {
@@ -254,8 +275,7 @@ export function LibraryView(props: LibraryViewProps) {
               });
             }}
           >
-            <PlusIcon />
-            <span>New Session</span>
+            <span>+ New Session</span>
           </button>
         </div>
       </header>
@@ -328,12 +348,15 @@ export function LibraryView(props: LibraryViewProps) {
                 }
               }}
             >
-              <div className="session-row-top">
-                <div>
-                  <p className="session-title">{session.title}</p>
-                  <p className="session-meta">Updated {new Date(session.updatedAt).toLocaleString()}</p>
-                </div>
-
+              <div className="session-doc-icon" aria-hidden="true">
+                <SessionDocIcon />
+              </div>
+              <div className="session-info">
+                <strong>{session.title}</strong>
+                <span>{formatUpdatedLabel(session.updatedAt)}</span>
+              </div>
+              <div className="session-card-end">
+                <span className="session-arrow" aria-hidden="true">›</span>
                 <div className="session-row-menu-wrap">
                   <button
                     type="button"
@@ -357,7 +380,12 @@ export function LibraryView(props: LibraryViewProps) {
           </ReactViewTransition>
         ))}
 
-        {sessions.length === 0 ? <p className="empty-state">No sessions yet. Create one to begin.</p> : null}
+        {sessions.length === 0 ? (
+          <div className="empty-state sessions-empty-state" role="status">
+            <p className="sessions-empty-icon" aria-hidden="true">📄</p>
+            <p className="sessions-empty-copy">No sessions yet. Create one to get started.</p>
+          </div>
+        ) : null}
       </div>
 
       {deleteCandidate ? (
