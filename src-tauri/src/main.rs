@@ -27,12 +27,13 @@ fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String
         .always_on_top(true)
         .visible(false)
         .decorations(false)
+        .transparent(true)
         .resizable(true)
         .skip_taskbar(true)
         .inner_size(1120.0, 400.0)
         .min_inner_size(500.0, 400.0)
         .build()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error: tauri::Error| error.to_string())?;
 
     Ok(())
 }

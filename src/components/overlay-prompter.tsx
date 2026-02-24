@@ -239,6 +239,7 @@ export function OverlayPrompter() {
   const speedIconAnimationTimeoutRef = useRef<number | null>(null);
   const speedBubbleTimeoutRef = useRef<number | null>(null);
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const resizeTimeoutRef = useRef<number | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
@@ -247,6 +248,7 @@ export function OverlayPrompter() {
 
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
   const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [overlaySize, setOverlaySize] = useState(() => ({
     width: Math.round(window.innerWidth),
     height: Math.round(window.innerHeight)
@@ -1072,7 +1074,16 @@ export function OverlayPrompter() {
       unlistenMoved = fn;
     });
 
-    void appWindow.onResized(() => persistBounds()).then((fn) => {
+    void appWindow.onResized(() => {
+      persistBounds();
+      setIsResizing(true);
+      if (resizeTimeoutRef.current !== null) {
+        window.clearTimeout(resizeTimeoutRef.current);
+      }
+      resizeTimeoutRef.current = window.setTimeout(() => {
+        setIsResizing(false);
+      }, 800);
+    }).then((fn) => {
       unlistenResized = fn;
     });
 
@@ -1238,7 +1249,7 @@ export function OverlayPrompter() {
       }}
       onMouseDown={handleDragMouseDown}
     >
-      <div className="overlay-debug-size" aria-live="polite" aria-label="Overlay size">
+      <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label="Overlay size">
         {overlaySize.width} × {overlaySize.height}
       </div>
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
