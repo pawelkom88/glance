@@ -210,12 +210,10 @@ export async function openOverlayWindow(): Promise<ShowOverlayResult | null> {
     return null;
   }
 
-  const savedMonitorName = getLastOverlayMonitorName();
-  const savedBounds = readSavedOverlayBounds(savedMonitorName);
-
   const request: ShowOverlayRequest = {
-    savedMonitorName,
-    savedBounds,
+    // Force deterministic launch position on every open.
+    savedMonitorName: null,
+    savedBounds: null,
     preferTopCenter: true
   };
 

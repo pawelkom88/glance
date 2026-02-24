@@ -265,6 +265,12 @@ export function OverlayPrompter() {
     visible: false
   });
 
+  useEffect(() => {
+    // Start from top each time the overlay route mounts.
+    setPlaybackState('paused');
+    setScrollPosition(0);
+  }, [setPlaybackState, setScrollPosition]);
+
   const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
   const lineStride = scaledLineHeight + overlayLineGapPx;
   const focusLaneRatio = 0.14;
