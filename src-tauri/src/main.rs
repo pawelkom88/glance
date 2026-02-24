@@ -27,6 +27,7 @@ fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String
         .always_on_top(true)
         .visible(false)
         .decorations(false)
+        .shadow(false)
         .transparent(true)
         .resizable(true)
         .skip_taskbar(true)

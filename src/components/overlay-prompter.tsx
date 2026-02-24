@@ -1329,6 +1329,17 @@ export function OverlayPrompter() {
     };
   }, [anchorLineIndex, firstLineLaneNudge, lanePadding, lines, overlayFontScale, scaledLineHeight]);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.documentElement.setAttribute('data-overlay-window', 'true');
+    return () => {
+      document.documentElement.removeAttribute('data-overlay-window');
+    };
+  }, []);
+
   return (
     <main
       ref={overlayRootRef}
