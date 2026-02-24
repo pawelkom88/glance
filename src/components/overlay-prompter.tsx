@@ -242,11 +242,13 @@ export function OverlayPrompter() {
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resizeTimeoutRef = useRef<number | null>(null);
   const moveTimeoutRef = useRef<number | null>(null);
+  const hasShownInactiveHintRef = useRef(false);
 
   const [isClosing, setIsClosing] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState(false);
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const [isOverlayFocused, setIsOverlayFocused] = useState(true);
 
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
   const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
@@ -827,9 +829,22 @@ export function OverlayPrompter() {
     const appWindow = getCurrentWindow();
     let unlistenFocus: (() => void) | null = null;
 
+    void appWindow.isFocused().then((focused) => {
+      setIsOverlayFocused(focused);
+    }).catch(() => {
+      setIsOverlayFocused(true);
+    });
+
     void appWindow.onFocusChanged(({ payload }) => {
+      setIsOverlayFocused(payload);
       if (payload) {
         syncActiveSession();
+        return;
+      }
+
+      if (!hasShownInactiveHintRef.current) {
+        hasShownInactiveHintRef.current = true;
+        showToast('Overlay inactive. Click it to re-enable shortcuts.', 'info');
       }
     }).then((fn) => {
       unlistenFocus = fn;
@@ -838,7 +853,7 @@ export function OverlayPrompter() {
     return () => {
       unlistenFocus?.();
     };
-  }, [activeSessionId, openSession]);
+  }, [activeSessionId, openSession, showToast]);
 
   useEffect(() => {
     const tauriRuntime = isTauriRuntime();
@@ -1317,7 +1332,7 @@ export function OverlayPrompter() {
   return (
     <main
       ref={overlayRootRef}
-      className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''}`}
+      className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''} ${isOverlayFocused ? '' : 'overlay-unfocused'}`}
       role="application"
       aria-label="Glance overlay"
       tabIndex={-1}

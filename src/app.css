@@ -1722,6 +1722,33 @@ select {
   border-radius: var(--radius-lg);
 }
 
+.overlay-root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 14;
+  opacity: 0;
+  background: rgba(6, 10, 18, 0.08);
+  backdrop-filter: blur(0px) saturate(1);
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.overlay-root.overlay-unfocused::after {
+  opacity: 1;
+  backdrop-filter: blur(2px) saturate(0.82);
+}
+
+.overlay-root.overlay-unfocused {
+  opacity: 0.38;
+}
+
+.overlay-root.overlay-unfocused .reading-ruler {
+  opacity: 0.42;
+}
+
 .overlay-root.overlay-sidebar-expanded {
   --overlay-left-sidebar-width: clamp(230px, 24vw, 320px);
 }
