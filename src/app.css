@@ -3766,7 +3766,7 @@ select {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   flex-wrap: nowrap;
   align-self: center;
@@ -3797,15 +3797,27 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 6px;
-  border: 1px solid var(--overlay-chip-neutral-border);
-  background: var(--overlay-chip-neutral-bg);
-  color: var(--overlay-controls-text);
-  font-size: 0.68rem;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--overlay-controls-text-muted);
+  font-size: 0.8rem;
   font-weight: 700;
+}
+
+.overlay-control-keycap.is-capsule {
+  min-width: 64px;
+  border-radius: 12px;
+}
+
+.overlay-controls-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
 }
 
 .overlay-controls-desktop {
@@ -3903,36 +3915,45 @@ select {
 }
 
 .overlay-secondary-button {
-  border: 1px solid var(--overlay-chip-neutral-border);
-  background: var(--overlay-chip-neutral-bg);
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
   color: var(--overlay-controls-text);
+  width: 56px;
+  height: 56px;
 }
 
 .overlay-secondary-button:hover {
-  background: var(--overlay-controls-soft-hover);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.overlay-primary-button-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .overlay-primary-button {
-  border: 1px solid var(--overlay-accent-border-strong);
+  border: none;
+  background: #1e75ff;
+  color: #ffffff;
+  width: 72px;
+  height: 72px;
+  box-shadow: 0 0 20px rgba(30, 117, 255, 0.4);
 }
 
-.control-button {
-  background: var(--accent);
-  color: var(--text-on-accent);
-  min-height: 42px;
-  font-weight: 700;
+.overlay-primary-button:hover {
+  background: #3385ff;
 }
 
-.overlay-play-toggle {
-  width: 42px;
-  height: 42px;
-  min-height: 42px;
-  box-shadow: var(--overlay-accent-shadow-strong);
+.overlay-primary-button svg {
+  width: 28px;
+  height: 28px;
 }
 
 .overlay-play-icon-stack {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   position: relative;
   display: inline-block;
 }

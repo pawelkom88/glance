@@ -447,26 +447,27 @@ export function OverlayPrompter() {
   const renderPlaybackControls = (className = '') => (
     <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
-        <div className="overlay-control-group">
-          <button
-            type="button"
-            className="overlay-icon-button overlay-secondary-button"
-            aria-label="Restart"
-            onClick={(e) => {
-              setPlaybackState('paused');
-              setScrollPosition(0);
-              e.currentTarget.blur();
-              overlayRootRef.current?.focus({ preventScroll: true });
-            }}
-          >
-            <RestartIcon />
-          </button>
-          <span className="overlay-control-hint" aria-hidden="true">
-            <span className="overlay-control-keycap">R</span>
-            <span>Restart</span>
-          </span>
+        <div className="overlay-control-hint" aria-hidden="true">
+          <span className="overlay-control-keycap">R</span>
         </div>
-        <div className="overlay-control-group">
+
+        <button
+          type="button"
+          className="overlay-icon-button overlay-secondary-button overlay-skip-back"
+          aria-label="Restart"
+          onClick={(e) => {
+            setPlaybackState('paused');
+            setScrollPosition(0);
+            e.currentTarget.blur();
+            overlayRootRef.current?.focus({ preventScroll: true });
+          }}
+        >
+          <RestartIcon />
+        </button>
+
+        <div className="overlay-controls-divider" aria-hidden="true" />
+
+        <div className="overlay-primary-button-wrap">
           <button
             type="button"
             className={`control-button overlay-icon-button overlay-primary-button overlay-play-toggle ${playbackState === 'running' ? 'is-running' : ''}`}
@@ -486,10 +487,10 @@ export function OverlayPrompter() {
               </span>
             </span>
           </button>
-          <span className="overlay-control-hint" aria-hidden="true">
-            <span className="overlay-control-keycap">Space</span>
-            <span>Play</span>
-          </span>
+        </div>
+
+        <div className="overlay-control-hint" aria-hidden="true">
+          <span className="overlay-control-keycap is-capsule">Space</span>
         </div>
       </div>
     </footer>
