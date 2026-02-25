@@ -1,5 +1,4 @@
 import { startTransition, useEffect, useRef, useState } from 'react';
-import { ReactViewTransition } from './react-view-transition';
 import type { SessionSummary } from '../types';
 
 interface LibraryViewProps {
@@ -340,69 +339,62 @@ export function LibraryView(props: LibraryViewProps) {
 
       <div className="session-list">
         {sessions.map((session) => (
-          <ReactViewTransition
+          <article
             key={session.id}
-            name={`session-row-${session.id}`}
-            update="session-row-update"
-            enter="session-row-enter"
-            exit="session-row-exit"
-          >
-            <article
-              className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (exitingSessionIds.has(session.id)) {
-                  return;
-                }
+            className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (exitingSessionIds.has(session.id)) {
+                return;
+              }
+              onOpen(session.id);
+            }}
+            onKeyDown={(event) => {
+              if (exitingSessionIds.has(session.id)) {
+                return;
+              }
+              if (event.key === 'Enter') {
+                event.preventDefault();
                 onOpen(session.id);
-              }}
-              onKeyDown={(event) => {
-                if (exitingSessionIds.has(session.id)) {
-                  return;
-                }
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  onOpen(session.id);
-                  return;
-                }
+                return;
+              }
 
-                if (event.key === ' ') {
-                  event.preventDefault();
-                  onOpen(session.id);
-                }
-              }}
-            >
-              <div className="session-doc-icon" aria-hidden="true">
-                <SessionDocIcon />
+              if (event.key === ' ') {
+                event.preventDefault();
+                onOpen(session.id);
+              }
+            }}
+          >
+            <div className="session-doc-icon" aria-hidden="true">
+              <SessionDocIcon />
+            </div>
+            <div className="session-info">
+              <strong>{session.title}</strong>
+              <span>{formatUpdatedLabel(session.updatedAt)}</span>
+            </div>
+            <div className="session-card-end">
+              <span className="session-arrow" aria-hidden="true">›</span>
+              <div className="session-row-menu-wrap">
+                <button
+                  type="button"
+                  className="row-menu-button"
+                  aria-label={`Delete ${session.title}`}
+                  disabled={exitingSessionIds.has(session.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startTransition(() => {
+                      setIsDeleteDialogClosing(false);
+                      setDeleteCandidateId(session.id);
+                    });
+                    modalRestoreFocusRef.current = event.currentTarget;
+                  }}
+                >
+                  <TrashIcon />
+                </button>
               </div>
-              <div className="session-info">
-                <strong>{session.title}</strong>
-                <span>{formatUpdatedLabel(session.updatedAt)}</span>
-              </div>
-              <div className="session-card-end">
-                <span className="session-arrow" aria-hidden="true">›</span>
-                <div className="session-row-menu-wrap">
-                  <button
-                    type="button"
-                    className="row-menu-button"
-                    aria-label={`Delete ${session.title}`}
-                    disabled={exitingSessionIds.has(session.id)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      startTransition(() => {
-                        setIsDeleteDialogClosing(false);
-                        setDeleteCandidateId(session.id);
-                      });
-                      modalRestoreFocusRef.current = event.currentTarget;
-                    }}
-                  >
-                    <TrashIcon />
-                  </button>
-                </div>
-              </div>
-            </article>
-          </ReactViewTransition>
+            </div>
+          </article>
         ))}
 
         {sessions.length === 0 ? (

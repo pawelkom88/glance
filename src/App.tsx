@@ -5,7 +5,6 @@ import { EditorView } from './components/editor-view';
 import { HelpView } from './components/help-view';
 import { LibraryView } from './components/library-view';
 import { OverlayPrompter } from './components/overlay-prompter';
-import { ReactViewTransition } from './components/react-view-transition';
 import { SettingsView } from './components/settings-view';
 import { PrivacyGate } from './components/privacy-gate';
 import { parseMarkdown } from './lib/markdown';
@@ -616,16 +615,9 @@ export default function App() {
         {!initialized ? (
           <p className="startup-label">Loading local workspace…</p>
         ) : (
-          <ReactViewTransition
-            default="app-page-fade"
-            update="app-page-update"
-            enter="app-page-enter"
-            exit="app-page-exit"
-          >
-            <div key={activeTab} className={`panel-switch ${isTabSwitchAnimating ? 'is-switching' : ''}`}>
-              {activePanel}
-            </div>
-          </ReactViewTransition>
+          <div key={activeTab} className={`panel-switch ${isTabSwitchAnimating ? 'is-switching' : ''}`}>
+            {activePanel}
+          </div>
         )}
       </section>
 
