@@ -9,7 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Inter:ital,wght@0,400..700;1,400..700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,400..700;1,400..700&display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap"
     rel="stylesheet">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -102,7 +105,7 @@
     }
 
     .logo img {
-      width: 24px;
+      width: 48px;
       border-radius: 6px;
     }
 
@@ -122,6 +125,17 @@
       color: var(--text-1);
     }
 
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg,
+          transparent 0%,
+          #D1CEC7 20%,
+          #C8C5BD 50%,
+          #D1CEC7 80%,
+          transparent 100%);
+    }
+
     /* ─── HERO ─── */
     .hero {
       padding-top: 140px;
@@ -135,10 +149,8 @@
       align-items: center;
       gap: 8px;
       padding: 6px 16px;
-      background: var(--blue-soft);
       border: 1px solid rgba(0, 122, 255, 0.1);
       border-radius: 980px;
-      color: var(--blue);
       font-weight: 600;
       font-size: 13px;
       margin-bottom: 32px;
@@ -189,8 +201,16 @@
       background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      display: inline;
-      padding: 0 4px;
+      display: inline-block;
+      padding: 0 12px 0 4px;
+    }
+
+    .red-gradient {
+      background: linear-gradient(135deg, #ff4d4d, #e60000);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
     }
 
     .subhead {
@@ -235,6 +255,232 @@
 
     .cta-caption a:hover {
       text-decoration: underline;
+    }
+
+    .install-security-block {
+      margin-top: 120px;
+      margin-bottom: 80px;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .install-security-block.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .install-security-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      background: #f8f7f4;
+      border-left: 1px solid #d7d4ce;
+      border-right: 1px solid #d7d4ce;
+      border-bottom: 1px solid #d7d4ce;
+      border-top: none;
+      border-radius: 30px;
+      overflow: hidden;
+    }
+
+    .install-security-wrapper::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      opacity: 0.92;
+      background: linear-gradient(90deg,
+          #1D1D1F 0%,
+          #1D1D1F 22%,
+          #6e6e73 58%,
+          rgba(110, 110, 115, 0.22) 78%,
+          transparent 100%);
+      pointer-events: none;
+    }
+
+    .install-security-notice {
+      padding: 50px 58px 46px;
+      background: #f8f7f4;
+      border-bottom: 1px solid #e5e3de;
+    }
+
+    .install-security-notice-content {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+    }
+
+    .install-security-icon {
+      width: 38px;
+      height: 38px;
+      margin-top: 2px;
+      border-radius: 11px;
+      background: #1D1D1F;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .install-security-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .install-security-content {
+      flex: 1;
+      max-width: 760px;
+    }
+
+    .install-security-title {
+      margin-bottom: 8px;
+      color: #1D1D1F;
+      font-family: 'Instrument Serif', serif;
+      font-size: 21px;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: -0.2px;
+    }
+
+    .install-security-description {
+      max-width: 760px;
+      color: #6e6e73;
+      font-size: 14px;
+      line-height: 1.68;
+      font-weight: 300;
+    }
+
+    .install-security-link {
+      margin-top: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1.5px solid #1D1D1F;
+      border-radius: 100px;
+      padding: 9px 17px;
+      color: #1D1D1F;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.2;
+      transition: all 0.2s ease;
+    }
+
+    .install-security-link svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .install-security-link:hover {
+      background: #1D1D1F;
+      color: #fff;
+    }
+
+    .install-security-platform-strip {
+      background: #f3f1ed;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .install-security-platform-item {
+      display: flex;
+      gap: 13px;
+      align-items: flex-start;
+      padding: 28px 46px 30px;
+    }
+
+    .install-security-platform-item:first-child {
+      border-right: 1px solid #e5e3de;
+    }
+
+    .install-security-platform-icon {
+      width: 28px;
+      height: 28px;
+      margin-top: 1px;
+      flex-shrink: 0;
+      color: #1D1D1F;
+    }
+
+    .install-security-platform-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .install-security-platform-label {
+      margin-bottom: 4px;
+      color: #1D1D1F;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .install-security-platform-description {
+      color: #6e6e73;
+      font-size: 12.5px;
+      line-height: 1.55;
+      font-weight: 300;
+    }
+
+    .install-security-platform-description strong {
+      color: #1D1D1F;
+      font-weight: 500;
+    }
+
+    @media (max-width: 850px) {
+      .install-security-block {
+        margin-top: 72px;
+      }
+
+      .install-security-wrapper {
+        border-radius: 22px;
+      }
+
+      .install-security-notice {
+        padding: 32px 24px 28px;
+      }
+
+      .install-security-notice-content {
+        gap: 14px;
+      }
+
+      .install-security-description {
+        max-width: none;
+      }
+
+      .install-security-platform-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .install-security-platform-item {
+        padding: 18px 20px 22px;
+      }
+
+      .install-security-platform-item:first-child {
+        border-right: none;
+        border-bottom: 1px solid #e5e3de;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .install-security-notice-content {
+        flex-direction: column;
+      }
     }
 
     .btn {
@@ -329,7 +575,7 @@
 
     /* ─── DYNAMIC FEATURES ─── */
     .section {
-      padding: 140px 0;
+      padding: 100px 0;
     }
 
     .section-title {
@@ -339,53 +585,167 @@
       margin-bottom: 80px;
     }
 
-    .sculptural-grid {
+    .cards-grid {
+      --grey: #747485;
+      --green: #00C978;
+      --gold: #D48F00;
+      --accent: #007AFF;
+      --ink: #1D1D1F;
+      --bg: #F5F5F7;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 32px;
+      gap: 14px;
+      width: 100%;
+      max-width: 860px;
+      margin: 0 auto;
     }
 
-    .sculpt-card {
-      background: var(--bg-2);
-      border-radius: var(--radius-xl);
-      padding: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      transition: all 0.6s var(--easing);
+    .card {
+      background: #ffffff;
+      border: 1px solid #E8E6E0;
+      border-radius: 18px;
+      padding: 36px 36px 32px;
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: default;
+      opacity: 0;
+      animation: cardRise 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    .sculpt-card h3 {
-      font-size: 32px;
-      margin-bottom: 24px;
-      line-height: 1.1;
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.07);
     }
 
-    .sculpt-card p {
-      font-size: 19px;
-      color: var(--text-2);
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 18px 18px 0 0;
     }
 
-    .sculpt-card.dark p {
-      color: rgba(255, 255, 255, 0.7);
+    .card-1::before {
+      background: linear-gradient(90deg, #1D1D1F 0%, rgba(29, 29, 31, 0.15) 70%, transparent 100%);
     }
 
-    .sculpt-card[style*="background: linear-gradient"] p {
-      color: #fff;
+    .card-2::before {
+      background: linear-gradient(90deg, #D48F00 0%, rgba(212, 143, 0, 0.15) 70%, transparent 100%);
+    }
+
+    .card-3::before {
+      background: linear-gradient(90deg, #00C978 0%, rgba(0, 201, 120, 0.15) 70%, transparent 100%);
+    }
+
+    .card-4::before {
+      background: linear-gradient(90deg, #007AFF 0%, rgba(0, 122, 255, 0.15) 70%, transparent 100%);
+    }
+
+    .card-num {
+      font-size: 11px;
       font-weight: 500;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
-    .sculpt-card.dark {
-      background: #000;
-      color: #fff;
+    .card-1 .card-num {
+      color: #1D1D1F;
+      opacity: 0.35;
     }
 
-    .sculpt-card:hover {
-      transform: scale(1.01);
-      box-shadow: var(--shadow-diffused);
+    .card-2 .card-num {
+      color: #D48F00;
+    }
+
+    .card-3 .card-num {
+      color: #00C978;
+    }
+
+    .card-4 .card-num {
+      color: #007AFF;
+    }
+
+    .card h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+      color: #1D1D1F;
+    }
+
+    .card p {
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.65;
+      color: #747485;
+      max-width: 320px;
+    }
+
+    .card-mark {
+      position: absolute;
+      bottom: 20px;
+      right: 24px;
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-size: 64px;
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .card-1 .card-mark {
+      color: #1D1D1F;
+      opacity: 0.06;
+    }
+
+    .card-2 .card-mark {
+      color: #D48F00;
+      opacity: 0.18;
+    }
+
+    .card-3 .card-mark {
+      color: #00C978;
+      opacity: 0.22;
+    }
+
+    .card-4 .card-mark {
+      color: #007AFF;
+      opacity: 0.14;
+    }
+
+    .card:nth-child(1) {
+      animation-delay: 0.05s;
+    }
+
+    .card:nth-child(2) {
+      animation-delay: 0.13s;
+    }
+
+    .card:nth-child(3) {
+      animation-delay: 0.21s;
+    }
+
+    .card:nth-child(4) {
+      animation-delay: 0.29s;
+    }
+
+    @keyframes cardRise {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* ─── MAC WINDOW MOCKUPS ─── */
@@ -398,8 +758,12 @@
       margin-top: 40px;
     }
 
+    .mockup-interactive {
+      position: relative;
+    }
+
     .window-bar {
-      height: 40px;
+      height: 20px;
       background: #f1f1f2;
       display: flex;
       align-items: center;
@@ -409,8 +773,8 @@
     }
 
     .dot {
-      width: 12px;
-      height: 12px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
@@ -429,6 +793,130 @@
     .mockup-img {
       width: 100%;
       display: block;
+      cursor: zoom-in;
+      transition: transform 0.28s var(--easing), filter 0.28s var(--easing);
+    }
+
+    .mockup-trigger {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      cursor: zoom-in;
+    }
+
+    .mockup-trigger:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
+    }
+
+    .mockup-interactive:hover .mockup-img {
+      transform: scale(1.01);
+      filter: brightness(1.02);
+    }
+
+    .image-lightbox {
+      width: min(1120px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+      margin: 24px auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      overflow: visible;
+      cursor: pointer;
+    }
+
+    .image-lightbox::backdrop {
+      background: rgba(14, 14, 16, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .image-lightbox-surface {
+      position: relative;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      background: #0d0d0f;
+      box-shadow: 0 34px 80px rgba(0, 0, 0, 0.42);
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+      transition: transform 0.25s var(--easing), opacity 0.22s var(--easing);
+    }
+
+    .image-lightbox.is-open .image-lightbox-surface {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .image-lightbox.is-closing .image-lightbox-surface {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+
+    .lightbox-image {
+      width: 100%;
+      max-height: calc(100vh - 72px);
+      display: block;
+      object-fit: contain;
+      background: #0d0d0f;
+      cursor: zoom-out;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      background: rgba(24, 24, 28, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: scale(1.03);
+    }
+
+    .lightbox-close:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    .lightbox-close svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .lightbox-dialog-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .mockup-img,
+      .image-lightbox-surface,
+      .lightbox-close {
+        transition: none;
+      }
     }
 
     /* ─── FEATURE SPLIT ─── */
@@ -454,94 +942,365 @@
     }
 
     .feature-content p {
-      font-size: 20px;
+      font-size: 16px;
       color: var(--text-2);
       margin-bottom: 32px;
     }
 
     /* ─── AUDIENCE ─── */
     .audience {
-      background: linear-gradient(180deg, #000 0%, #1c1c1e 100%);
+      background: #F3F1EE;
       color: #fff;
-      border-radius: 64px;
-      margin: 80px 40px;
       padding: 160px 0;
-      box-shadow: 0 80px 160px rgba(0, 0, 0, 0.3);
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .audience-eyebrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #1D1D1F;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-bottom: 40px;
+    }
+
+    .audience-eyebrow::before,
+    .audience-eyebrow::after {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: #1D1D1F;
+    }
+
+    .audience .section-title {
+      font-family: 'Times New Roman', serif;
+      font-size: clamp(48px, 6vw, 72px);
+      font-weight: 400;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      color: #000;
+    }
+
+    .audience .section-title span {
+      font-style: italic;
+      color: #000;
+      opacity: 0.8;
+    }
+
+    .audience .section-subtitle {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 80px;
+      text-align: center;
     }
 
     .aud-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 40px;
+      gap: 1px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 32px;
+      overflow: hidden;
+      max-width: 1000px;
+      margin: 0 auto;
     }
 
     .aud-card {
-      background: rgba(255, 255, 255, 0.03);
-      padding: 80px 60px;
-      border-radius: 40px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px);
-      transition: all 0.5s var(--easing);
+      background: #F8F7F4;
+      padding: 60px 48px;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.3s var(--easing);
     }
 
-    .aud-card:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.15);
-      transform: translateY(-8px);
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 32px;
+    }
+
+    .card-label-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
     }
 
     .aud-card h3 {
+      font-family: 'Times New Roman', serif;
       font-size: 32px;
+      font-weight: 400;
       margin-bottom: 24px;
+      color: #1D1D1F;
+    }
+
+    .aud-card p {
+      font-size: 15px;
+      color: #1D1D1F;
+      line-height: 1.6;
+      margin-bottom: 40px;
+      max-width: 320px;
     }
 
     .aud-card ul {
       list-style: none;
+      margin-top: auto;
     }
 
     .aud-card li {
-      font-size: 18px;
-      margin-bottom: 16px;
+      font-size: 15px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 12px;
-      color: rgba(255, 255, 255, 0.9);
+      color: #1D1D1F;
     }
 
     .aud-card li::before {
       content: '';
-      width: 8px;
-      height: 8px;
-      background: var(--green);
-      border-radius: 50%;
+      width: 12px;
+      height: 1px;
+      background: var(--bullet-color, rgba(255, 255, 255, 0.2));
+      flex-shrink: 0;
     }
 
-    .aud-card p {
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 19px;
-      line-height: 1.5;
+    /* ─── BUTTONS ─── */
+    .dl-footer-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 80px;
     }
 
-    .privacy {
+    .dl-btn-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .dl-pill-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 32px;
+      border-radius: 980px;
+      text-decoration: none;
+      transition: all 0.3s var(--easing);
+      min-width: 200px;
       text-align: center;
     }
 
-    .privacy-card {
+    .btn-white {
       background: #fff;
-      padding: 140px 80px;
-      border-radius: 80px;
-      box-shadow: 0 60px 120px rgba(0, 0, 0, 0.06);
-      max-width: 1040px;
-      margin: 0 auto;
-      border: 1px solid rgba(0, 0, 0, 0.03);
-      position: relative;
+      color: #000;
     }
 
-    .privacy-icon {
-      font-size: 64px;
+    .btn-white:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .dl-pill-btn .btn-text {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .dl-pill-btn .btn-subtext {
+      font-size: 10px;
+      opacity: 0.5;
+      margin-top: 2px;
+    }
+
+    .dl-secondary-links {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .dl-secondary-links a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    .dl-secondary-links a:hover {
+      text-decoration: underline;
+    }
+
+    .privacy {
+      text-align: left;
+      background: #000;
+      color: #fff;
+      padding: 160px 0;
+    }
+
+    .privacy-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 80px;
+    }
+
+    .privacy-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
       margin-bottom: 40px;
+    }
+
+    .privacy-shield {
+      width: 44px;
+      height: 48px;
+      background: linear-gradient(135deg, #ff4d4d, #e60000);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4);
+    }
+
+    .privacy-shield::before {
+      content: '✓';
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .privacy-eyebrow {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .privacy-title {
+      font-family: 'Times New Roman', serif;
+      font-size: clamp(54px, 8vw, 84px);
+      font-weight: 400;
+      line-height: 1.05;
+      margin-bottom: 24px;
+    }
+
+    .privacy-title span.italic {
+      font-style: italic;
+    }
+
+    .privacy-title span.faded {
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .privacy-description {
+      font-size: 16px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.6);
+      max-width: 480px;
+      margin-bottom: 40px;
+    }
+
+    .privacy-divider {
+      width: 40px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+      margin-bottom: 40px;
+    }
+
+    .privacy-tag-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .privacy-tag {
+      background: #111;
+      padding: 8px 16px;
+      border-radius: 980px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .privacy-tag-dot {
+      width: 6px;
+      height: 6px;
+      background: #ff3b30;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(255, 59, 48, 0.6);
+    }
+
+    .privacy-visual {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .shutter-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      max-width: 540px;
+      height: auto;
+      opacity: 0;
+      filter: grayscale(0.1) contrast(1.1);
+      mask-image: radial-gradient(circle, black 45%, transparent 85%);
+      -webkit-mask-image: radial-gradient(circle, black 45%, transparent 85%);
+      transition: opacity 0.05s step-end;
+      pointer-events: none;
+    }
+
+    .shutter-frame:nth-of-type(1) {
+      position: relative;
+      opacity: 1;
       display: block;
-      filter: drop-shadow(0 10px 20px rgba(52, 199, 89, 0.2));
+    }
+
+
+    .status-glow {
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(255, 59, 48, 0.2) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.6;
+      transition: all 0.6s ease;
+    }
+
+    .privacy-visual:hover .status-glow {
+      transform: scale(1.4);
+      opacity: 1;
     }
 
 
@@ -557,9 +1316,51 @@
       transform: translateY(0);
     }
 
+    /* ─── HERO BG TEXT ─── */
+    .hero-bg-text {
+      position: absolute;
+      top: 7%;
+      left: 0;
+      width: 100%;
+      height: 60%;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0.02;
+      font-family: serif;
+      font-style: italic;
+      font-size: 80px;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+
+    .scrolling-text {
+      display: block;
+    }
+
+    @keyframes scrollText {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    @keyframes scrollTextReverse {
+      from {
+        transform: translateX(-50%);
+      }
+
+      to {
+        transform: translateX(0);
+      }
+    }
+
     /* ─── FOOTER ─── */
     footer {
-      padding: 80px 0;
+      padding: 20px 0;
       border-top: 1px solid rgba(0, 0, 0, 0.05);
       text-align: center;
       color: var(--text-2);
@@ -567,11 +1368,58 @@
     }
 
     @media (max-width: 850px) {
+      .privacy {
+        padding: 80px 0;
+      }
+
+      .privacy-container {
+        grid-template-columns: 1fr;
+        gap: 60px;
+        text-align: left;
+        padding: 0 24px;
+      }
+
+      .privacy-visual {
+        order: -1;
+        margin-bottom: 40px;
+      }
+
+      .shutter-image {
+        max-width: 400px;
+      }
+
+      .privacy-title {
+        font-size: 48px;
+        line-height: 1.1;
+      }
+
+      .dl-btn-row {
+        flex-direction: column;
+      }
+
+      .aud-card {
+        padding: 40px 24px;
+      }
+
+      .section {
+        padding: 60px 0;
+      }
+
+      .hero-bg-text {
+        top: 2%;
+        font-size: 40px;
+        height: 30%;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
       .container {
         padding: 0 24px;
       }
 
-      .sculptural-grid {
+      .cards-grid {
         grid-template-columns: 1fr;
       }
 
@@ -597,6 +1445,7 @@
       .btn {
         width: 100%;
       }
+
     }
   </style>
 </head>
@@ -606,7 +1455,7 @@
   <nav>
     <div class="nav-inner">
       <a href="#" class="logo">
-        <img src="favicon.svg" alt="Glance">
+        <img width="48" height="48" src="favicon.svg" alt="Glance logo">
         Glance
       </a>
       <div class="nav-links">
@@ -619,8 +1468,7 @@
 
   <!-- HERO -->
   <!-- BACKGROUND SCRIPT -->
-  <div class="hero-bg-text"
-    style="position: absolute; top: 15%; left: 0; width: 100%; height: 60%; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0.03; font-family: serif; font-style: italic; font-size: 80px; white-space: nowrap; line-height: 1.2;">
+  <div class="hero-bg-text">
     <div class="scrolling-text" style="animation: scrollText 120s linear infinite;">
       your script, invisible to them. confidence in every call. present flawlessly. maintain eye contact. engage your
       audience. your script, invisible to them. confidence in every call. present flawlessly. maintain eye contact.
@@ -632,32 +1480,11 @@
       to them. confidence in every call. present flawlessly. maintain eye contact. engage your audience. your script,
       invisible to them. confidence in every call. present flawlessly. maintain eye contact. engage your audience.
     </div>
-    <style>
-      @keyframes scrollText {
-        from {
-          transform: translateX(0);
-        }
-
-        to {
-          transform: translateX(-50%);
-        }
-      }
-
-      @keyframes scrollTextReverse {
-        from {
-          transform: translateX(-50%);
-        }
-
-        to {
-          transform: translateX(0);
-        }
-      }
-    </style>
   </div>
 
   <section class="hero" style="position: relative;">
     <div class="container">
-      <div class="hero-eyebrow reveal"><span class="record-dot"></span>Production-Ready Teleprompter</div>
+      <div class="hero-eyebrow reveal"><span class="record-dot"></span>Teleprompter for video calls</div>
       <h1 class="headline reveal">Never <span class="cursive-blue">break eye contact</span> <br>in interviews again.
       </h1>
       <p class="subhead reveal">Glance overlays your script directly over your video call. Look confident, stay natural,
@@ -682,6 +1509,73 @@
       <p style="margin-top: 24px; color: var(--text-2); font-size: 14px;">100% Free · No Subscription · Private & Local
       </p>
 
+      <div class="install-security-block">
+        <div class="install-security-wrapper">
+          <div class="install-security-notice">
+            <div class="install-security-notice-content">
+              <div class="install-security-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+
+              <div class="install-security-content">
+                <h3 class="install-security-title">Not distributed via the App Store</h3>
+                <p class="install-security-description">
+                  Glance is distributed directly from this website. Your OS may ask for a one-time security
+                  confirmation — this is expected and safe. You can revert this setting at any time.
+                </p>
+                <a href="#install-setup" class="install-security-link">
+                  Open setup guide
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="install-security-platform-strip">
+            <div class="install-security-platform-item">
+              <div class="install-security-platform-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="#1D1D1F">
+                  <path
+                    d="M16.37 12.72c.02 2.35 2.07 3.13 2.09 3.14-.02.05-.33 1.13-1.09 2.24-.66.96-1.34 1.91-2.41 1.93-1.06.02-1.4-.63-2.61-.63-1.2 0-1.58.61-2.58.65-1.03.04-1.82-1.03-2.49-1.99-1.35-1.95-2.38-5.5-1-7.9.69-1.19 1.92-1.95 3.26-1.97 1.02-.02 1.98.69 2.61.69.62 0 1.79-.86 3.02-.73.51.02 1.95.21 2.87 1.56-.07.05-1.71 1-1.67 3.01zM14.2 6.2c.56-.68.93-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.98 1.56-.86 2.48.9.07 1.82-.46 2.4-1.13z">
+                  </path>
+                </svg>
+              </div>
+              <div>
+                <p class="install-security-platform-label">macOS</p>
+                <p class="install-security-platform-description">
+                  Open the app, then go to <strong>System Settings → Privacy &amp; Security</strong> and confirm under
+                  Security.
+                </p>
+              </div>
+            </div>
+
+            <div class="install-security-platform-item">
+              <div class="install-security-platform-icon" aria-hidden="true">
+                <svg viewBox="0 0 28 28">
+                  <rect x="2" y="4" width="11" height="9" fill="#1D1D1F" opacity="1"></rect>
+                  <rect x="15" y="3" width="11" height="10" fill="#1D1D1F" opacity="0.65"></rect>
+                  <rect x="2" y="15" width="11" height="9" fill="#1D1D1F" opacity="0.65"></rect>
+                  <rect x="15" y="14" width="11" height="10" fill="#1D1D1F" opacity="0.4"></rect>
+                </svg>
+              </div>
+              <div>
+                <p class="install-security-platform-label">Windows</p>
+                <p class="install-security-platform-description">
+                  If SmartScreen appears, select <strong>More info</strong>, then <strong>Run anyway</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="hero-visual reveal">
         <img src="glance-mockup.png" alt="MacBook Mockup" class="mockup-frame">
         <div class="video-overlay">
@@ -696,24 +1590,31 @@
     <div class="container">
       <h2 class="section-title reveal">Preparation is useless <br>if it looks like you're reading.</h2>
 
-      <div class="sculptural-grid">
-        <div class="sculpt-card dark reveal">
-          <h3>Trust breaks instantly.</h3>
+      <div class="cards-grid">
+        <div class="card card-1">
+          <span class="card-num">01</span>
+          <h2>Trust breaks instantly.</h2>
           <p>Eye contact is the most powerful signal of confidence. Looking at a second monitor kills that advantage.
           </p>
+          <span class="card-mark">"</span>
         </div>
-        <div class="sculpt-card reveal">
-          <h3>Switching is visible.</h3>
+        <div class="card card-2">
+          <span class="card-num">02</span>
+          <h2>Switching is visible.</h2>
           <p>The "screen glow" change and eye-tracking movement is obvious to anyone on the other end.</p>
+          <span class="card-mark">"</span>
         </div>
-        <div class="sculpt-card reveal">
-          <h3>Panic sets in.</h3>
+        <div class="card card-3">
+          <span class="card-num">03</span>
+          <h2>Panic sets in.</h2>
           <p>Fumbling for your place in a script during a live call leads to "umms," "ahhs," and lost momentum.</p>
+          <span class="card-mark">"</span>
         </div>
-        <div class="sculpt-card dark reveal"
-          style="background: linear-gradient(135deg, #007aff, #00c6ff); color: #fff;">
-          <h3 style="color:#fff">The Glance Edge.</h3>
+        <div class="card card-4">
+          <span class="card-num">04</span>
+          <h2>The Glance Edge.</h2>
           <p>Maintain consistent eye contact while delivering your pitch flawlessly.</p>
+          <span class="card-mark">✦</span>
         </div>
       </div>
     </div>
@@ -732,13 +1633,16 @@
             with instant jump access during your call.</p>
         </div>
         <div class="feature-visual">
-          <div class="mac-window">
+          <div class="mac-window mockup-interactive">
             <div class="window-bar">
               <div class="dot dot-1"></div>
               <div class="dot dot-2"></div>
               <div class="dot dot-3"></div>
             </div>
-            <img src="Markdown.webp" alt="Markdown Editor" class="mockup-img">
+            <img src="Markup.webp" alt="Markdown Editor" class="mockup-img">
+            <button type="button" class="mockup-trigger" data-dialog-image="Markup.webp"
+              data-dialog-alt="Markdown Editor preview" data-dialog-title="Simple Workflow preview"
+              aria-label="Open Simple Workflow preview image" aria-haspopup="dialog"></button>
           </div>
         </div>
       </div>
@@ -753,89 +1657,143 @@
             shortcuts without ever looking away from the camera.</p>
         </div>
         <div class="feature-visual">
-          <div class="mac-window">
+          <div class="mac-window mockup-interactive">
             <div class="window-bar">
               <div class="dot dot-1"></div>
               <div class="dot dot-2"></div>
               <div class="dot dot-3"></div>
             </div>
             <img src="Shortcuts.webp" alt="Shortcuts UI" class="mockup-img">
+            <button type="button" class="mockup-trigger" data-dialog-image="Shortcuts.webp"
+              data-dialog-alt="Interactive Control shortcuts preview" data-dialog-title="Interactive Control preview"
+              aria-label="Open Interactive Control preview image" aria-haspopup="dialog"></button>
           </div>
         </div>
       </div>
     </div>
   </section>
 
+  <dialog id="feature-image-dialog" class="image-lightbox" aria-labelledby="feature-image-dialog-title">
+    <div class="image-lightbox-surface">
+      <h3 id="feature-image-dialog-title" class="lightbox-dialog-title">Feature image preview</h3>
+      <button type="button" class="lightbox-close" aria-label="Close image preview dialog">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3.5 3.5L12.5 12.5M12.5 3.5L3.5 12.5" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" />
+        </svg>
+      </button>
+      <img id="feature-image-dialog-image" class="lightbox-image" src="" alt="">
+    </div>
+  </dialog>
+
   <!-- AUDIENCE -->
   <section class="audience">
     <div class="container">
-      <h2 class="section-title reveal" style="color:#fff">Built for the high-stakes call.</h2>
+      <div class="audience-eyebrow reveal">PURPOSE-BUILT</div>
+      <h2 class="section-title reveal" style="text-align: center;">Built for the <br> <span>high-stakes call.</span>
+      </h2>
       <div class="aud-grid">
         <div class="aud-card reveal">
-          <h3 style="color:var(--blue)">For Job Seekers</h3>
-          <p style="margin-bottom:32px">Nail your behavioral questions and technical
-            pitches without the "memorization" stress.</p>
+          <div class="card-label" style="color: var(--blue);">
+            <span class="card-label-dot" style="background: var(--blue);"></span>
+            FOR JOB SEEKERS
+          </div>
+          <h3>Own the interview room.</h3>
+          <p>Answer behavioral and technical questions with quiet confidence — no memorization spirals, no blank
+            moments.</p>
           <ul>
-            <li>Practice answers confidently</li>
-            <li>Maintain steady, calm eye contact</li>
-            <li>Always know your next talking point</li>
+            <li style="--bullet-color: var(--blue);">Practice answers confidently</li>
+            <li style="--bullet-color: var(--blue);">Maintain steady, calm eye contact</li>
+            <li style="--bullet-color: var(--blue);">Always know your next talking point</li>
           </ul>
         </div>
         <div class="aud-card reveal">
-          <h3 style="color:var(--green)">For Sales Pros</h3>
-          <p style="margin-bottom:32px">Deliver the perfect pitch and answer objections
-            with the confidence of a seasoned pro.</p>
+          <div class="card-label" style="color: var(--green);">
+            <span class="card-label-dot" style="background: var(--green);"></span>
+            FOR SALES PROS
+          </div>
+          <h3>Close with conviction.</h3>
+          <p>Deliver your pitch with natural flow and handle every objection like a seasoned closer.</p>
           <ul>
-            <li>Deliver scripts with natural flow</li>
-            <li>Close with absolute conviction</li>
-            <li>Stay attuned to client micro-reactions</li>
+            <li style="--bullet-color: var(--green);">Deliver scripts with natural flow</li>
+            <li style="--bullet-color: var(--green);">Close with absolute conviction</li>
+            <li style="--bullet-color: var(--green);">Stay attuned to client micro-reactions</li>
           </ul>
         </div>
       </div>
 
-      <div class="btn-group reveal" style="margin-top: 80px;">
-        <div class="cta-wrapper">
-          <a href="#" class="btn btn-primary dl-mac-btn" style="background:#fff; color:#000;">
-            <span class="btn-text">Download for Mac</span>
-            <span class="btn-subtext dl-mac-subtext">Detecting...</span>
-          </a>
-          <div class="cta-caption dl-mac-caption" style="color: rgba(255,255,255,0.6)">Checking version...</div>
+      <div class="dl-footer-group reveal">
+        <div class="dl-btn-row">
+          <div class="cta-wrapper">
+            <a href="#" class="dl-pill-btn btn-white dl-mac-btn">
+              <span class="btn-text">Download for Mac</span>
+              <span class="btn-subtext dl-mac-subtext">Detecting...</span>
+            </a>
+          </div>
+          <div class="cta-wrapper">
+            <a href="#" class="dl-pill-btn btn-outline dl-win-btn">
+              <span class="btn-text">Download for Windows</span>
+              <span class="btn-subtext dl-win-subtext">v0.1.1 · 64-bit</span>
+            </a>
+          </div>
         </div>
-        <div class="cta-wrapper">
-          <a href="#" class="btn btn-secondary dl-win-btn"
-            style="background:rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
-            <span class="btn-text">Download for Windows</span>
-            <span class="btn-subtext dl-win-subtext">v0.1.1 · 64-bit</span>
-          </a>
-          <div class="cta-caption dl-win-caption" style="color: rgba(255,255,255,0.6)">No cloud access.</div>
+        <div class="dl-secondary-links">
+          <span class="dl-mac-caption">Checking version...</span>
+          <span>·</span>
+          <span>No cloud access</span>
         </div>
       </div>
     </div>
   </section>
 
   <!-- PRIVACY -->
-  <section class="section" id="privacy">
-    <div class="container">
-      <div class="privacy-card reveal">
-        <span class="privacy-icon">🛡️</span>
-        <h2 style="font-size: 64px; margin-bottom: 32px; font-weight: 700;">Your words stay yours.</h2>
-        <p style="color:var(--text-2); font-size: 24px; max-width: 720px; margin: 0 auto 60px; line-height: 1.4;">Glance
-          runs 100% locally. No accounts, no cloud, no tracking. Your high-stakes strategy never leaves your machine.
-        </p>
-        <div class="btn-group">
-          <div class="btn"
-            style="background: var(--bg-2); color: var(--text-1); cursor: default; border: 1px solid rgba(0,0,0,0.05);">
-            Zero Telemetry</div>
-          <div class="btn"
-            style="background: var(--bg-2); color: var(--text-1); cursor: default; border: 1px solid rgba(0,0,0,0.05);">
-            No Cloud Access</div>
+  <section class="privacy" id="privacy">
+    <div class="privacy-container reveal">
+      <div class="privacy-content">
+        <div class="privacy-header">
+          <div class="privacy-shield"></div>
+          <div class="privacy-eyebrow">Privacy by Design</div>
         </div>
+
+        <h2 class="privacy-title">
+          <span class="red-gradient">
+            Your words <br>
+            <span class="italic">stay</span> <span class="yours">yours.</span>
+          </span>
+        </h2>
+
+        <p class="privacy-description">
+          Glance runs 100% locally. No accounts, no cloud, no tracking.
+          Your high-stakes strategy never leaves your machine.
+        </p>
+
+        <div class="privacy-divider"></div>
+
+        <div class="privacy-tag-group">
+          <div class="privacy-tag">
+            <span class="privacy-tag-dot"></span>
+            Zero Telemetry
+          </div>
+          <div class="privacy-tag">
+            <span class="privacy-tag-dot"></span>
+            No Cloud Access
+          </div>
+          <div class="privacy-tag">
+            <span class="privacy-tag-dot"></span>
+            No Account Required
+          </div>
+        </div>
+      </div>
+
+      <div class="privacy-visual">
+        <img src="SecureShutter.png" alt="Privacy Shutter Closed" class="shutter-frame">
+        <div class="status-glow"></div>
       </div>
     </div>
   </section>
 
   <!-- FINAL CTA -->
-  <section class="section" style="text-align:center; padding: 180px 0;">
+  <section class="section" style="text-align:center; padding: 100px 0;">
     <div class="container reveal">
       <h2 class="headline">Ready to look <br>more confident?</h2>
       <div class="btn-group">
@@ -856,7 +1814,6 @@
       </div>
     </div>
   </section>
-
   <footer>
     <div class="container">
       <p>&copy; 2025 Glance. All rights reserved. <a href="privacy.html"
@@ -873,6 +1830,74 @@
     }, { threshold: 0.1 });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    const installObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          installObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.install-security-block').forEach(el => installObserver.observe(el));
+
+    const featureImageDialog = document.getElementById('feature-image-dialog');
+    const featureImageDialogImage = document.getElementById('feature-image-dialog-image');
+    const featureImageDialogTitle = document.getElementById('feature-image-dialog-title');
+    const featureImageDialogClose = featureImageDialog?.querySelector('.lightbox-close');
+    const featureImageTriggers = document.querySelectorAll('.mockup-trigger');
+    let activeFeatureTrigger = null;
+    let dialogCloseTimeout = null;
+
+    const closeFeatureImageDialog = () => {
+      if (!featureImageDialog || !featureImageDialog.open) return;
+      if (dialogCloseTimeout) window.clearTimeout(dialogCloseTimeout);
+      featureImageDialog.classList.remove('is-open');
+      featureImageDialog.classList.add('is-closing');
+      dialogCloseTimeout = window.setTimeout(() => {
+        featureImageDialog.close();
+      }, 240);
+    };
+
+    featureImageTriggers.forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        if (!featureImageDialog || !featureImageDialogImage || !featureImageDialogTitle) return;
+        const imageSource = trigger.getAttribute('data-dialog-image');
+        const imageAlt = trigger.getAttribute('data-dialog-alt') || 'Feature image preview';
+        const imageTitle = trigger.getAttribute('data-dialog-title') || 'Feature image preview';
+        if (!imageSource) return;
+        activeFeatureTrigger = trigger;
+        featureImageDialogImage.src = imageSource;
+        featureImageDialogImage.alt = imageAlt;
+        featureImageDialogTitle.textContent = imageTitle;
+        featureImageDialog.classList.remove('is-closing');
+        featureImageDialog.showModal();
+        requestAnimationFrame(() => {
+          featureImageDialog.classList.add('is-open');
+        });
+      });
+    });
+
+    featureImageDialogClose?.addEventListener('click', closeFeatureImageDialog);
+
+    featureImageDialog?.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeFeatureImageDialog();
+    });
+
+    featureImageDialog?.addEventListener('click', event => {
+      if (event.target === featureImageDialog) closeFeatureImageDialog();
+    });
+
+    featureImageDialog?.addEventListener('close', () => {
+      featureImageDialog.classList.remove('is-open', 'is-closing');
+      if (dialogCloseTimeout) {
+        window.clearTimeout(dialogCloseTimeout);
+        dialogCloseTimeout = null;
+      }
+      if (activeFeatureTrigger instanceof HTMLElement) activeFeatureTrigger.focus();
+    });
 
     // Release & Architecture Logic
     document.addEventListener("DOMContentLoaded", async () => {
