@@ -152,7 +152,7 @@
       border: 1px solid rgba(0, 122, 255, 0.1);
       border-radius: 980px;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 11px;
       margin-bottom: 32px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -372,6 +372,9 @@
       font-weight: 500;
       line-height: 1.2;
       transition: all 0.2s ease;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
     }
 
     .install-security-link svg {
@@ -387,6 +390,195 @@
     .install-security-link:hover {
       background: #1D1D1F;
       color: #fff;
+    }
+
+    .setup-guide-dialog {
+      width: min(760px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      margin: 16px auto;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      overflow: visible;
+    }
+
+    .setup-guide-dialog::backdrop {
+      background: rgba(15, 15, 18, 0.32);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .setup-guide-shell {
+      position: relative;
+      border-radius: 28px;
+      border: 1px solid #d8d3cb;
+      background: linear-gradient(180deg, #fbfaf7 0%, #f2efea 100%);
+      box-shadow: 0 30px 80px rgba(17, 17, 19, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      padding: 34px 32px 30px;
+      opacity: 0;
+      transform: translateY(14px) scale(0.99);
+      transition: transform 0.24s var(--easing), opacity 0.2s var(--easing);
+      overflow: hidden;
+    }
+
+    .setup-guide-dialog.is-open .setup-guide-shell {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .setup-guide-dialog.is-closing .setup-guide-shell {
+      opacity: 0;
+      transform: translateY(10px) scale(0.99);
+    }
+
+    .setup-guide-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      border: 1px solid #d0cbc2;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      color: #1d1d1f;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .setup-guide-close:hover {
+      transform: scale(1.03);
+      background: #fff;
+    }
+
+    .setup-guide-close:focus-visible {
+      outline: 2px solid #007aff;
+      outline-offset: 2px;
+    }
+
+    .setup-guide-close svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .setup-guide-eyebrow {
+      color: #6e6e73;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .setup-guide-title {
+      font-family: 'Instrument Serif', serif;
+      color: #1d1d1f;
+      font-size: clamp(34px, 5vw, 44px);
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+
+    .setup-guide-subtitle {
+      color: #6e6e73;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      max-width: 620px;
+    }
+
+    .setup-guide-tabs {
+      display: inline-grid;
+      grid-auto-flow: column;
+      gap: 4px;
+      border: 1px solid #ddd8d1;
+      border-radius: 999px;
+      padding: 4px;
+      background: rgba(238, 235, 229, 0.76);
+      margin-bottom: 20px;
+    }
+
+    .setup-guide-tab {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 14px;
+      color: #6e6e73;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .setup-guide-tab[aria-selected="true"] {
+      background: #fff;
+      color: #1d1d1f;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .setup-guide-tab:focus-visible {
+      outline: 2px solid #007aff;
+      outline-offset: 2px;
+    }
+
+    .setup-guide-panel {
+      display: none;
+      border: 1px solid #e2ddd6;
+      border-radius: 20px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.64);
+    }
+
+    .setup-guide-panel.is-active {
+      display: block;
+    }
+
+    .setup-step-list {
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .setup-step-list li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: #3a3a40;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .setup-step-num {
+      margin-top: 1px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid #d5d0c8;
+      color: #6e6e73;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .setup-step-list strong {
+      color: #1d1d1f;
+      font-weight: 600;
+    }
+
+    .setup-guide-note {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid #e2ddd6;
+      color: #6e6e73;
+      font-size: 12px;
+      line-height: 1.5;
     }
 
     .install-security-platform-strip {
@@ -443,6 +635,10 @@
     }
 
     @media (max-width: 850px) {
+      .hero {
+        padding-bottom: 20px;
+      }
+
       .install-security-block {
         margin-top: 72px;
       }
@@ -913,6 +1109,8 @@
     @media (prefers-reduced-motion: reduce) {
 
       .mockup-img,
+      .setup-guide-shell,
+      .setup-guide-close,
       .image-lightbox-surface,
       .lightbox-close {
         transition: none;
@@ -1027,7 +1225,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      margin-bottom: 32px;
+      margin-bottom: 12px;
     }
 
     .card-label-dot {
@@ -1079,74 +1277,148 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 80px;
+      gap: 0;
+      margin: 72px auto 0;
+      width: min(760px, 100%);
     }
 
+    .cta-row,
     .dl-btn-row {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
     }
 
-    .dl-pill-btn {
+    .dl-btn-row .btn-mac,
+    .dl-btn-row .btn-win {
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 12px 32px;
+      gap: 3px;
       border-radius: 980px;
+      padding: 10px 32px;
+      border: 1px solid transparent;
       text-decoration: none;
-      transition: all 0.3s var(--easing);
-      min-width: 200px;
-      text-align: center;
+      line-height: 1.2;
+      transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .btn-white {
+    .dl-btn-row .btn-mac {
+      background: #1D1D1F;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+    }
+
+    .dl-btn-row .btn-mac:hover {
+      background: #2c2c2e;
+      transform: translateY(-1px);
+    }
+
+    .dl-btn-row .btn-win {
+      background: #FAFAF8;
+      border: 1px solid #D8D4CB;
+    }
+
+    .dl-btn-row .btn-win:hover {
       background: #fff;
-      color: #000;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+      transform: translateY(-1px);
     }
 
-    .btn-white:hover {
-      background: #f0f0f0;
-      transform: translateY(-2px);
+    .dl-btn-row .btn-mac:focus-visible,
+    .dl-btn-row .btn-win:focus-visible {
+      outline: 2px solid #1D1D1F;
+      outline-offset: 3px;
     }
 
-    .btn-outline {
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .dl-btn-row .btn-title {
+      font-size: 17px;
+      font-weight: 600;
+      display: block;
+    }
+
+    .dl-btn-row .btn-mac .btn-title {
       color: #fff;
     }
 
-    .btn-outline:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
+    .dl-btn-row .btn-win .btn-title {
+      color: #1D1D1F;
     }
 
-    .dl-pill-btn .btn-text {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .dl-pill-btn .btn-subtext {
-      font-size: 10px;
-      opacity: 0.5;
+    .dl-btn-row .btn-sub {
+      font-size: 11px;
+      font-weight: 400;
+      display: block;
       margin-top: 2px;
     }
 
-    .dl-secondary-links {
-      display: flex;
-      gap: 16px;
+    .dl-btn-row .btn-mac .btn-sub {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .dl-btn-row .btn-win .btn-sub {
+      color: #747485;
+    }
+
+    .cta-notes {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      max-width: 640px;
+      margin: 10px auto 0;
+    }
+
+    .cta-note {
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.3);
+      font-weight: 300;
+      color: #747485;
+      text-align: center;
     }
 
-    .dl-secondary-links a {
-      color: var(--blue);
-      text-decoration: none;
+    .cta-switch-arch {
+      margin-left: 6px;
+      border: 1px solid #d8d4cb;
+      border-radius: 999px;
+      background: #fafaf8;
+      color: #1D1D1F;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.25;
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .dl-secondary-links a:hover {
+    .cta-switch-arch:hover {
+      background: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .cta-switch-arch:focus-visible,
+    .toggle-arch-inline:focus-visible {
+      outline: 2px solid #1D1D1F;
+      outline-offset: 2px;
+    }
+
+    .toggle-arch-inline {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      color: var(--toggle-arch-color, var(--blue));
       text-decoration: underline;
+      text-underline-offset: 2px;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: 500;
+      line-height: inherit;
+      cursor: pointer;
     }
 
     .privacy {
@@ -1368,6 +1640,7 @@
     }
 
     @media (max-width: 850px) {
+
       .privacy {
         padding: 80px 0;
       }
@@ -1377,6 +1650,10 @@
         gap: 60px;
         text-align: left;
         padding: 0 24px;
+      }
+
+      .privacy-tag-group {
+        flex-direction: column;
       }
 
       .privacy-visual {
@@ -1393,8 +1670,54 @@
         line-height: 1.1;
       }
 
+      .setup-guide-shell {
+        border-radius: 22px;
+        padding: 26px 18px 20px;
+      }
+
+      .setup-guide-title {
+        font-size: clamp(30px, 11vw, 38px);
+      }
+
+      .setup-guide-subtitle {
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .setup-guide-tabs {
+        width: 100%;
+        grid-template-columns: 1fr 1fr;
+        margin-bottom: 16px;
+      }
+
+      .setup-guide-tab {
+        width: 100%;
+      }
+
+      .setup-guide-panel {
+        padding: 16px;
+      }
+
+      .setup-step-list li {
+        grid-template-columns: 20px 1fr;
+        gap: 8px;
+      }
+
+      .dl-footer-group {
+        margin-top: 56px;
+        width: 100%;
+      }
+
       .dl-btn-row {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        max-width: 100%;
+      }
+
+      .cta-notes {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        max-width: 100%;
       }
 
       .aud-card {
@@ -1438,7 +1761,7 @@
       }
 
       .audience {
-        margin: 20px 0;
+        padding: 80px 0;
         border-radius: 0;
       }
 
@@ -1527,13 +1850,14 @@
                   Glance is distributed directly from this website. Your OS may ask for a one-time security
                   confirmation — this is expected and safe. You can revert this setting at any time.
                 </p>
-                <a href="#install-setup" class="install-security-link">
+                <button type="button" class="install-security-link" data-open-setup-guide aria-haspopup="dialog"
+                  aria-controls="setup-guide-dialog">
                   Open setup guide
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                     <polyline points="12 5 19 12 12 19"></polyline>
                   </svg>
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -1585,6 +1909,59 @@
     </div>
   </section>
 
+  <dialog id="setup-guide-dialog" class="setup-guide-dialog" aria-labelledby="setup-guide-title">
+    <div class="setup-guide-shell">
+      <button type="button" class="setup-guide-close" aria-label="Close setup guide">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3.5 3.5L12.5 12.5M12.5 3.5L3.5 12.5" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" />
+        </svg>
+      </button>
+      <p class="setup-guide-eyebrow">Install Help</p>
+      <h3 id="setup-guide-title" class="setup-guide-title">Open Glance safely</h3>
+      <p class="setup-guide-subtitle">Choose your platform and follow the built-in OS prompts. You only need to do this
+        once.</p>
+
+      <div class="setup-guide-tabs" role="tablist" aria-label="Setup platform">
+        <button type="button" id="setup-guide-tab-macos" class="setup-guide-tab" role="tab" aria-selected="true"
+          aria-controls="setup-guide-panel-macos" data-guide-tab-target="macos">macOS</button>
+        <button type="button" id="setup-guide-tab-windows" class="setup-guide-tab" role="tab" aria-selected="false"
+          aria-controls="setup-guide-panel-windows" data-guide-tab-target="windows">Windows</button>
+      </div>
+
+      <section id="setup-guide-panel-macos" class="setup-guide-panel is-active" role="tabpanel"
+        aria-labelledby="setup-guide-tab-macos" data-guide-panel="macos">
+        <ol class="setup-step-list">
+          <li><span class="setup-step-num">1</span><span><strong>Open Glance once</strong> from Applications or the
+              downloaded DMG.</span></li>
+          <li><span class="setup-step-num">2</span><span>If macOS blocks it, open <strong>System Settings →
+                Privacy &amp; Security</strong>.</span></li>
+          <li><span class="setup-step-num">3</span><span>In the Security section, click <strong>Open Anyway</strong>
+              for Glance.</span></li>
+          <li><span class="setup-step-num">4</span><span>Confirm <strong>Open</strong>, then authenticate with your
+              password or Touch ID.</span></li>
+        </ol>
+      </section>
+
+      <section id="setup-guide-panel-windows" class="setup-guide-panel" role="tabpanel"
+        aria-labelledby="setup-guide-tab-windows" data-guide-panel="windows" hidden>
+        <ol class="setup-step-list">
+          <li><span class="setup-step-num">1</span><span><strong>Run the downloaded installer</strong> from this
+              website.</span></li>
+          <li><span class="setup-step-num">2</span><span>If SmartScreen appears with “Windows protected your PC,” click
+              <strong>More info</strong>.</span></li>
+          <li><span class="setup-step-num">3</span><span>Choose <strong>Run anyway</strong> only if the file came from
+              the official Glance download link.</span></li>
+          <li><span class="setup-step-num">4</span><span>Keep <strong>App &amp; browser control</strong> protections
+              enabled after install.</span></li>
+        </ol>
+      </section>
+
+      <p class="setup-guide-note">Tip: This prompt is expected for apps distributed directly outside the Mac App Store
+        or Microsoft Store.</p>
+    </div>
+  </dialog>
+
   <!-- PROBLEM SCULPTURAL -->
   <section class="section">
     <div class="container">
@@ -1596,25 +1973,25 @@
           <h2>Trust breaks instantly.</h2>
           <p>Eye contact is the most powerful signal of confidence. Looking at a second monitor kills that advantage.
           </p>
-          <span class="card-mark">"</span>
+
         </div>
         <div class="card card-2">
           <span class="card-num">02</span>
           <h2>Switching is visible.</h2>
           <p>The "screen glow" change and eye-tracking movement is obvious to anyone on the other end.</p>
-          <span class="card-mark">"</span>
+
         </div>
         <div class="card card-3">
           <span class="card-num">03</span>
           <h2>Panic sets in.</h2>
           <p>Fumbling for your place in a script during a live call leads to "umms," "ahhs," and lost momentum.</p>
-          <span class="card-mark">"</span>
+
         </div>
         <div class="card card-4">
           <span class="card-num">04</span>
           <h2>The Glance Edge.</h2>
           <p>Maintain consistent eye contact while delivering your pitch flawlessly.</p>
-          <span class="card-mark">✦</span>
+
         </div>
       </div>
     </div>
@@ -1724,23 +2101,19 @@
 
       <div class="dl-footer-group reveal">
         <div class="dl-btn-row">
-          <div class="cta-wrapper">
-            <a href="#" class="dl-pill-btn btn-white dl-mac-btn">
-              <span class="btn-text">Download for Mac</span>
-              <span class="btn-subtext dl-mac-subtext">Detecting...</span>
-            </a>
-          </div>
-          <div class="cta-wrapper">
-            <a href="#" class="dl-pill-btn btn-outline dl-win-btn">
-              <span class="btn-text">Download for Windows</span>
-              <span class="btn-subtext dl-win-subtext">v0.1.1 · 64-bit</span>
-            </a>
-          </div>
+          <a href="#" class="btn-mac dl-mac-btn">
+            <span class="btn-title">Get Glance for Mac</span>
+            <span class="btn-sub dl-mac-subtext">v0.1.1 · Apple Silicon</span>
+          </a>
+          <a href="#" class="btn-win dl-win-btn">
+            <span class="btn-title">Download for Windows</span>
+            <span class="btn-sub dl-win-subtext">v0.1.1 · 64-bit</span>
+          </a>
         </div>
-        <div class="dl-secondary-links">
-          <span class="dl-mac-caption">Checking version...</span>
-          <span>·</span>
-          <span>No cloud access</span>
+        <div class="cta-notes">
+          <p class="cta-note">Not Apple Silicon? <button type="button" class="cta-switch-arch toggle-arch-btn">Switch to
+              Intel</button></p>
+          <p class="cta-note">No cloud access.</p>
         </div>
       </div>
     </div>
@@ -1841,6 +2214,100 @@
     }, { threshold: 0.15 });
 
     document.querySelectorAll('.install-security-block').forEach(el => installObserver.observe(el));
+
+    const setupGuideDialog = document.getElementById('setup-guide-dialog');
+    const setupGuideOpenTriggers = document.querySelectorAll('[data-open-setup-guide]');
+    const setupGuideClose = setupGuideDialog?.querySelector('.setup-guide-close');
+    const setupGuideTabs = Array.from(document.querySelectorAll('.setup-guide-tab'));
+    const setupGuidePanels = Array.from(document.querySelectorAll('.setup-guide-panel'));
+    let setupGuideActiveTrigger = null;
+    let setupGuideCloseTimeout = null;
+
+    const selectSetupGuideTab = (target) => {
+      setupGuideTabs.forEach(tab => {
+        const isActive = tab.getAttribute('data-guide-tab-target') === target;
+        tab.setAttribute('aria-selected', String(isActive));
+        tab.setAttribute('tabindex', isActive ? '0' : '-1');
+      });
+
+      setupGuidePanels.forEach(panel => {
+        const isActive = panel.getAttribute('data-guide-panel') === target;
+        panel.classList.toggle('is-active', isActive);
+        panel.hidden = !isActive;
+      });
+    };
+
+    const getPreferredSetupGuideTab = () => {
+      const platform = navigator.platform || '';
+      return /Mac|iPhone|iPad|iPod/i.test(platform) ? 'macos' : 'windows';
+    };
+
+    const closeSetupGuideDialog = () => {
+      if (!setupGuideDialog || !setupGuideDialog.open) return;
+      if (setupGuideCloseTimeout) window.clearTimeout(setupGuideCloseTimeout);
+      setupGuideDialog.classList.remove('is-open');
+      setupGuideDialog.classList.add('is-closing');
+      setupGuideCloseTimeout = window.setTimeout(() => {
+        setupGuideDialog.close();
+      }, 220);
+    };
+
+    setupGuideTabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => {
+        const target = tab.getAttribute('data-guide-tab-target');
+        if (target) selectSetupGuideTab(target);
+      });
+
+      tab.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        let nextIndex = index;
+        if (event.key === 'ArrowRight') nextIndex = (index + 1) % setupGuideTabs.length;
+        if (event.key === 'ArrowLeft') nextIndex = (index - 1 + setupGuideTabs.length) % setupGuideTabs.length;
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = setupGuideTabs.length - 1;
+        const nextTab = setupGuideTabs[nextIndex];
+        const target = nextTab.getAttribute('data-guide-tab-target');
+        if (!target) return;
+        selectSetupGuideTab(target);
+        nextTab.focus();
+      });
+    });
+
+    setupGuideOpenTriggers.forEach(trigger => {
+      trigger.addEventListener('click', event => {
+        if (!setupGuideDialog) return;
+        event.preventDefault();
+        if (setupGuideDialog.open) return;
+        setupGuideActiveTrigger = trigger;
+        selectSetupGuideTab(getPreferredSetupGuideTab());
+        setupGuideDialog.classList.remove('is-closing');
+        setupGuideDialog.showModal();
+        requestAnimationFrame(() => {
+          setupGuideDialog.classList.add('is-open');
+        });
+      });
+    });
+
+    setupGuideClose?.addEventListener('click', closeSetupGuideDialog);
+
+    setupGuideDialog?.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeSetupGuideDialog();
+    });
+
+    setupGuideDialog?.addEventListener('click', event => {
+      if (event.target === setupGuideDialog) closeSetupGuideDialog();
+    });
+
+    setupGuideDialog?.addEventListener('close', () => {
+      setupGuideDialog.classList.remove('is-open', 'is-closing');
+      if (setupGuideCloseTimeout) {
+        window.clearTimeout(setupGuideCloseTimeout);
+        setupGuideCloseTimeout = null;
+      }
+      if (setupGuideActiveTrigger instanceof HTMLElement) setupGuideActiveTrigger.focus();
+    });
 
     const featureImageDialog = document.getElementById('feature-image-dialog');
     const featureImageDialogImage = document.getElementById('feature-image-dialog-image');
@@ -1957,10 +2424,13 @@
         document.querySelectorAll('.dl-mac-caption').forEach(el => {
           const isWhiteTheme = el.style.color.includes('rgba(255,255,255');
           const linkColor = isWhiteTheme ? '#fff' : 'var(--blue)';
-          el.innerHTML = `Not on this Mac? <a class="toggle-arch" style="color: ${linkColor}; text-decoration: none; font-weight: 500; cursor: pointer;">Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}</a>`;
+          el.innerHTML = `Not on this Mac? <button type="button" class="toggle-arch-btn toggle-arch-inline" style="--toggle-arch-color: ${linkColor};">Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}</button>`;
         });
 
-        document.querySelectorAll('.toggle-arch').forEach(el => {
+        document.querySelectorAll('.toggle-arch-btn').forEach(el => {
+          if (el.classList.contains('cta-switch-arch')) {
+            el.textContent = `Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}`;
+          }
           el.onclick = (e) => {
             e.preventDefault();
             isAppleSilicon = !isAppleSilicon;
