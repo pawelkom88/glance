@@ -6,7 +6,7 @@ import type {
   SectionItem
 } from '../types';
 
-const headingPattern = /^#\s+(.+)$/;
+const headingPattern = /^#{1,6}\s+(.+)$/;
 
 export function parseMarkdown(markdown: string): ParsedMarkdown {
   const lines = markdown.split('\n');
@@ -204,8 +204,8 @@ export function markdownToDisplayLines(markdown: string, options?: DisplayLineOp
   };
 
   markdown.split('\n').forEach((line, lineIndex) => {
-    if (line.startsWith('# ')) {
-      const headingText = line.replace(/^#\s+/, '').trim();
+    if (/^#{1,6}\s/.test(line)) {
+      const headingText = line.replace(/^#{1,6}\s+/, '').trim();
       const headingId = `heading-${lineIndex}`;
       output.push({
         id: headingId,

@@ -254,6 +254,7 @@ export function OverlayPrompter() {
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
   const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [dimLevel, setDimLevel] = useState(1);
   const [overlaySize, setOverlaySize] = useState(() => ({
     width: Math.round(window.innerWidth),
     height: Math.round(window.innerHeight)
@@ -299,7 +300,7 @@ export function OverlayPrompter() {
     }
 
     const fontSize = Math.round(28 * overlayFontScale);
-    context.font = `500 ${fontSize}px "Inter Variable", "Inter", sans-serif`;
+    context.font = `400 ${fontSize}px "Lora", serif`;
     return context.measureText(text).width;
   }, [overlayFontScale]);
 
@@ -1474,6 +1475,7 @@ export function OverlayPrompter() {
         aria-live="polite"
         ref={contentRef}
         data-overlay-no-drag="true"
+        data-dim-level={showReadingRuler ? dimLevel : 0}
         style={{
           '--spotlight-top': `${rulerStyle.top}px`,
           '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
@@ -1495,36 +1497,60 @@ export function OverlayPrompter() {
             paddingBottom: `${lanePadding}px`
           }}
         >
-          {lines.map((line, index) => (
-            <p
-              key={line.id}
-              ref={(node) => {
-                lineRefs.current[index] = node;
-              }}
-              className={`overlay-line overlay-line-${line.kind}`}
-            >
-              {line.kind === 'bullet' ? <span className="overlay-bullet-marker">•</span> : null}
-              <span className="overlay-line-content">
-                {line.segments?.length
-                  ? line.segments.map((segment) => {
-                    if (segment.kind === 'cue') {
-                      return (
-                        <span key={segment.id} className="overlay-cue-chip">
-                          {segment.text}
-                        </span>
-                      );
-                    }
+          {lines.map((line, index) => {
+            if (line.kind === 'empty') {
+              return null;
+            }
 
+            if (line.kind === 'heading') {
+              return (
+                <div
+                  key={line.id}
+                  ref={(node) => {
+                    lineRefs.current[index] = node;
+                  }}
+                  className="script-section-title"
+                >
+                  {line.text}
+                </div>
+              );
+            }
+
+            const renderInlineContent = () => {
+              if (line.segments?.length) {
+                return line.segments.map((segment) => {
+                  if (segment.kind === 'strong') {
+                    return <strong key={segment.id}>{segment.text}</strong>;
+                  }
+                  if (segment.kind === 'emphasis') {
+                    return <em key={segment.id}>{segment.text}</em>;
+                  }
+                  if (segment.kind === 'cue') {
                     return (
-                      <span key={segment.id} className={`overlay-segment-${segment.kind}`}>
+                      <span key={segment.id} className="overlay-cue-chip">
                         {segment.text}
                       </span>
                     );
-                  })
-                  : line.text || '\u00A0'}
-              </span>
-            </p>
-          ))}
+                  }
+                  return <span key={segment.id}>{segment.text}</span>;
+                });
+              }
+              return line.text || '\u00A0';
+            };
+
+            return (
+              <p
+                key={line.id}
+                ref={(node) => {
+                  lineRefs.current[index] = node;
+                }}
+                className="script-p"
+              >
+                {line.kind === 'bullet' ? <span className="overlay-bullet-marker">•</span> : null}
+                {renderInlineContent()}
+              </p>
+            );
+          })}
         </div>
       </section>
 
@@ -1601,6 +1627,57 @@ export function OverlayPrompter() {
               {renderPlaybackControls()}
               <div className="overlay-compact-speed-row">
                 {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact')}
+              </div>
+              <div className="overlay-compact-status-row">
+                <span className="overlay-compact-speed-display" aria-label="Current speed">
+                  {normalizedSpeed.toFixed(1)}x
+                </span>
+                <div className="overlay-compact-status-divider" />
+                <div className="overlay-compact-dim-group" role="group" aria-label="Reading ruler intensity">
+                  <span className="overlay-compact-dim-label">DIM</span>
+                  <div className="overlay-compact-dim-dots">
+                    {[1, 2, 3].map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
+                        aria-label={`Dim intensity level ${level}`}
+                        aria-pressed={showReadingRuler && dimLevel === level}
+                        onClick={() => {
+                          const store = useAppStore.getState();
+                          if (showReadingRuler && dimLevel === level) {
+                            store.setShowReadingRuler(false);
+                          } else {
+                            store.setShowReadingRuler(true);
+                            setDimLevel(level);
+                          }
+                        }}
+                      >
+                        <span className="overlay-compact-dim-dot" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="overlay-compact-status-divider" />
+                <div className="overlay-compact-font-group">
+                  <button
+                    type="button"
+                    className="overlay-compact-font-btn"
+                    onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
+                    aria-label="Decrease font size"
+                  >
+                    A−
+                  </button>
+                  <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
+                  <button
+                    type="button"
+                    className="overlay-compact-font-btn"
+                    onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
+                    aria-label="Increase font size"
+                  >
+                    A+
+                  </button>
+                </div>
               </div>
             </div>
           </div>
