@@ -1595,6 +1595,7 @@ select {
 .editor-sidebar-export {
   background: transparent;
   color: var(--text-body);
+  background: var(--bg-canvas-2);
   border: 1px solid var(--surface-control-neutral-border);
   border-radius: 9px;
   padding: 8px 14px;
