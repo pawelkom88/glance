@@ -13,11 +13,11 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            args: --target aarch64-apple-darwin
+            target: aarch64-apple-darwin
           - os: macos-latest
-            args: --target x86_64-apple-darwin
+            target: x86_64-apple-darwin
           - os: windows-latest
-            args: --target x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -34,6 +34,9 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
 
       - name: Install dependencies
         run: pnpm install
@@ -54,7 +57,7 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          args: ${{ matrix.args }}
+          args: --target ${{ matrix.target }}
           tagName: v__VERSION__
           releaseName: 'Glance v__VERSION__'
           releaseBody: 'See the attached assets to download and install Glance.'
