@@ -1,5 +1,7 @@
 import { useAppStore } from '../store/use-app-store';
 
+const glanceLogo = new URL('../../src-tauri/icons/Square142x142Logo.png', import.meta.url).href;
+
 function ArrowRightIcon() {
     return (
         <svg className="privacy-gate-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -26,7 +28,7 @@ export function PrivacyGate() {
         <div className="privacy-gate-overlay">
             <div className="privacy-gate-container">
                 <div className="privacy-gate-icon-container">
-                    <img width={75} height={75} src="/src-tauri/icons/Square142x142Logo.png" alt="Glance logo" />
+                    <img width={75} height={75} src={glanceLogo} alt="Glance logo" />
                     <span className="privacy-gate-icon-title">Glance</span>
                 </div>
                 <h1 className="privacy-gate-title">Read your script. <br /> <span className="privacy-gate-title-sub">Keep your eyes forward.</span></h1>
