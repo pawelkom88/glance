@@ -90,32 +90,43 @@ function defaultSessionTitle(): string {
   return `Session ${day}/${month}/${year}`;
 }
 
-function ToastIcon({ variant }: { variant: ToastVariant }) {
+function BannerIcon({ variant }: { variant: ToastVariant }) {
   if (variant === 'success') {
     return (
-      <svg width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="white" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.808 536.384-99.52-99.584a38.4 38.4 0 1 0-54.336 54.336l126.72 126.72a38.272 38.272 0 0 0 54.336 0l262.4-262.464a38.4 38.4 0 1 0-54.272-54.336L456.192 600.384z" /></svg>
+      <svg viewBox="0 0 15 15" fill="none">
+        <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M5 7.5L6.8 9.3L10.5 5.5" stroke="currentColor" strokeWidth="1.5"
+          strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     );
   }
 
   if (variant === 'warning') {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 2.7c.6 0 1.1.3 1.4.8l8.1 14a1.6 1.6 0 0 1-1.4 2.5H3.9a1.6 1.6 0 0 1-1.4-2.5l8.1-14c.3-.5.8-.8 1.4-.8Zm-1 6.1v4.6a1 1 0 0 0 2 0V8.8a1 1 0 0 0-2 0Zm1 9.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z" />
+      <svg viewBox="0 0 15 15" fill="none">
+        <path d="M7.5 2L13.5 13H1.5L7.5 2Z" stroke="currentColor" strokeWidth="1.5"
+          strokeLinejoin="round" />
+        <path d="M7.5 6V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="7.5" cy="11" r="0.75" fill="currentColor" />
       </svg>
     );
   }
 
   if (variant === 'error') {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm3.7-13.7a1 1 0 0 0-1.4-1.4L12 9.2 9.7 6.9a1 1 0 1 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4l-2.3-2.3 2.3-2.3Z" />
+      <svg viewBox="0 0 15 15" fill="none">
+        <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M5 5L10 10M10 5L5 10" stroke="currentColor" strokeWidth="1.5"
+          strokeLinecap="round" />
       </svg>
     );
   }
 
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-12.3a1 1 0 1 0-2 0v6a1 1 0 0 0 2 0v-6Zm-1-3.4a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z" />
+    <svg viewBox="0 0 15 15" fill="none">
+      <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7.5 6.8V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="7.5" cy="4.8" r="0.75" fill="currentColor" />
     </svg>
   );
 }
@@ -582,15 +593,22 @@ export default function App() {
 
       <section className="content-area">
         {toastMessage ? (
-          <div className="toast-layer" aria-live="polite">
+          <div className="toast-layer">
             <div
-              className={`toast-banner toast-${toastMessage.variant} ${isToastClosing ? 'is-closing' : ''}`}
-              role="status"
+              className={`banner banner-${toastMessage.variant} ${isToastClosing ? 'banner-leaving' : ''}`}
+              role={toastMessage.variant === 'error' ? 'alert' : 'status'}
+              aria-live={toastMessage.variant === 'error' ? 'assertive' : 'polite'}
             >
-              <span className="toast-icon" aria-hidden="true">
-                <ToastIcon variant={toastMessage.variant} />
-              </span>
-              <span className="toast-copy">{toastMessage.message}</span>
+              <div className="banner-stripe" />
+              <div className="banner-body">
+                <div className="banner-icon" aria-hidden="true">
+                  <BannerIcon variant={toastMessage.variant} />
+                </div>
+                <div className="banner-text">
+                  <div className="banner-title">{toastMessage.message}</div>
+                </div>
+              </div>
+              <button className="banner-dismiss" aria-label="Dismiss" onClick={() => { setIsToastClosing(true); }}>✕</button>
             </div>
           </div>
         ) : null}
