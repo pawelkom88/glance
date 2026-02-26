@@ -34,12 +34,23 @@ pub struct DetectedMonitor {
     pub name: String,
     pub width: u32,
     pub height: u32,
+    pub display_name: String,
     pub scale_factor: f64,
     pub is_primary: bool,
     pub position_x: i32,
     pub position_y: i32,
     pub logical_width: f64,
     pub logical_height: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorChangedPayload {
+    pub name: String,
+    pub display_name: String,
+    pub width: u32,
+    pub height: u32,
+    pub composite_key: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -382,6 +393,14 @@ pub fn show_main_window(saved_monitor_key: Option<String>, app: AppHandle) -> Re
             monitor_width,
             monitor_height,
         )?;
+        set_saved_main_monitor_key(
+            &app,
+            Some(monitor_composite_key(
+                monitor_name.as_str(),
+                monitor_width,
+                monitor_height,
+            )),
+        );
     }
 
     main_window.show().map_err(|error| error.to_string())?;
@@ -481,14 +500,16 @@ pub fn get_monitors(app: AppHandle) -> Result<Vec<DetectedMonitor>, String> {
     let monitors = collect_main_window_monitor_descriptors(&main_window)?;
 
     let detected = monitors
-        .into_iter()
-        .map(|monitor| {
+        .iter()
+        .enumerate()
+        .map(|(index, monitor)| {
             let scale = monitor.scale_factor.max(0.0001);
             let logical_width = monitor.size.width as f64 / scale;
             let logical_height = monitor.size.height as f64 / scale;
 
             DetectedMonitor {
-                name: monitor.name,
+                name: monitor.name.clone(),
+                display_name: resolve_display_name(monitor.name.as_str(), index),
                 width: monitor.size.width,
                 height: monitor.size.height,
                 scale_factor: monitor.scale_factor,
@@ -637,7 +658,16 @@ pub fn move_main_to_monitor(monitor_name: String, app: AppHandle) -> Result<(), 
         .ok_or_else(|| String::from("Selected monitor was not found"))?;
 
     normalize_main_window_state(&main_window)?;
-    move_main_window_to_monitor(&main_window, &monitor)
+    move_main_window_to_monitor(&main_window, &monitor)?;
+    set_saved_main_monitor_key(
+        &app,
+        Some(monitor_composite_key(
+            monitor.name.as_str(),
+            monitor.size.width,
+            monitor.size.height,
+        )),
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -657,7 +687,68 @@ pub fn move_window_to_monitor(
         monitor_name.as_str(),
         monitor_width,
         monitor_height,
-    )
+    )?;
+
+    set_saved_main_monitor_key(
+        &app,
+        Some(monitor_composite_key(
+            monitor_name.as_str(),
+            monitor_width,
+            monitor_height,
+        )),
+    );
+
+    Ok(())
+}
+
+pub fn check_and_notify_monitor_change(
+    window: &tauri::WebviewWindow,
+    app: &AppHandle,
+) -> Result<(), String> {
+    let Some(current_monitor) = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+    else {
+        return Ok(());
+    };
+
+    let monitor_name = monitor_label(&current_monitor);
+    let monitor_size = *current_monitor.size();
+    let composite_key = monitor_composite_key(
+        monitor_name.as_str(),
+        monitor_size.width,
+        monitor_size.height,
+    );
+
+    let saved_key = read_saved_main_monitor_key(app);
+    if saved_key.as_deref() == Some(composite_key.as_str()) {
+        return Ok(());
+    }
+
+    let monitors = collect_main_window_monitor_descriptors(window)?;
+    let monitor_index = monitors
+        .iter()
+        .position(|monitor| {
+            monitor.name == monitor_name
+                && monitor.size.width == monitor_size.width
+                && monitor.size.height == monitor_size.height
+        })
+        .unwrap_or(0);
+
+    let payload = MonitorChangedPayload {
+        name: monitor_name.clone(),
+        display_name: resolve_display_name(monitor_name.as_str(), monitor_index),
+        width: monitor_size.width,
+        height: monitor_size.height,
+        composite_key: composite_key.clone(),
+    };
+
+    window
+        .emit("monitor_changed", payload)
+        .map_err(|error| error.to_string())?;
+    set_saved_main_monitor_key(app, Some(composite_key));
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -752,6 +843,36 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
             let _ = app.emit("shortcut-event", action);
             return;
         }
+    }
+}
+
+fn monitor_composite_key(name: &str, width: u32, height: u32) -> String {
+    format!("{name}|{width}x{height}")
+}
+
+fn is_windows_device_path(name: &str) -> bool {
+    name.starts_with("\\\\.\\")
+}
+
+fn resolve_display_name(name: &str, monitor_index: usize) -> String {
+    if cfg!(target_os = "windows") && is_windows_device_path(name) {
+        return format!("Display {}", monitor_index + 1);
+    }
+
+    name.to_string()
+}
+
+fn read_saved_main_monitor_key(app: &AppHandle) -> Option<String> {
+    app.state::<AppState>()
+        .saved_main_monitor_key
+        .lock()
+        .ok()
+        .and_then(|locked| locked.clone())
+}
+
+fn set_saved_main_monitor_key(app: &AppHandle, next: Option<String>) {
+    if let Ok(mut locked) = app.state::<AppState>().saved_main_monitor_key.lock() {
+        *locked = next;
     }
 }
 

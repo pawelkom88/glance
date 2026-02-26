@@ -7,19 +7,22 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
+use std::time::{Duration, Instant};
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_updater::UpdaterExt;
 
 const APP_READY_EVENT: &str = "app_ready";
 const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_SHOW_FALLBACK_MS: u64 = 3000;
+const MONITOR_MOVE_DEBOUNCE_MS: u64 = 150;
+const MONITOR_MOVE_POLL_MS: u64 = 100;
 
 pub struct AppState {
     pub sessions_root: PathBuf,
     pub shortcut_actions: Mutex<HashMap<String, commands::ShortcutAction>>,
     pub active_bindings: Mutex<Vec<commands::ShortcutBinding>>,
+    pub saved_main_monitor_key: Mutex<Option<String>>,
     pub _log_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
@@ -83,6 +86,63 @@ fn register_main_window_ready_hooks(app: &tauri::AppHandle) {
             show_main_window(&fallback_window_handle);
         }
     });
+}
+
+fn register_main_window_monitor_change_hooks(app: &tauri::AppHandle) -> Result<(), String> {
+    let main_window = app
+        .get_webview_window(MAIN_WINDOW_LABEL)
+        .ok_or_else(|| String::from("Main window is not available"))?;
+
+    let moved_at = Arc::new(Mutex::new(None::<Instant>));
+    let moved_at_for_events = Arc::clone(&moved_at);
+    let app_handle_for_scale = app.clone();
+    let main_window_for_scale = main_window.clone();
+
+    main_window.on_window_event(move |event| match event {
+        WindowEvent::Moved(_) => {
+            if let Ok(mut locked) = moved_at_for_events.lock() {
+                *locked = Some(Instant::now());
+            }
+        }
+        WindowEvent::ScaleFactorChanged { .. } => {
+            let _ = commands::check_and_notify_monitor_change(
+                &main_window_for_scale,
+                &app_handle_for_scale,
+            );
+        }
+        _ => {}
+    });
+
+    let moved_at_for_loop = Arc::clone(&moved_at);
+    let main_window_for_loop = main_window.clone();
+    let app_handle_for_loop = app.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_millis(MONITOR_MOVE_POLL_MS));
+
+        let should_check = match moved_at_for_loop.lock() {
+            Ok(mut locked) => match *locked {
+                Some(last_moved_at) => {
+                    if last_moved_at.elapsed() >= Duration::from_millis(MONITOR_MOVE_DEBOUNCE_MS) {
+                        *locked = None;
+                        true
+                    } else {
+                        false
+                    }
+                }
+                None => false,
+            },
+            Err(_) => false,
+        };
+
+        if should_check {
+            let _ = commands::check_and_notify_monitor_change(
+                &main_window_for_loop,
+                &app_handle_for_loop,
+            );
+        }
+    });
+
+    Ok(())
 }
 
 async fn check_update(app: tauri::AppHandle) {
@@ -159,10 +219,12 @@ fn main() {
                 sessions_root,
                 shortcut_actions: Mutex::new(HashMap::new()),
                 active_bindings: Mutex::new(Vec::new()),
+                saved_main_monitor_key: Mutex::new(None),
                 _log_guard: guard,
             });
             create_overlay_window_if_missing(app.handle())?;
             register_main_window_ready_hooks(app.handle());
+            register_main_window_monitor_change_hooks(app.handle())?;
 
             Ok(())
         })
