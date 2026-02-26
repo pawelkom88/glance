@@ -9,6 +9,7 @@ import {
   useState
 } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { PhysicalPosition } from '@tauri-apps/api/dpi';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
   closeOverlayWindow,
@@ -17,6 +18,7 @@ import {
   listenForShortcutEvents,
   recoverOverlayFocus,
   saveOverlayBoundsForMonitor,
+  snapOverlayToTopCenter,
   startOverlayDrag,
   setLastOverlayMonitorName,
   showMainWindow
@@ -45,6 +47,12 @@ interface RulerStyle {
 interface ContentMetrics {
   readonly width: number;
   readonly height: number;
+}
+
+interface MonitorSnapshot {
+  readonly size: { width: number; height: number };
+  readonly position: { x: number; y: number };
+  readonly name?: string | null;
 }
 
 function isMacPlatform(): boolean {
@@ -88,6 +96,36 @@ function normalizeFontScale(value: number): number {
   const clamped = Math.max(minFontScale, Math.min(maxFontScale, value));
   const stepped = Math.round(clamped / fontScaleStep) * fontScaleStep;
   return Number(stepped.toFixed(2));
+}
+
+function calculateSnapTarget(
+  monitor: MonitorSnapshot,
+  windowSize: { width: number; height: number }
+): { x: number; y: number } {
+  const monitorCenterX = monitor.position.x + (monitor.size.width / 2);
+  return {
+    x: Math.round(monitorCenterX - (windowSize.width / 2)),
+    y: Math.round(monitor.position.y)
+  };
+}
+
+function monitorIdFromSnapshot(monitor: MonitorSnapshot): string {
+  const label = monitor.name ?? 'Unnamed Monitor';
+  return `${label}|${monitor.position.x}:${monitor.position.y}|${monitor.size.width}x${monitor.size.height}`;
+}
+
+function logSnapDebug(message: string, payload?: Record<string, unknown>): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  if (window.localStorage.getItem('glance-snap-debug') !== '1') {
+    return;
+  }
+  if (payload) {
+    console.debug(`[snap-debug] ${message}`, payload);
+    return;
+  }
+  console.debug(`[snap-debug] ${message}`);
 }
 
 function PlayIcon() {
@@ -135,6 +173,19 @@ function CloseIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M7 7l10 10M17 7 7 17" />
+    </svg>
+  );
+}
+
+function SnapToCentreIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="10" cy="10" r="6" />
+      <line x1="10" y1="2.5" x2="10" y2="5.4" />
+      <line x1="10" y1="14.6" x2="10" y2="17.5" />
+      <line x1="2.5" y1="10" x2="5.4" y2="10" />
+      <line x1="14.6" y1="10" x2="17.5" y2="10" />
+      <circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -250,6 +301,13 @@ export function OverlayPrompter() {
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState(false);
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [isOverlayFocused, setIsOverlayFocused] = useState(true);
+  const [windowPosition, setWindowPosition] = useState<{ x: number; y: number } | null>(null);
+  const [snapTarget, setSnapTarget] = useState<{ x: number; y: number } | null>(null);
+  const [isSnapping, setIsSnapping] = useState(false);
+  const [shouldRenderSnap, setShouldRenderSnap] = useState(false);
+  const [isSnapExiting, setIsSnapExiting] = useState(false);
+  const snapTargetRef = useRef<{ x: number; y: number } | null>(null);
+  const isSnappingRef = useRef(false);
 
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
   const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
@@ -374,6 +432,199 @@ export function OverlayPrompter() {
   const showSectionTitlesInRail = overlaySize.width < 1200;
   const isCompactTopBar = overlaySize.width < 1200;
 
+  const isSnapButtonVisible = useMemo(() => {
+    if (!windowPosition || isSnapping) return false;
+    if (!snapTarget) return true;
+    const dx = Math.abs(windowPosition.x - snapTarget.x);
+    const dy = Math.abs(windowPosition.y - snapTarget.y);
+    return dx > 2 || dy > 2;
+  }, [windowPosition, snapTarget, isSnapping]);
+
+  useEffect(() => {
+    snapTargetRef.current = snapTarget;
+  }, [snapTarget]);
+
+  useEffect(() => {
+    isSnappingRef.current = isSnapping;
+  }, [isSnapping]);
+
+  const refreshWindowPlacement = useCallback(async () => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    const appWindow = getCurrentWindow();
+    const monitorAware = appWindow as unknown as {
+      currentMonitor?: () => Promise<MonitorSnapshot | null>;
+    };
+
+    try {
+      const [position, windowSize] = await Promise.all([
+        appWindow.outerPosition(),
+        appWindow.outerSize()
+      ]);
+
+      setWindowPosition((previous) => {
+        if (previous && previous.x === position.x && previous.y === position.y) {
+          return previous;
+        }
+        return { x: position.x, y: position.y };
+      });
+
+      let nextTarget: { x: number; y: number } | null = null;
+      if (typeof monitorAware.currentMonitor === 'function') {
+        const monitor = await monitorAware.currentMonitor().catch(() => null);
+        if (monitor) {
+          nextTarget = calculateSnapTarget(monitor, windowSize);
+          logSnapDebug('refresh target computed', {
+            windowPosition: position,
+            windowSize,
+            monitorPosition: monitor.position,
+            monitorSize: monitor.size,
+            target: nextTarget
+          });
+        }
+      }
+
+      if (nextTarget) {
+        snapTargetRef.current = nextTarget;
+        setSnapTarget((previous) => {
+          if (previous && previous.x === nextTarget.x && previous.y === nextTarget.y) {
+            return previous;
+          }
+          return nextTarget;
+        });
+      }
+    } catch {
+      // Ignore transient window/monitor lookup failures.
+    }
+  }, []);
+
+  const resolveLiveSnapTarget = useCallback(async (): Promise<{
+    target: { x: number; y: number } | null;
+  }> => {
+    if (!isTauriRuntime()) {
+      return { target: null };
+    }
+
+    const appWindow = getCurrentWindow();
+    const monitorAware = appWindow as unknown as {
+      currentMonitor?: () => Promise<MonitorSnapshot | null>;
+    };
+
+    const windowSize = await appWindow.outerSize();
+    if (typeof monitorAware.currentMonitor !== 'function') {
+      return { target: snapTargetRef.current };
+    }
+
+    const monitor = await monitorAware.currentMonitor().catch((err) => {
+      console.warn('[snap] error:', err);
+      return null;
+    });
+    if (!monitor) {
+      return { target: snapTargetRef.current };
+    }
+
+    return { target: calculateSnapTarget(monitor, windowSize) };
+  }, []);
+
+  useEffect(() => {
+    if (isSnapButtonVisible) {
+      setShouldRenderSnap(true);
+      setIsSnapExiting(false);
+    } else if (shouldRenderSnap) {
+      setIsSnapExiting(true);
+      const timer = window.setTimeout(() => {
+        setShouldRenderSnap(false);
+        setIsSnapExiting(false);
+      }, 100);
+      return () => window.clearTimeout(timer);
+    }
+  }, [isSnapButtonVisible, shouldRenderSnap]);
+
+  const handleSnapToCentre = useCallback(async () => {
+    if (isSnapping) return;
+
+    setIsSnapping(true);
+    try {
+      const appWindow = getCurrentWindow();
+      const currentPosition = await appWindow.outerPosition();
+      const { target } = await resolveLiveSnapTarget();
+
+      try {
+        const snapped = await snapOverlayToTopCenter();
+        const snappedTarget = { x: snapped.x, y: snapped.y };
+        snapTargetRef.current = snappedTarget;
+        setSnapTarget(snappedTarget);
+        setWindowPosition(snappedTarget);
+        if (snapped.monitorName) {
+          monitorNameRef.current = snapped.monitorName;
+          setLastOverlayMonitorName(snapped.monitorName);
+        }
+        logSnapDebug('snap applied (backend)', {
+          currentPosition,
+          predictedTarget: target,
+          snappedTarget,
+          monitorName: snapped.monitorName
+        });
+        return;
+      } catch (backendError) {
+        logSnapDebug('backend snap failed', {
+          message: backendError instanceof Error ? backendError.message : String(backendError)
+        });
+      }
+
+      if (!target) {
+        showToast('Could not detect current monitor — try again', 'error');
+        await refreshWindowPlacement();
+        return;
+      }
+
+      const dx = Math.abs(currentPosition.x - target.x);
+      const dy = Math.abs(currentPosition.y - target.y);
+      logSnapDebug('snap requested', {
+        currentPosition,
+        target,
+        delta: { dx, dy }
+      });
+      if (dx <= 1 && dy <= 1) {
+        // Already at the snap target — just sync state and exit cleanly.
+        setWindowPosition(target);
+        setSnapTarget(target);
+        return;
+      }
+
+      // Eagerly update state so onMoved does not race us back to a stale target.
+      snapTargetRef.current = target;
+      setSnapTarget(target);
+
+      await appWindow.setPosition(new PhysicalPosition(target.x, target.y));
+
+      // Confirm the final resting position (skipped by onMoved guard during snap).
+      let finalPosition = await appWindow.outerPosition().catch(() => null);
+      if (
+        !finalPosition ||
+        Math.abs(finalPosition.x - target.x) > 1 ||
+        Math.abs(finalPosition.y - target.y) > 1
+      ) {
+        await appWindow.setPosition(new PhysicalPosition(target.x, target.y));
+        finalPosition = await appWindow.outerPosition().catch(() => null);
+      }
+      logSnapDebug('snap applied', {
+        target,
+        finalPosition
+      });
+      setWindowPosition(finalPosition ?? target);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to snap overlay to centre';
+      showToast(message, 'error');
+    } finally {
+      setIsSnapping(false);
+      void refreshWindowPlacement();
+    }
+  }, [isSnapping, refreshWindowPlacement, resolveLiveSnapTarget, showToast]);
+
+
   const renderTopActions = () => (
     <div className="overlay-top-actions">
       <button
@@ -410,6 +661,18 @@ export function OverlayPrompter() {
           <JumpSectionsIcon open={isJumpMenuOpen} />
         </button>
       ) : null}
+      <div className={`overlay-snap-wrapper ${shouldRenderSnap ? 'is-visible' : ''} ${isSnapExiting ? 'is-exiting' : ''}`}>
+        <button
+          type="button"
+          className="overlay-top-action overlay-snap-button"
+          onClick={handleSnapToCentre}
+          aria-label="Snap to centre"
+          title="Snap to centre"
+          tabIndex={shouldRenderSnap ? 0 : -1}
+        >
+          <SnapToCentreIcon />
+        </button>
+      </div>
       <button
         type="button"
         className="overlay-close-button"
@@ -1098,6 +1361,35 @@ export function OverlayPrompter() {
   }, []);
 
   useEffect(() => {
+    void refreshWindowPlacement();
+  }, [overlaySize, refreshWindowPlacement]);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    let isDisposed = false;
+    let isTickRunning = false;
+    const tick = () => {
+      if (isDisposed || isTickRunning) {
+        return;
+      }
+      isTickRunning = true;
+      void refreshWindowPlacement().finally(() => {
+        isTickRunning = false;
+      });
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 350);
+    return () => {
+      isDisposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [refreshWindowPlacement]);
+
+  useEffect(() => {
     if (!isTauriRuntime()) {
       return;
     }
@@ -1107,7 +1399,7 @@ export function OverlayPrompter() {
     let unlistenResized: (() => void) | null = null;
     const getRuntimeMonitorName = async (): Promise<string | null> => {
       const monitorAwareWindow = appWindow as unknown as {
-        currentMonitor?: () => Promise<{ name?: string | null } | null>;
+        currentMonitor?: () => Promise<MonitorSnapshot | null>;
       };
 
       if (typeof monitorAwareWindow.currentMonitor !== 'function') {
@@ -1116,7 +1408,10 @@ export function OverlayPrompter() {
 
       try {
         const monitor = await monitorAwareWindow.currentMonitor();
-        return monitor?.name ?? null;
+        if (!monitor) {
+          return null;
+        }
+        return monitorIdFromSnapshot(monitor);
       } catch {
         return null;
       }
@@ -1149,17 +1444,28 @@ export function OverlayPrompter() {
       }
     });
 
-    void appWindow.onMoved(() => {
-      persistBounds();
-      if (moveTimeoutRef.current !== null) {
-        window.clearTimeout(moveTimeoutRef.current);
+    void refreshWindowPlacement();
+
+    void appWindow.onMoved(({ payload: pos }) => {
+      // Skip position updates that originate from our own snap move — the
+      // handleSnapToCentre handler sets the final position explicitly once
+      // setPosition() has settled. Updating here would create a race where
+      // stale state triggers a spurious re-appearance of the snap button.
+      if (!isSnappingRef.current) {
+        logSnapDebug('window moved', { position: pos });
+        setWindowPosition({ x: pos.x, y: pos.y });
+        persistBounds();
+        if (moveTimeoutRef.current !== null) {
+          window.clearTimeout(moveTimeoutRef.current);
+        }
+        moveTimeoutRef.current = window.setTimeout(() => {
+          void refreshWindowPlacement();
+          void recoverOverlayFocus().catch(() => {
+            getCurrentWindow().setFocus().catch(() => { });
+          });
+          overlayRootRef.current?.focus({ preventScroll: true });
+        }, 80);
       }
-      moveTimeoutRef.current = window.setTimeout(() => {
-        void recoverOverlayFocus().catch(() => {
-          getCurrentWindow().setFocus().catch(() => { });
-        });
-        overlayRootRef.current?.focus({ preventScroll: true });
-      }, 80);
     }).then((fn) => {
       unlistenMoved = fn;
     });
@@ -1172,6 +1478,7 @@ export function OverlayPrompter() {
       }
       resizeTimeoutRef.current = window.setTimeout(() => {
         setIsResizing(false);
+        void refreshWindowPlacement();
       }, 800);
     }).then((fn) => {
       unlistenResized = fn;
@@ -1181,7 +1488,7 @@ export function OverlayPrompter() {
       unlistenMoved?.();
       unlistenResized?.();
     };
-  }, []);
+  }, [refreshWindowPlacement]);
 
   const queueFocusRecovery = useCallback(() => {
     const retryDelays = [0, 80, 180, 320, 520];
@@ -1199,8 +1506,11 @@ export function OverlayPrompter() {
     queueFocusRecovery();
     void startOverlayDrag().finally(() => {
       queueFocusRecovery();
+      window.setTimeout(() => {
+        void refreshWindowPlacement();
+      }, 180);
     });
-  }, [queueFocusRecovery]);
+  }, [queueFocusRecovery, refreshWindowPlacement]);
 
   const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 0 || isJumpMenuOpen || isFontMenuOpen) {

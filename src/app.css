@@ -306,6 +306,7 @@ input,
 textarea,
 select {
   font: inherit;
+  cursor: pointer;
 }
 
 .sr-only {
@@ -2333,7 +2334,7 @@ select {
 .display-picker {
   position: relative;
   min-width: 180px;
-  max-width: 240px;
+  width: fit-content;
 }
 
 .display-picker-button {
@@ -3468,6 +3469,7 @@ select {
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
+  cursor: pointer;
   transition:
     padding 760ms cubic-bezier(0.22, 1, 0.36, 1),
     max-width 760ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -3544,6 +3546,79 @@ select {
   background: rgba(220, 50, 50, 0.95);
 }
 
+/* Snap to centre button */
+.overlay-snap-wrapper {
+  display: inline-flex;
+  /* Keep the full button width allocated at all times — the reveal is done
+     via clip-path so the parent never clips child overflow (which would
+     break the hover translateY lift on the button). */
+  width: 44px;
+  overflow: visible;
+  opacity: 0;
+  /* clip from the right: fully hidden */
+  clip-path: inset(0 100% 0 0 round 4px);
+  transform: scale(0.85);
+  transition:
+    clip-path 200ms var(--easing),
+    opacity 200ms var(--easing),
+    transform 200ms var(--easing);
+  pointer-events: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.overlay-snap-wrapper.is-visible {
+  /* clip-path: fully visible */
+  clip-path: inset(0 0% 0 0 round 4px);
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.overlay-snap-wrapper.is-exiting {
+  clip-path: inset(0 100% 0 0 round 4px);
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.overlay-snap-button {
+  width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  border-radius: 9px !important;
+  background: var(--overlay-chip-neutral-bg) !important;
+  border: 1px solid var(--overlay-chip-neutral-border) !important;
+  color: #fff !important;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  /* Must be visible so the hover translateY lift is never clipped. */
+  overflow: visible;
+}
+
+.overlay-snap-button svg {
+  width: 14px !important;
+  height: 14px !important;
+  overflow: visible;
+}
+
+/* Snap to centre button specific overrides */
+.overlay-snap-button:active {
+  transform: scale(0.84) !important;
+}
+
+.overlay-compact-utility-cluster .overlay-snap-wrapper {
+  width: 37px;
+  /* compact size: 30px button + 7px gap */
+}
+
+.overlay-compact-utility-cluster .overlay-snap-button {
+  width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+}
+
+
 
 .overlay-root.overlay-sidebar-collapsed .overlay-rail-pill {
   transform: translateX(0);
@@ -3569,6 +3644,11 @@ select {
 .overlay-close-button:hover {
   transform: translateY(-1px);
   background: var(--overlay-controls-soft-hover);
+}
+
+.overlay-snap-button:hover {
+  transform: none !important;
+  background: var(--overlay-controls-soft-hover) !important;
 }
 
 .overlay-top-action.is-active {
@@ -3629,6 +3709,48 @@ select {
 
   .overlay-root.overlay-sidebar-collapsed .overlay-top-actions {
     gap: 8px;
+  }
+
+  /* Keep top action buttons perfectly centered on one vertical axis. */
+  .overlay-left-utility-cluster .overlay-snap-wrapper {
+    margin-inline: auto;
+  }
+
+  /* Desktop right rail controls: reduce visual weight. */
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-controls-row {
+    gap: 11px;
+  }
+
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-icon-button {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-secondary-button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-primary-button {
+    width: 58px;
+    height: 58px;
+    box-shadow: 0 0 14px rgba(30, 117, 255, 0.32);
+  }
+
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-primary-button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-play-icon-stack {
+    width: 22px;
+    height: 22px;
+  }
+
+  .overlay-right-sidebar .overlay-controls-desktop .overlay-rewind-icon {
+    transform: translate(-0.4px, -1px);
   }
 }
 
@@ -4313,6 +4435,11 @@ select {
   box-shadow: var(--control-thumb-shadow);
 }
 
+.overlay-root {
+  position: relative;
+  width: 100vw;
+}
+
 .overlay-speed-track-wrap {
   position: relative;
   width: 100%;
@@ -4785,7 +4912,6 @@ select {
   .settings-panel .display-picker {
     width: auto;
     min-width: 180px;
-    max-width: 240px;
   }
 
   .overlay-left-sidebar {

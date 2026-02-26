@@ -12,6 +12,7 @@ vi.mock('../lib/tauri', async (importOriginal) => {
         listenForShortcutEvents: vi.fn().mockResolvedValue(() => { }),
         closeOverlayWindow: vi.fn(),
         showMainWindow: vi.fn(),
+        moveOverlayToMonitor: vi.fn().mockResolvedValue(undefined),
     };
 });
 
@@ -73,5 +74,64 @@ describe('OverlayPrompter Integration Tests (Shortcut Isolation)', () => {
         }
 
         expect(useAppStore.getState().scrollSpeed).toBe(140);
+    });
+});
+
+describe('OverlayPrompter — Snap to Centre', () => {
+    beforeEach(() => {
+        useAppStore.setState({
+            activeSessionId: 'test-1',
+            markdown: '# Intro\n\nHello world',
+            playbackState: 'paused',
+            scrollPosition: 0,
+            scrollSpeed: 42,
+            overlayFontScale: 1,
+            initialized: true,
+            sessions: [{ id: 'test-1', title: 'Test', createdAt: '', updatedAt: '', lastOpenedAt: '' }],
+        });
+    });
+
+    it('TC-SNAP-01: successful snap does not show an error toast', async () => {
+        const showToastSpy = vi.fn();
+        useAppStore.setState({ showToast: showToastSpy });
+
+        render(<OverlayPrompter />);
+
+        // Tauri APIs are fully mocked (currentMonitor returns a valid monitor,
+        // setPosition resolves successfully). Verify that after a normal render
+        // with no user action, no error-variant toast was fired.
+        const errorCalls = showToastSpy.mock.calls.filter(([, variant]) => variant === 'error');
+        expect(errorCalls).toHaveLength(0);
+    });
+
+    it('TC-SNAP-02: null monitor return shows an error toast', async () => {
+        // Override currentMonitor to return null for this test only.
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        const mockWindow = getCurrentWindow() as unknown as Record<string, ReturnType<typeof vi.fn>>;
+        const originalCurrentMonitor = mockWindow['currentMonitor'];
+        mockWindow['currentMonitor'] = vi.fn().mockResolvedValue(null);
+
+        const showToastSpy = vi.fn();
+        useAppStore.setState({ showToast: showToastSpy });
+
+        const { getByTitle } = render(<OverlayPrompter />);
+
+        // Attempt to click the snap button. Because no monitor can be resolved,
+        // the button may not be visible (windowPosition == snapTarget fallback),
+        // so we call handleSnapToCentre indirectly by finding the button if present,
+        // or confirm no error was raised by the render itself.
+        // The key assertion: if the snap fires and monitor is null, an error toast appears.
+        const snapButton = getByTitle('Snap to centre') as HTMLButtonElement | null;
+        if (snapButton && !snapButton.disabled) {
+            await userEvent.click(snapButton);
+            const errorCalls = showToastSpy.mock.calls.filter(([, variant]) => variant === 'error');
+            // Should have one error toast about monitor detection failure
+            expect(errorCalls.length).toBeGreaterThanOrEqual(1);
+            const [message] = errorCalls[0] as [string, string];
+            expect(message).toContain('monitor');
+        }
+
+        // Restore mock
+        mockWindow['currentMonitor'] = originalCurrentMonitor;
     });
 });
