@@ -204,20 +204,20 @@ describe('App shell behavior', () => {
   });
 
   it('moves main window to saved monitor preference on startup', async () => {
-    tauriMock.getLastMainMonitorName.mockReturnValue('Built-in Retina Display|3024x1964');
+    tauriMock.getLastMainMonitorName.mockReturnValue('Built-in Retina Display|3024x1964|0,0');
     tauriMock.parseMonitorPreferenceKey.mockReturnValue({
       name: 'Built-in Retina Display',
       width: 3024,
-      height: 1964
+      height: 1964,
+      positionX: 0,
+      positionY: 0
     });
 
     render(<App />);
 
     await waitFor(() => {
       expect(tauriMock.moveWindowToMonitor).toHaveBeenCalledWith(
-        'Built-in Retina Display',
-        3024,
-        1964
+        'Built-in Retina Display|3024x1964|0,0'
       );
     });
   });

@@ -142,6 +142,7 @@ describe('tauri monitor bridge behavior', () => {
         displayName: 'Display 2',
         width: 1920,
         height: 1080,
+        compositeKey: '\\\\.\\DISPLAY2|1920x1080|1920,0',
         scaleFactor: 1,
         isPrimary: false,
         positionX: 1920,
@@ -154,6 +155,7 @@ describe('tauri monitor bridge behavior', () => {
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -173,14 +175,12 @@ describe('tauri monitor bridge behavior', () => {
   it('moveWindowToMonitor calls new command and persists composite key', async () => {
     invokeMock.mockResolvedValue(undefined);
 
-    await moveWindowToMonitor('Built-in Retina Display', 3024, 1964);
+    await moveWindowToMonitor('Built-in Retina Display|3024x1964|0,0');
 
     expect(invokeMock).toHaveBeenCalledWith('move_window_to_monitor', {
-      monitorName: 'Built-in Retina Display',
-      monitorWidth: 3024,
-      monitorHeight: 1964
+      monitorKey: 'Built-in Retina Display|3024x1964|0,0'
     });
-    expect(window.localStorage.getItem(mainMonitorKey)).toBe('Built-in Retina Display|3024x1964');
+    expect(window.localStorage.getItem(mainMonitorKey)).toBe('Built-in Retina Display|3024x1964|0,0');
   });
 
   it('snapOverlayToTopCenter invokes backend snap command without arguments', async () => {

@@ -83,6 +83,7 @@ export interface DetectedMonitor {
   readonly displayName: string;
   readonly width: number;
   readonly height: number;
+  readonly compositeKey: string;
   readonly scaleFactor: number;
   readonly isPrimary: boolean;
   readonly positionX: number;

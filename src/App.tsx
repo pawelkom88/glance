@@ -418,12 +418,11 @@ export default function App() {
       return;
     }
 
-    const parsed = parseMonitorPreferenceKey(savedMonitorKey);
-    if (!parsed) {
+    if (!parseMonitorPreferenceKey(savedMonitorKey)) {
       return;
     }
 
-    void moveWindowToMonitor(parsed.name, parsed.width, parsed.height).catch(() => {
+    void moveWindowToMonitor(savedMonitorKey).catch(() => {
       // Ignore at startup if the saved monitor is unavailable.
     });
   }, [isOverlay]);

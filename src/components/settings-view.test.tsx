@@ -129,6 +129,7 @@ describe('SettingsView behavior', () => {
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -141,6 +142,7 @@ describe('SettingsView behavior', () => {
         displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
+        compositeKey: 'DELL U2722D|1920x1080|1512,0',
         scaleFactor: 1,
         isPrimary: false,
         positionX: 1512,
@@ -159,18 +161,19 @@ describe('SettingsView behavior', () => {
     await user.click(screen.getByRole('menuitemradio', { name: /DELL U2722D \(1920 x 1080\)/i }));
 
     await waitFor(() => {
-      expect(tauriMock.moveWindowToMonitor).toHaveBeenCalledWith('DELL U2722D', 1920, 1080);
+      expect(tauriMock.moveWindowToMonitor).toHaveBeenCalledWith('DELL U2722D|1920x1080|1512,0');
     });
   });
 
   it('hydrates selected display from saved composite key', async () => {
-    tauriMock.getLastMainMonitorName.mockReturnValue('DELL U2722D|1920x1080');
+    tauriMock.getLastMainMonitorName.mockReturnValue('DELL U2722D|1920x1080|1512,0');
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -183,6 +186,7 @@ describe('SettingsView behavior', () => {
         displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
+        compositeKey: 'DELL U2722D|1920x1080|1512,0',
         scaleFactor: 1,
         isPrimary: false,
         positionX: 1512,
@@ -207,6 +211,7 @@ describe('SettingsView behavior', () => {
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -244,6 +249,7 @@ describe('SettingsView behavior', () => {
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -256,6 +262,7 @@ describe('SettingsView behavior', () => {
         displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
+        compositeKey: 'DELL U2722D|1920x1080|1512,0',
         scaleFactor: 1,
         isPrimary: false,
         positionX: 1512,
@@ -295,6 +302,7 @@ describe('SettingsView behavior', () => {
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -307,6 +315,7 @@ describe('SettingsView behavior', () => {
         displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
+        compositeKey: 'DELL U2722D|1920x1080|1512,0',
         scaleFactor: 1,
         isPrimary: false,
         positionX: 1512,
@@ -341,6 +350,7 @@ describe('SettingsView behavior', () => {
         displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
         scaleFactor: 2,
         isPrimary: true,
         positionX: 0,
@@ -353,6 +363,7 @@ describe('SettingsView behavior', () => {
         displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
+        compositeKey: 'DELL U2722D|1920x1080|1512,0',
         scaleFactor: 1,
         isPrimary: false,
         positionX: 1512,
@@ -375,12 +386,12 @@ describe('SettingsView behavior', () => {
         displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
-        compositeKey: 'DELL U2722D|1920x1080'
+        compositeKey: 'DELL U2722D|1920x1080|1512,0'
       });
     });
 
     await waitFor(() => {
-      expect(tauriMock.setLastMainMonitorName).toHaveBeenCalledWith('DELL U2722D|1920x1080');
+      expect(tauriMock.setLastMainMonitorName).toHaveBeenCalledWith('DELL U2722D|1920x1080|1512,0');
       expect(screen.getByRole('button', { name: /DELL U2722D \(1920 x 1080\)/i })).toBeTruthy();
     });
   });

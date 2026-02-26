@@ -206,13 +206,26 @@ export function clearLastMainMonitorName(): void {
   window.localStorage.removeItem(mainLastMonitorStorageKey);
 }
 
-export function toMonitorPreferenceKey(name: string, width: number, height: number): string {
+export function toMonitorPreferenceKey(
+  name: string,
+  width: number,
+  height: number,
+  positionX?: number,
+  positionY?: number
+): string {
+  if (
+    Number.isFinite(positionX)
+    && Number.isFinite(positionY)
+  ) {
+    return `${name}|${width}x${height}|${positionX},${positionY}`;
+  }
+
   return `${name}|${width}x${height}`;
 }
 
 export function parseMonitorPreferenceKey(
   key: string
-): { name: string; width: number; height: number } | null {
+): { name: string; width: number; height: number; positionX?: number; positionY?: number } | null {
   const parseSizeSegment = (segment: string): { width: number; height: number } | null => {
     const [widthRaw, heightRaw] = segment.split('x');
     const width = Number(widthRaw);
@@ -224,29 +237,53 @@ export function parseMonitorPreferenceKey(
     return { width, height };
   };
 
-  const separatorIndex = key.lastIndexOf('|');
-  if (separatorIndex > 0 && separatorIndex < key.length - 1) {
-    const name = key.slice(0, separatorIndex);
-    const size = parseSizeSegment(key.slice(separatorIndex + 1));
-    if (size) {
+  const parsePositionSegment = (segment: string): { positionX: number; positionY: number } | null => {
+    const [positionXRaw, positionYRaw] = segment.split(',');
+    const positionX = Number(positionXRaw);
+    const positionY = Number(positionYRaw);
+    if (!Number.isFinite(positionX) || !Number.isFinite(positionY)) {
+      return null;
+    }
+
+    return { positionX, positionY };
+  };
+
+  const parseRuntimePositionSegment = (segment: string): { positionX: number; positionY: number } | null => {
+    const [positionXRaw, positionYRaw] = segment.split(':');
+    const positionX = Number(positionXRaw);
+    const positionY = Number(positionYRaw);
+    if (!Number.isFinite(positionX) || !Number.isFinite(positionY)) {
+      return null;
+    }
+
+    return { positionX, positionY };
+  };
+
+  const parts = key.split('|');
+  if (parts.length >= 3) {
+    const position = parsePositionSegment(parts[parts.length - 1] ?? '');
+    const size = parseSizeSegment(parts[parts.length - 2] ?? '');
+    const name = parts.slice(0, parts.length - 2).join('|');
+    if (position && size && name) {
+      return { name, ...size, ...position };
+    }
+  }
+
+  if (parts.length >= 2) {
+    const size = parseSizeSegment(parts[parts.length - 1] ?? '');
+    const name = parts.slice(0, parts.length - 1).join('|');
+    if (size && name) {
       return { name, ...size };
     }
   }
 
-  const legacyParts = key.split('|');
-  if (legacyParts.length >= 3) {
-    const sizeIndex = legacyParts.length - 2;
-    const size = parseSizeSegment(legacyParts[sizeIndex]);
-    if (!size) {
-      return null;
+  if (parts.length >= 4) {
+    const size = parseSizeSegment(parts[parts.length - 2] ?? '');
+    const runtimePosition = parseRuntimePositionSegment(parts[parts.length - 3] ?? '');
+    const name = parts.slice(0, parts.length - 3).join('|');
+    if (size && runtimePosition && name) {
+      return { name, ...size, ...runtimePosition };
     }
-
-    const name = legacyParts.slice(0, sizeIndex).join('|');
-    if (!name) {
-      return null;
-    }
-
-    return { name, ...size };
   }
 
   return null;
@@ -378,17 +415,11 @@ export async function getMonitors(): Promise<readonly DetectedMonitor[]> {
   }
 }
 
-export async function moveWindowToMonitor(
-  monitorName: string,
-  monitorWidth: number,
-  monitorHeight: number
-): Promise<void> {
+export async function moveWindowToMonitor(monitorKey: string): Promise<void> {
   await invoke('move_window_to_monitor', {
-    monitorName,
-    monitorWidth,
-    monitorHeight
+    monitorKey
   });
-  setLastMainMonitorName(toMonitorPreferenceKey(monitorName, monitorWidth, monitorHeight));
+  setLastMainMonitorName(monitorKey);
 }
 
 export async function listMonitors(): Promise<readonly MonitorInfo[]> {

@@ -11,8 +11,7 @@ import {
   moveWindowToMonitor,
   setLastMainMonitorName,
   registerShortcuts,
-  setOverlayAlwaysOnTop,
-  toMonitorPreferenceKey
+  setOverlayAlwaysOnTop
 } from '../lib/tauri';
 import {
   defaultShortcutConfig,
@@ -126,7 +125,7 @@ function captureShortcutFromKeyboardEvent(event: ReactKeyboardEvent<HTMLInputEle
 function toDisplayOptions(monitors: readonly DetectedMonitor[]): DisplayOption[] {
   return monitors.map((monitor, index) => ({
     ...monitor,
-    key: toMonitorPreferenceKey(monitor.name, monitor.width, monitor.height),
+    key: monitor.compositeKey,
     displayName: monitor.displayName || monitor.name || `Display ${index + 1}`,
     logicalResolutionLabel: `${Math.round(monitor.logicalWidth)} x ${Math.round(monitor.logicalHeight)}`
   }));
@@ -399,11 +398,7 @@ export function SettingsView() {
     const previousMonitor = activeMonitorId;
     setSelectedMonitor(monitorKey);
     try {
-      await moveWindowToMonitor(
-        targetMonitor.name,
-        targetMonitor.width,
-        targetMonitor.height
-      );
+      await moveWindowToMonitor(targetMonitor.key);
       setSelectedMonitor(targetMonitor.key);
     } catch (error) {
       setSelectedMonitor(previousMonitor);
