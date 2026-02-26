@@ -151,6 +151,7 @@ export default function App() {
 
   const initialized = useAppStore((state) => state.initialized);
   const sessions = useAppStore((state) => state.sessions);
+  const folders = useAppStore((state) => state.folders);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activeSessionTitle = useAppStore((state) => state.activeSessionTitle);
   const markdown = useAppStore((state) => state.markdown);
@@ -158,6 +159,10 @@ export default function App() {
   const toastMessage = useAppStore((state) => state.toastMessage);
   const loadInitialState = useAppStore((state) => state.loadInitialState);
   const createSessionWithName = useAppStore((state) => state.createSessionWithName);
+  const createFolderWithName = useAppStore((state) => state.createFolderWithName);
+  const renameFolderById = useAppStore((state) => state.renameFolderById);
+  const deleteFolderById = useAppStore((state) => state.deleteFolderById);
+  const moveSessionsByIdsToFolder = useAppStore((state) => state.moveSessionsByIdsToFolder);
   const deleteSessionById = useAppStore((state) => state.deleteSessionById);
   const importMarkdown = useAppStore((state) => state.importMarkdown);
   const exportSessionById = useAppStore((state) => state.exportSessionById);
@@ -453,6 +458,7 @@ export default function App() {
       return (
         <LibraryView
           sessions={sessions}
+          folders={folders}
           activeSessionId={activeSessionId}
           onOpen={(id) => {
             switchTab('editor');
@@ -464,6 +470,18 @@ export default function App() {
           }}
           onDelete={(id, notify = true) => {
             void deleteSessionById(id, notify);
+          }}
+          onCreateFolder={(name) => {
+            void createFolderWithName(name);
+          }}
+          onRenameFolder={(id, name) => {
+            void renameFolderById(id, name);
+          }}
+          onDeleteFolder={(id) => {
+            void deleteFolderById(id);
+          }}
+          onMoveSessions={(sessionIds, folderId) => {
+            void moveSessionsByIdsToFolder(sessionIds, folderId);
           }}
           onImport={() => {
             importInputRef.current?.click();
@@ -574,14 +592,19 @@ export default function App() {
     activeSessionTitle,
     activeTab,
     createSessionWithName,
+    createFolderWithName,
+    deleteFolderById,
     deleteSessionById,
     exportSessionById,
     markdown,
+    moveSessionsByIdsToFolder,
     openSession,
+    renameFolderById,
     parseWarnings,
     persistActiveSession,
     sections,
     sessions,
+    folders,
     setMarkdown,
     editorAutosaveStatus,
     showToast,

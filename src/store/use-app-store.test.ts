@@ -10,14 +10,19 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('../lib/tauri', () => ({
   clearLastActiveSessionId: vi.fn(),
+  createFolder: vi.fn(),
   createSession: vi.fn(),
   createSessionFromMarkdown: vi.fn(),
+  deleteFolder: vi.fn(),
   deleteSession: vi.fn(),
   duplicateSession: vi.fn(),
   exportSessionToPath: vi.fn(),
   getLastActiveSessionId: vi.fn(),
+  listFolders: vi.fn(),
   listSessions: vi.fn(),
   loadSession: vi.fn(),
+  moveSessionsToFolder: vi.fn(),
+  renameFolder: vi.fn(),
   registerShortcuts: vi.fn(),
   saveSession: vi.fn(),
   setLastActiveSessionId: vi.fn()
@@ -28,14 +33,19 @@ import { useAppStore } from './use-app-store';
 
 const tauriMock = tauriBridge as unknown as {
   clearLastActiveSessionId: ReturnType<typeof vi.fn>;
+  createFolder: ReturnType<typeof vi.fn>;
   createSession: ReturnType<typeof vi.fn>;
   createSessionFromMarkdown: ReturnType<typeof vi.fn>;
+  deleteFolder: ReturnType<typeof vi.fn>;
   deleteSession: ReturnType<typeof vi.fn>;
   duplicateSession: ReturnType<typeof vi.fn>;
   exportSessionToPath: ReturnType<typeof vi.fn>;
   getLastActiveSessionId: ReturnType<typeof vi.fn>;
+  listFolders: ReturnType<typeof vi.fn>;
   listSessions: ReturnType<typeof vi.fn>;
   loadSession: ReturnType<typeof vi.fn>;
+  moveSessionsToFolder: ReturnType<typeof vi.fn>;
+  renameFolder: ReturnType<typeof vi.fn>;
   registerShortcuts: ReturnType<typeof vi.fn>;
   saveSession: ReturnType<typeof vi.fn>;
   setLastActiveSessionId: ReturnType<typeof vi.fn>;
@@ -46,6 +56,7 @@ const defaultMarkdown = '# Intro\n\n- Start here';
 function resetStore() {
   useAppStore.setState({
     sessions: [],
+    folders: [],
     activeSessionId: null,
     activeSessionTitle: 'Untitled Session',
     activeSessionMeta: null,
@@ -72,6 +83,7 @@ beforeEach(() => {
   resetStore();
 
   tauriMock.listSessions.mockResolvedValue([]);
+  tauriMock.listFolders.mockResolvedValue([]);
   tauriMock.getLastActiveSessionId.mockReturnValue(null);
   tauriMock.registerShortcuts.mockResolvedValue(undefined);
   tauriMock.createSession.mockResolvedValue({
@@ -95,7 +107,10 @@ beforeEach(() => {
     }
   }));
   tauriMock.deleteSession.mockResolvedValue(undefined);
+  tauriMock.deleteFolder.mockResolvedValue(undefined);
   tauriMock.saveSession.mockResolvedValue(undefined);
+  tauriMock.moveSessionsToFolder.mockResolvedValue(0);
+  tauriMock.renameFolder.mockResolvedValue(undefined);
   tauriMock.createSessionFromMarkdown.mockResolvedValue({
     id: 'imported-1',
     title: 'Imported',

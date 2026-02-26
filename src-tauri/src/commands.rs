@@ -17,6 +17,8 @@ const OVERLAY_MIN_HEIGHT: u32 = 400;
 const OVERLAY_DEFAULT_WIDTH: u32 = 1120;
 const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
 const MAIN_WINDOW_MOVE_SETTLE_MS: u64 = 50;
+const TOGGLE_OVERLAY_ACTION: &str = "toggle-overlay";
+const TOGGLE_OVERLAY_DEFAULT_ACCELERATOR: &str = "CmdOrCtrl+Shift+K";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -183,9 +185,69 @@ pub fn apply_bindings(
     Ok(())
 }
 
+fn find_toggle_overlay_binding(bindings: &[ShortcutBinding]) -> Option<ShortcutBinding> {
+    bindings
+        .iter()
+        .find(|binding| binding.action == TOGGLE_OVERLAY_ACTION)
+        .cloned()
+}
+
+pub fn apply_toggle_overlay_binding_only(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    let manager = app.global_shortcut();
+    let _ = manager.unregister_all();
+
+    let binding = state
+        .active_bindings
+        .lock()
+        .ok()
+        .and_then(|bindings| find_toggle_overlay_binding(&bindings))
+        .unwrap_or(ShortcutBinding {
+            action: String::from(TOGGLE_OVERLAY_ACTION),
+            accelerator: String::from(TOGGLE_OVERLAY_DEFAULT_ACCELERATOR),
+        });
+
+    if is_os_reserved_shortcut(&binding.accelerator) {
+        return Err(format!(
+            "OS Reserved: The shortcut '{}' is reserved by your operating system. Please choose another combination.",
+            binding.accelerator
+        ));
+    }
+
+    let shortcut = Shortcut::from_str(&binding.accelerator)
+        .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
+
+    manager.register(shortcut.clone()).map_err(|error| {
+        format!(
+            "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
+            binding.action, binding.accelerator, error
+        )
+    })?;
+
+    let mut action_map = HashMap::<String, ShortcutAction>::new();
+    action_map.insert(
+        normalize_shortcut_text(&shortcut.to_string()),
+        ShortcutAction {
+            action: String::from(TOGGLE_OVERLAY_ACTION),
+            index: None,
+            delta: None,
+        },
+    );
+
+    if let Ok(mut locked) = state.shortcut_actions.lock() {
+        *locked = action_map;
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 pub fn list_sessions(state: State<'_, AppState>) -> Result<Vec<sessions::SessionSummary>, String> {
     sessions::list_sessions(&state.sessions_root)
+}
+
+#[tauri::command]
+pub fn list_folders(state: State<'_, AppState>) -> Result<Vec<sessions::SessionFolder>, String> {
+    sessions::list_folders(&state.sessions_root)
 }
 
 #[tauri::command]
@@ -211,6 +273,37 @@ pub fn duplicate_session(
     state: State<'_, AppState>,
 ) -> Result<sessions::SessionSummary, String> {
     sessions::duplicate_session(&state.sessions_root, id)
+}
+
+#[tauri::command]
+pub fn create_folder(
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<sessions::SessionFolder, String> {
+    sessions::create_folder(&state.sessions_root, name)
+}
+
+#[tauri::command]
+pub fn rename_folder(
+    id: String,
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<sessions::SessionFolder, String> {
+    sessions::rename_folder(&state.sessions_root, id, name)
+}
+
+#[tauri::command]
+pub fn delete_folder(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    sessions::delete_folder(&state.sessions_root, id)
+}
+
+#[tauri::command]
+pub fn move_sessions_to_folder(
+    session_ids: Vec<String>,
+    folder_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<usize, String> {
+    sessions::move_sessions_to_folder(&state.sessions_root, session_ids, folder_id)
 }
 
 #[tauri::command]
@@ -245,6 +338,13 @@ pub fn save_session(
 pub fn show_overlay_window(
     app: AppHandle,
     state: State<'_, AppState>,
+) -> Result<ShowOverlayResult, String> {
+    show_overlay_window_inner(&app, &state)
+}
+
+fn show_overlay_window_inner(
+    app: &AppHandle,
+    state: &AppState,
 ) -> Result<ShowOverlayResult, String> {
     let overlay = app
         .get_webview_window("overlay")
@@ -293,13 +393,17 @@ pub fn show_overlay_window(
 }
 
 #[tauri::command]
-pub fn hide_overlay_window(app: AppHandle) -> Result<(), String> {
+pub fn hide_overlay_window(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    hide_overlay_window_inner(&app, &state)
+}
+
+fn hide_overlay_window_inner(app: &AppHandle, state: &AppState) -> Result<(), String> {
     let overlay = app
         .get_webview_window("overlay")
         .ok_or_else(|| String::from("Overlay window is not available"))?;
 
     overlay.hide().map_err(|error| error.to_string())?;
-    let _ = app.global_shortcut().unregister_all();
+    apply_toggle_overlay_binding_only(app, state)?;
     Ok(())
 }
 
@@ -310,6 +414,29 @@ pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
         .ok_or_else(|| String::from("Main window is not available"))?;
 
     main_window.hide().map_err(|error| error.to_string())
+}
+
+fn toggle_overlay_visibility(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    let overlay = app
+        .get_webview_window("overlay")
+        .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let is_visible = overlay.is_visible().map_err(|error| error.to_string())?;
+
+    if is_visible {
+        hide_overlay_window_inner(app, state)?;
+        if let Some(main_window) = app.get_webview_window("main") {
+            let _ = main_window.show();
+            let _ = main_window.set_focus();
+            let _ = app.emit_to("main", "main-window-shown", ());
+        }
+        return Ok(());
+    }
+
+    show_overlay_window_inner(app, state)?;
+    if let Some(main_window) = app.get_webview_window("main") {
+        let _ = main_window.hide();
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -380,11 +507,13 @@ pub fn register_shortcuts(
     // Register to validate conflicts and activate shortcuts.
     apply_bindings(&app, &bindings, &state)?;
 
-    // If overlay is not focused, unregister to avoid shortcut bleed in other apps.
+    // If overlay is not focused, keep only the global toggle shortcut active.
     if let Some(overlay) = app.get_webview_window("overlay") {
         if !overlay.is_focused().unwrap_or(false) {
-            let _ = app.global_shortcut().unregister_all();
+            apply_toggle_overlay_binding_only(&app, &state)?;
         }
+    } else {
+        apply_toggle_overlay_binding_only(&app, &state)?;
     }
 
     Ok(())
@@ -800,17 +929,37 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
         return;
     };
 
-    let is_overlay_focused = overlay_window.is_focused().unwrap_or(false);
-    if !is_overlay_focused {
-        return;
-    }
-
     let normalized = normalize_shortcut_text(shortcut_text);
-    if let Ok(locked) = app.state::<AppState>().shortcut_actions.lock() {
-        if let Some(action) = locked.get(&normalized).cloned() {
-            let _ = app.emit("shortcut-event", action);
+    let action = app
+        .state::<AppState>()
+        .shortcut_actions
+        .lock()
+        .ok()
+        .and_then(|locked| locked.get(&normalized).cloned());
+
+    if let Some(action) = action {
+        if action.action == TOGGLE_OVERLAY_ACTION {
+            // Avoid mutating global shortcut registrations inside the plugin
+            // callback stack; macOS can deadlock when unregister/register is
+            // performed synchronously while dispatching a hotkey event.
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let app_for_main_thread = app_handle.clone();
+                let _ = app_handle.run_on_main_thread(move || {
+                    let state = app_for_main_thread.state::<AppState>();
+                    let _ = toggle_overlay_visibility(&app_for_main_thread, &state);
+                });
+            });
             return;
         }
+
+        let is_overlay_focused = overlay_window.is_focused().unwrap_or(false);
+        if !is_overlay_focused {
+            return;
+        }
+
+        let _ = app.emit("shortcut-event", action);
+        return;
     }
 }
 
@@ -1850,6 +1999,14 @@ fn is_os_reserved_shortcut(accelerator: &str) -> bool {
 }
 
 fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
+    if action == TOGGLE_OVERLAY_ACTION {
+        return Ok(ShortcutAction {
+            action: String::from(TOGGLE_OVERLAY_ACTION),
+            index: None,
+            delta: None,
+        });
+    }
+
     if action == "toggle-play" {
         return Ok(ShortcutAction {
             action: String::from("toggle-play"),
@@ -1903,6 +2060,10 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
 
 fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
     vec![
+        ShortcutBinding {
+            action: String::from(TOGGLE_OVERLAY_ACTION),
+            accelerator: String::from(TOGGLE_OVERLAY_DEFAULT_ACCELERATOR),
+        },
         ShortcutBinding {
             action: String::from("toggle-play"),
             accelerator: String::from("Space"),

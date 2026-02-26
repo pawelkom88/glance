@@ -8,7 +8,7 @@ function renderEditor(overrides: Partial<Parameters<typeof EditorView>[0]> = {})
     markdown: '# Intro\n\nHello world',
     activeSessionTitle: 'Demo Session',
     autosaveStatus: 'saved',
-    sections: [{ id: 's1', title: 'Intro', lineIndex: 0 }],
+    sections: [{ id: 's1', title: 'Intro', hotkeyIndex: null, lineIndex: 0 }],
     warnings: [],
     hasSessions: true,
     hasActiveSession: true,

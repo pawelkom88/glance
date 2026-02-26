@@ -4,14 +4,19 @@ import { startTransition } from 'react';
 import { parseMarkdown } from '../lib/markdown';
 import {
   clearLastActiveSessionId,
+  createFolder,
   createSession,
   createSessionFromMarkdown,
+  deleteFolder,
   deleteSession,
   duplicateSession,
   exportSessionToPath,
   getLastActiveSessionId,
+  listFolders,
   listSessions,
   loadSession,
+  moveSessionsToFolder,
+  renameFolder,
   registerShortcuts,
   setLastActiveSessionId,
   saveSession
@@ -21,6 +26,7 @@ import { SAMPLE_SESSION_MARKDOWN } from '../lib/sample-session';
 import type {
   ParseWarning,
   ResolvedTheme,
+  SessionFolder,
   SessionMeta,
   SessionSummary,
   ThemeMode,
@@ -32,6 +38,7 @@ type PlaybackState = 'paused' | 'running';
 
 interface AppStoreState {
   readonly sessions: readonly SessionSummary[];
+  readonly folders: readonly SessionFolder[];
   readonly activeSessionId: string | null;
   readonly activeSessionTitle: string;
   readonly activeSessionMeta: SessionMeta | null;
@@ -50,6 +57,10 @@ interface AppStoreState {
   readonly hasCompletedOnboarding: boolean;
   readonly completeOnboarding: () => Promise<void>;
   readonly loadInitialState: () => Promise<void>;
+  readonly createFolderWithName: (name: string) => Promise<void>;
+  readonly renameFolderById: (id: string, name: string) => Promise<void>;
+  readonly deleteFolderById: (id: string) => Promise<void>;
+  readonly moveSessionsByIdsToFolder: (sessionIds: readonly string[], folderId: string | null) => Promise<number>;
   readonly createSessionWithName: (name: string) => Promise<void>;
   readonly duplicateSessionById: (id: string) => Promise<void>;
   readonly deleteSessionById: (id: string, notify?: boolean) => Promise<void>;
@@ -180,6 +191,9 @@ function writeLocalScrollState(input: {
 function buildSessionMeta(state: AppStoreState): SessionMeta {
   const now = new Date().toISOString();
   const createdAt = state.activeSessionMeta?.createdAt ?? now;
+  const wordCount = state.markdown.trim().length > 0
+    ? state.markdown.trim().split(/\s+/).filter(Boolean).length
+    : 0;
 
   return {
     id: state.activeSessionId ?? `draft-${Date.now()}`,
@@ -195,7 +209,9 @@ function buildSessionMeta(state: AppStoreState): SessionMeta {
     overlay: {
       fontScale: state.overlayFontScale,
       showReadingRuler: state.showReadingRuler
-    }
+    },
+    folderId: state.activeSessionMeta?.folderId ?? null,
+    wordCount
   };
 }
 
@@ -231,6 +247,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
   return {
     sessions: [],
+    folders: [],
     activeSessionId: null,
     activeSessionTitle: 'Untitled Session',
     activeSessionMeta: null,
@@ -257,7 +274,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     loadInitialState: async () => {
-      const sessions = await listSessions();
+      const [sessions, folders] = await Promise.all([
+        listSessions(),
+        listFolders()
+      ]);
       let shortcutWarning: string | null = null;
 
       if (!isTauri()) {
@@ -272,7 +292,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
 
       startTransition(() => {
-        set({ sessions, shortcutWarning, initialized: true });
+        set({ sessions, folders, shortcutWarning, initialized: true });
       });
       if (shortcutWarning) {
         get().showToast(shortcutWarning, 'warning');
@@ -286,6 +306,73 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         await get().openSession(initialSession.id);
       } else {
         clearLastActiveSessionId();
+      }
+    },
+
+    createFolderWithName: async (name: string) => {
+      try {
+        const created = await createFolder(name);
+        const [sessions, folders] = await Promise.all([
+          listSessions(),
+          listFolders()
+        ]);
+        startTransition(() => {
+          set({ sessions, folders });
+        });
+        get().showToast(`Created folder "${created.name}"`, 'success');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create folder';
+        get().showToast(message, 'error');
+      }
+    },
+
+    renameFolderById: async (id: string, name: string) => {
+      try {
+        await renameFolder(id, name);
+        const folders = await listFolders();
+        startTransition(() => {
+          set({ folders });
+        });
+        get().showToast('Folder renamed', 'success');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to rename folder';
+        get().showToast(message, 'error');
+      }
+    },
+
+    deleteFolderById: async (id: string) => {
+      try {
+        await deleteFolder(id);
+        const [sessions, folders] = await Promise.all([
+          listSessions(),
+          listFolders()
+        ]);
+        startTransition(() => {
+          set({ sessions, folders });
+        });
+        get().showToast('Folder deleted', 'success');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to delete folder';
+        get().showToast(message, 'error');
+      }
+    },
+
+    moveSessionsByIdsToFolder: async (sessionIds: readonly string[], folderId: string | null) => {
+      if (sessionIds.length === 0) {
+        return 0;
+      }
+
+      try {
+        const moved = await moveSessionsToFolder(sessionIds, folderId);
+        const sessions = await listSessions();
+        startTransition(() => {
+          set({ sessions });
+        });
+        return moved;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to move sessions';
+        get().showToast(message, 'error');
+        return 0;
       }
     },
 
@@ -499,6 +586,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             ? {
               ...currentMeta,
               overlay: {
+                ...currentMeta.overlay,
                 fontScale: normalized
               }
             }
@@ -517,6 +605,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             ? {
               ...currentMeta,
               overlay: {
+                ...currentMeta.overlay,
                 fontScale: state.overlayFontScale,
                 showReadingRuler: value
               }

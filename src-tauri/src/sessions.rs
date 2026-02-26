@@ -1,11 +1,13 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 const INDEX_FILE: &str = "index.json";
 const CONTENT_FILE: &str = "content.md";
 const META_FILE: &str = "meta.json";
+const FOLDERS_FILE: &str = "folders.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,11 +21,16 @@ pub struct ScrollState {
 #[serde(rename_all = "camelCase")]
 pub struct OverlayPreferences {
     pub font_scale: f64,
+    #[serde(default)]
+    pub show_reading_ruler: Option<bool>,
 }
 
 impl Default for OverlayPreferences {
     fn default() -> Self {
-        Self { font_scale: 1.0 }
+        Self {
+            font_scale: 1.0,
+            show_reading_ruler: None,
+        }
     }
 }
 
@@ -35,6 +42,10 @@ pub struct SessionSummary {
     pub created_at: String,
     pub updated_at: String,
     pub last_opened_at: String,
+    #[serde(default)]
+    pub folder_id: Option<String>,
+    #[serde(default)]
+    pub word_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +59,10 @@ pub struct SessionMeta {
     pub scroll: ScrollState,
     #[serde(default)]
     pub overlay: OverlayPreferences,
+    #[serde(default)]
+    pub folder_id: Option<String>,
+    #[serde(default)]
+    pub word_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,12 +73,25 @@ pub struct SessionData {
     pub meta: SessionMeta,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionFolder {
+    pub id: String,
+    pub name: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 pub fn ensure_storage(session_root: &Path) -> Result<(), String> {
     fs::create_dir_all(session_root).map_err(|error| error.to_string())?;
 
     let index_path = session_root.join(INDEX_FILE);
     if !index_path.exists() {
         write_index(session_root, &[])?;
+    }
+    let folders_path = session_root.join(FOLDERS_FILE);
+    if !folders_path.exists() {
+        write_folders(session_root, &[])?;
     }
 
     Ok(())
@@ -72,8 +100,31 @@ pub fn ensure_storage(session_root: &Path) -> Result<(), String> {
 pub fn list_sessions(session_root: &Path) -> Result<Vec<SessionSummary>, String> {
     ensure_storage(session_root)?;
     let mut index = read_index(session_root)?;
+    let mut has_index_updates = false;
+
+    for summary in &mut index {
+        if summary.word_count == 0 {
+            let content_path = session_root.join(&summary.id).join(CONTENT_FILE);
+            if let Ok(markdown) = fs::read_to_string(content_path) {
+                summary.word_count = count_words(&markdown);
+                has_index_updates = true;
+            }
+        }
+    }
+
+    if has_index_updates {
+        write_index(session_root, &index)?;
+    }
+
     index.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     Ok(index)
+}
+
+pub fn list_folders(session_root: &Path) -> Result<Vec<SessionFolder>, String> {
+    ensure_storage(session_root)?;
+    let mut folders = read_folders(session_root)?;
+    folders.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+    Ok(folders)
 }
 
 pub fn create_session(session_root: &Path, name: String) -> Result<SessionSummary, String> {
@@ -81,7 +132,7 @@ pub fn create_session(session_root: &Path, name: String) -> Result<SessionSummar
     let mut index = read_index(session_root)?;
     let title = next_available_title(&name, &index);
 
-    let summary = create_session_files(session_root, &title, default_markdown(&title))?;
+    let summary = create_session_files(session_root, &title, default_markdown(&title), None)?;
     index.push(summary.clone());
     write_index(session_root, &index)?;
 
@@ -97,7 +148,7 @@ pub fn create_session_from_markdown(
     let mut index = read_index(session_root)?;
     let title = next_available_title(&name, &index);
 
-    let summary = create_session_files(session_root, &title, markdown)?;
+    let summary = create_session_files(session_root, &title, markdown, None)?;
     index.push(summary.clone());
     write_index(session_root, &index)?;
 
@@ -117,11 +168,155 @@ pub fn duplicate_session(session_root: &Path, id: String) -> Result<SessionSumma
     let copy_title_seed = format!("{} Copy", source.title);
     let copy_title = next_available_title(&copy_title_seed, &index);
 
-    let summary = create_session_files(session_root, &copy_title, source_data.markdown)?;
+    let summary = create_session_files(
+        session_root,
+        &copy_title,
+        source_data.markdown,
+        source_data.meta.folder_id.or(source.folder_id),
+    )?;
     index.push(summary.clone());
     write_index(session_root, &index)?;
 
     Ok(summary)
+}
+
+pub fn create_folder(session_root: &Path, name: String) -> Result<SessionFolder, String> {
+    ensure_storage(session_root)?;
+
+    let mut folders = read_folders(session_root)?;
+    let folder_name = next_available_folder_name(name.as_str(), &folders, None)?;
+    let now = Utc::now().to_rfc3339();
+    let id = format!("folder-{}-{}", Utc::now().timestamp_millis(), slugify(&folder_name));
+    let folder = SessionFolder {
+        id,
+        name: folder_name,
+        created_at: now.clone(),
+        updated_at: now,
+    };
+
+    folders.push(folder.clone());
+    write_folders(session_root, &folders)?;
+
+    Ok(folder)
+}
+
+pub fn rename_folder(session_root: &Path, id: String, name: String) -> Result<SessionFolder, String> {
+    ensure_storage(session_root)?;
+
+    let mut folders = read_folders(session_root)?;
+    let next_name = next_available_folder_name(name.as_str(), &folders, Some(id.as_str()))?;
+    let now = Utc::now().to_rfc3339();
+    let folder = folders
+        .iter_mut()
+        .find(|folder| folder.id == id)
+        .ok_or_else(|| String::from("Folder not found"))?;
+
+    folder.name = next_name;
+    folder.updated_at = now;
+    let updated = folder.clone();
+
+    write_folders(session_root, &folders)?;
+    Ok(updated)
+}
+
+pub fn delete_folder(session_root: &Path, id: String) -> Result<(), String> {
+    ensure_storage(session_root)?;
+
+    let mut folders = read_folders(session_root)?;
+    let previous_len = folders.len();
+    folders.retain(|folder| folder.id != id);
+    if previous_len == folders.len() {
+        return Err(String::from("Folder not found"));
+    }
+
+    write_folders(session_root, &folders)?;
+
+    let mut index = read_index(session_root)?;
+    let mut index_updated = false;
+    let mut affected_ids: Vec<String> = Vec::new();
+    for session in &mut index {
+        if session.folder_id.as_deref() == Some(id.as_str()) {
+            session.folder_id = None;
+            index_updated = true;
+            affected_ids.push(session.id.clone());
+        }
+    }
+    if index_updated {
+        write_index(session_root, &index)?;
+    }
+
+    for affected_id in &affected_ids {
+        let meta_path = session_root.join(affected_id).join(META_FILE);
+        if !meta_path.exists() {
+            continue;
+        }
+
+        let mut meta: SessionMeta = match read_json(meta_path.clone()) {
+            Ok(existing) => existing,
+            Err(_) => continue,
+        };
+
+        if meta.folder_id.is_some() {
+            meta.folder_id = None;
+            let _ = write_json(meta_path, &meta);
+        }
+    }
+
+    Ok(())
+}
+
+pub fn move_sessions_to_folder(
+    session_root: &Path,
+    session_ids: Vec<String>,
+    folder_id: Option<String>,
+) -> Result<usize, String> {
+    ensure_storage(session_root)?;
+
+    if let Some(ref target_folder_id) = folder_id {
+        let folders = read_folders(session_root)?;
+        if !folders.iter().any(|folder| folder.id == *target_folder_id) {
+            return Err(String::from("Folder not found"));
+        }
+    }
+
+    if session_ids.is_empty() {
+        return Ok(0);
+    }
+
+    let target_ids: HashSet<&str> = session_ids.iter().map(String::as_str).collect();
+
+    let mut index = read_index(session_root)?;
+    let mut affected_ids: Vec<String> = Vec::new();
+
+    for summary in &mut index {
+        if !target_ids.contains(summary.id.as_str()) {
+            continue;
+        }
+        summary.folder_id = folder_id.clone();
+        affected_ids.push(summary.id.clone());
+    }
+
+    if affected_ids.is_empty() {
+        return Ok(0);
+    }
+
+    write_index(session_root, &index)?;
+
+    for affected_id in &affected_ids {
+        let meta_path = session_root.join(affected_id).join(META_FILE);
+        if !meta_path.exists() {
+            continue;
+        }
+
+        let mut meta: SessionMeta = match read_json(meta_path.clone()) {
+            Ok(existing) => existing,
+            Err(_) => continue,
+        };
+        meta.folder_id = folder_id.clone();
+        let _ = write_json(meta_path, &meta);
+    }
+
+    Ok(affected_ids.len())
 }
 
 pub fn delete_session(session_root: &Path, id: String) -> Result<(), String> {
@@ -152,7 +347,10 @@ pub fn load_session(session_root: &Path, id: String) -> Result<SessionData, Stri
     let session_dir = session_root.join(&id);
     let markdown =
         fs::read_to_string(session_dir.join(CONTENT_FILE)).map_err(|error| error.to_string())?;
-    let meta: SessionMeta = read_json(session_dir.join(META_FILE))?;
+    let mut meta: SessionMeta = read_json(session_dir.join(META_FILE))?;
+    if meta.word_count == 0 {
+        meta.word_count = count_words(&markdown);
+    }
 
     Ok(SessionData { id, markdown, meta })
 }
@@ -196,21 +394,28 @@ pub fn save_session(
     let _ = rotate_backups(&session_dir, CONTENT_FILE);
     let _ = rotate_backups(&session_dir, META_FILE);
 
+    let mut next_meta = meta;
+    next_meta.word_count = count_words(&markdown);
+
     fs::write(session_dir.join(CONTENT_FILE), markdown).map_err(|error| error.to_string())?;
-    write_json(session_dir.join(META_FILE), &meta)?;
+    write_json(session_dir.join(META_FILE), &next_meta)?;
 
     let mut index = read_index(session_root)?;
     if let Some(found) = index.iter_mut().find(|session| session.id == id) {
-        found.title = meta.title;
-        found.updated_at = meta.updated_at;
-        found.last_opened_at = meta.last_opened_at;
+        found.title = next_meta.title.clone();
+        found.updated_at = next_meta.updated_at.clone();
+        found.last_opened_at = next_meta.last_opened_at.clone();
+        found.folder_id = next_meta.folder_id.clone();
+        found.word_count = next_meta.word_count;
     } else {
         index.push(SessionSummary {
             id,
-            title: meta.title,
-            created_at: meta.created_at,
-            updated_at: meta.updated_at,
-            last_opened_at: meta.last_opened_at,
+            title: next_meta.title.clone(),
+            created_at: next_meta.created_at.clone(),
+            updated_at: next_meta.updated_at.clone(),
+            last_opened_at: next_meta.last_opened_at.clone(),
+            folder_id: next_meta.folder_id.clone(),
+            word_count: next_meta.word_count,
         });
     }
 
@@ -221,15 +426,19 @@ fn create_session_files(
     session_root: &Path,
     title: &str,
     markdown: String,
+    folder_id: Option<String>,
 ) -> Result<SessionSummary, String> {
     let now = Utc::now().to_rfc3339();
     let id = format!("{}-{}", Utc::now().timestamp_millis(), slugify(title));
+    let word_count = count_words(&markdown);
     let summary = SessionSummary {
         id: id.clone(),
         title: title.to_string(),
         created_at: now.clone(),
         updated_at: now.clone(),
         last_opened_at: now,
+        folder_id: folder_id.clone(),
+        word_count,
     };
 
     let session_dir = session_root.join(&id);
@@ -248,6 +457,8 @@ fn create_session_files(
             running: false,
         },
         overlay: OverlayPreferences::default(),
+        folder_id,
+        word_count,
     };
 
     write_json(session_dir.join(META_FILE), &meta)?;
@@ -266,6 +477,19 @@ fn read_index(session_root: &Path) -> Result<Vec<SessionSummary>, String> {
 
 fn write_index(session_root: &Path, index: &[SessionSummary]) -> Result<(), String> {
     write_json(session_root.join(INDEX_FILE), index)
+}
+
+fn read_folders(session_root: &Path) -> Result<Vec<SessionFolder>, String> {
+    let folder_path = session_root.join(FOLDERS_FILE);
+    if !folder_path.exists() {
+        return Ok(vec![]);
+    }
+
+    read_json(folder_path)
+}
+
+fn write_folders(session_root: &Path, folders: &[SessionFolder]) -> Result<(), String> {
+    write_json(session_root.join(FOLDERS_FILE), folders)
 }
 
 fn next_available_title(seed: &str, index: &[SessionSummary]) -> String {
@@ -288,6 +512,36 @@ fn next_available_title(seed: &str, index: &[SessionSummary]) -> String {
         .map(|number| format!("{normalized_seed} ({number})"))
         .find(|candidate| !title_exists(candidate))
         .unwrap_or_else(|| format!("{normalized_seed} ({})", Utc::now().timestamp_millis()))
+}
+
+fn next_available_folder_name(
+    seed: &str,
+    folders: &[SessionFolder],
+    current_id: Option<&str>,
+) -> Result<String, String> {
+    let normalized_seed = seed.trim();
+    if normalized_seed.is_empty() {
+        return Err(String::from("Folder name cannot be empty"));
+    }
+
+    let name_exists = |name: &str| {
+        folders
+            .iter()
+            .filter(|folder| match current_id {
+                Some(current) => folder.id != current,
+                None => true,
+            })
+            .any(|folder| folder.name.eq_ignore_ascii_case(name))
+    };
+
+    if !name_exists(normalized_seed) {
+        return Ok(normalized_seed.to_string());
+    }
+
+    Ok((2..1000)
+        .map(|number| format!("{normalized_seed} ({number})"))
+        .find(|candidate| !name_exists(candidate))
+        .unwrap_or_else(|| format!("{normalized_seed} ({})", Utc::now().timestamp_millis())))
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: PathBuf) -> Result<T, String> {
@@ -319,6 +573,10 @@ fn default_markdown(title: &str) -> String {
     format!(
     "# {title}\n\n- Add your opening lines\n\n# Key Points\n\n- Add your strongest bullets\n\n# Closing\n\n- Add your close"
   )
+}
+
+fn count_words(markdown: &str) -> usize {
+    markdown.split_whitespace().filter(|chunk| !chunk.is_empty()).count()
 }
 
 #[cfg(test)]
@@ -436,6 +694,8 @@ mod tests {
             created_at: String::from("2024-01-01T00:00:00Z"),
             updated_at: String::from("2024-01-01T00:00:00Z"),
             last_opened_at: String::from("2024-01-01T00:00:00Z"),
+            folder_id: None,
+            word_count: 0,
         }];
 
         assert_eq!(next_available_title("demo", &existing), "demo (2)");
@@ -488,6 +748,7 @@ mod tests {
         assert_eq!(loaded.meta.scroll.speed, 42.0);
         assert!(!loaded.meta.scroll.running);
         assert_eq!(loaded.meta.overlay.font_scale, 1.0);
+        assert_eq!(loaded.meta.word_count, 6);
     }
 
     #[test]
@@ -557,6 +818,8 @@ mod tests {
                 running: false,
             },
             overlay: OverlayPreferences::default(),
+            folder_id: None,
+            word_count: 0,
         };
 
         save_session(
@@ -570,6 +833,31 @@ mod tests {
         let after_append = list_sessions(root).unwrap();
         assert_eq!(after_append.len(), 2);
         assert!(after_append.iter().any(|item| item.id == "manual-id"));
+    }
+
+    #[test]
+    fn test_folder_lifecycle_and_move_sessions() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let folder = create_folder(root, "Client Work".to_string()).unwrap();
+        assert_eq!(folder.name, "Client Work");
+
+        let renamed = rename_folder(root, folder.id.clone(), "Clients".to_string()).unwrap();
+        assert_eq!(renamed.name, "Clients");
+
+        let created = create_session(root, "Roadshow".to_string()).unwrap();
+        let moved = move_sessions_to_folder(root, vec![created.id.clone()], Some(folder.id.clone())).unwrap();
+        assert_eq!(moved, 1);
+
+        let listed = list_sessions(root).unwrap();
+        let moved_session = listed.iter().find(|session| session.id == created.id).unwrap();
+        assert_eq!(moved_session.folder_id.as_deref(), Some(folder.id.as_str()));
+
+        delete_folder(root, folder.id.clone()).unwrap();
+        let after_delete = list_sessions(root).unwrap();
+        let restored = after_delete.iter().find(|session| session.id == created.id).unwrap();
+        assert_eq!(restored.folder_id, None);
     }
 
     #[test]

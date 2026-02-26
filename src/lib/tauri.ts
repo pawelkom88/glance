@@ -15,6 +15,7 @@ import type {
   OverlayBounds,
   ThemeMode,
   SessionData,
+  SessionFolder,
   SessionMeta,
   SessionSummary,
   ShortcutEventPayload,
@@ -342,6 +343,14 @@ export async function listSessions(): Promise<readonly SessionSummary[]> {
   return invoke<SessionSummary[]>('list_sessions');
 }
 
+export async function listFolders(): Promise<readonly SessionFolder[]> {
+  if (!inTauri()) {
+    return [];
+  }
+
+  return invoke<SessionFolder[]>('list_folders');
+}
+
 export async function createSession(name: string): Promise<SessionSummary> {
   return invoke<SessionSummary>('create_session', { name });
 }
@@ -352,6 +361,25 @@ export async function createSessionFromMarkdown(name: string, markdown: string):
 
 export async function duplicateSession(id: string): Promise<SessionSummary> {
   return invoke<SessionSummary>('duplicate_session', { id });
+}
+
+export async function createFolder(name: string): Promise<SessionFolder> {
+  return invoke<SessionFolder>('create_folder', { name });
+}
+
+export async function renameFolder(id: string, name: string): Promise<SessionFolder> {
+  return invoke<SessionFolder>('rename_folder', { id, name });
+}
+
+export async function deleteFolder(id: string): Promise<void> {
+  await invoke('delete_folder', { id });
+}
+
+export async function moveSessionsToFolder(sessionIds: readonly string[], folderId: string | null): Promise<number> {
+  return invoke<number>('move_sessions_to_folder', {
+    sessionIds,
+    folderId
+  });
 }
 
 export async function deleteSession(id: string): Promise<void> {

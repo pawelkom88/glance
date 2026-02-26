@@ -22,6 +22,7 @@ import {
   setLastOverlayMonitorName,
   showMainWindow
 } from '../lib/tauri';
+import { loadShortcutConfig } from '../lib/shortcuts';
 import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
 
@@ -35,6 +36,14 @@ const minFontScale = 0.85;
 const maxFontScale = 1.4;
 const fontScaleStep = 0.05;
 const nonDraggableSelector = 'button, input, select, textarea, a, [role="menuitem"], [data-overlay-no-drag="true"]';
+const timerPrefsStorageKey = 'glance-overlay-timer-prefs-v1';
+
+type TimerMode = 'count-up' | 'count-down';
+
+interface TimerPrefs {
+  readonly mode: TimerMode;
+  readonly targetSeconds: number;
+}
 
 interface RulerStyle {
   readonly left: number;
@@ -61,6 +70,44 @@ function isMacPlatform(): boolean {
 
 function platformModifier(): string {
   return isMacPlatform() ? '⌘' : 'Ctrl+';
+}
+
+function formatShortcutForHint(shortcut: string): string {
+  const value = shortcut.trim();
+  if (!value) {
+    return isMacPlatform() ? '⌘⇧K' : 'Ctrl+Shift+K';
+  }
+
+  if (!isMacPlatform()) {
+    return value.replace(/CmdOrCtrl/gi, 'Ctrl');
+  }
+
+  const segments = value.split('+').map((segment) => segment.trim()).filter(Boolean);
+  if (segments.length === 0) {
+    return '⌘⇧K';
+  }
+
+  const mapped = segments.map((segment) => {
+    const normalized = segment.toLowerCase();
+    if (normalized === 'cmd' || normalized === 'command' || normalized === 'cmdorctrl') {
+      return '⌘';
+    }
+    if (normalized === 'ctrl' || normalized === 'control') {
+      return '⌃';
+    }
+    if (normalized === 'alt' || normalized === 'option') {
+      return '⌥';
+    }
+    if (normalized === 'shift') {
+      return '⇧';
+    }
+    if (normalized === 'space') {
+      return 'Space';
+    }
+    return segment.length === 1 ? segment.toUpperCase() : segment;
+  });
+
+  return mapped.join('');
 }
 
 function isTauriRuntime(): boolean {
@@ -129,6 +176,50 @@ function logSnapDebug(message: string, payload?: Record<string, unknown>): void 
     return;
   }
   console.debug(`[snap-debug] ${message}`);
+}
+
+function readTimerPrefs(): TimerPrefs {
+  if (typeof window === 'undefined') {
+    return { mode: 'count-up', targetSeconds: 180 };
+  }
+
+  const raw = window.localStorage.getItem(timerPrefsStorageKey);
+  if (!raw) {
+    return { mode: 'count-up', targetSeconds: 180 };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { mode?: string; targetSeconds?: number };
+    const mode: TimerMode = parsed.mode === 'count-down' ? 'count-down' : 'count-up';
+    const targetSeconds = Number.isFinite(parsed.targetSeconds)
+      ? Math.max(5, Math.min(23_940, Math.round(parsed.targetSeconds as number)))
+      : 180;
+    return { mode, targetSeconds };
+  } catch {
+    return { mode: 'count-up', targetSeconds: 180 };
+  }
+}
+
+function writeTimerPrefs(value: TimerPrefs): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(timerPrefsStorageKey, JSON.stringify(value));
+}
+
+function formatTimerClock(totalMs: number): string {
+  const safeMs = Math.max(0, Math.round(totalMs));
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function PlayIcon() {
@@ -280,6 +371,10 @@ export function OverlayPrompter() {
 
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const sections = parsed.sections;
+  const togglePrompterShortcutHint = useMemo(() => {
+    const configured = loadShortcutConfig()['toggle-overlay'];
+    return formatShortcutForHint(configured);
+  }, []);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   const speedRef = useRef(scrollSpeed);
@@ -291,6 +386,9 @@ export function OverlayPrompter() {
   const jumpMenuRef = useRef<HTMLDivElement | null>(null);
   const fontTriggerRef = useRef<HTMLButtonElement | null>(null);
   const fontMenuRef = useRef<HTMLDivElement | null>(null);
+  const timerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const timerMenuRef = useRef<HTMLDivElement | null>(null);
+  const timerTickStartRef = useRef<number | null>(null);
   const fontPersistTimeoutRef = useRef<number | null>(null);
   const speedIconAnimationTimeoutRef = useRef<number | null>(null);
   const speedBubbleTimeoutRef = useRef<number | null>(null);
@@ -303,6 +401,7 @@ export function OverlayPrompter() {
   const [isOpening, setIsOpening] = useState(true);
   const [isJumpMenuOpen, setIsJumpMenuOpen] = useState(false);
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const [isTimerMenuOpen, setIsTimerMenuOpen] = useState(false);
   const [isOverlayFocused, setIsOverlayFocused] = useState(true);
   const [windowPosition, setWindowPosition] = useState<{ x: number; y: number } | null>(null);
   const [snapTarget, setSnapTarget] = useState<{ x: number; y: number } | null>(null);
@@ -314,6 +413,9 @@ export function OverlayPrompter() {
 
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
   const [isSpeedBubbleVisible, setIsSpeedBubbleVisible] = useState(false);
+  const [timerMode, setTimerMode] = useState<TimerMode>(() => readTimerPrefs().mode);
+  const [timerTargetSeconds, setTimerTargetSeconds] = useState<number>(() => readTimerPrefs().targetSeconds);
+  const [timerElapsedMs, setTimerElapsedMs] = useState<number>(0);
   const [isResizing, setIsResizing] = useState(false);
   const [dimLevel, setDimLevel] = useState(1);
   const [overlaySize, setOverlaySize] = useState(() => ({
@@ -332,6 +434,8 @@ export function OverlayPrompter() {
     // Start from top each time the overlay route mounts.
     setPlaybackState('paused');
     setScrollPosition(0);
+    setTimerElapsedMs(0);
+    timerTickStartRef.current = null;
   }, [setPlaybackState, setScrollPosition]);
 
   const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
@@ -432,6 +536,16 @@ export function OverlayPrompter() {
       : 0;
   const normalizedSpeed = scrollSpeed / baseSpeed;
   const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
+  const timerTargetMs = timerTargetSeconds * 1000;
+  const timerRemainingMs = Math.max(0, timerTargetMs - timerElapsedMs);
+  const timerDisplayMs = timerMode === 'count-down' ? timerRemainingMs : timerElapsedMs;
+  const timerProgress = timerMode === 'count-down'
+    ? (timerTargetMs > 0 ? Math.max(0, Math.min(1, timerElapsedMs / timerTargetMs)) : 0)
+    : ((timerElapsedMs % 60_000) / 60_000);
+  const timerProgressPercent = Math.max(0, Math.min(100, timerProgress * 100));
+  const timerIsExpired = timerMode === 'count-down' && timerTargetMs > 0 && timerRemainingMs <= 0;
+  const timerTargetMinutes = Math.floor(timerTargetSeconds / 60);
+  const timerTargetRemainderSeconds = timerTargetSeconds % 60;
   const showSectionTitlesInRail = overlaySize.width < 1200;
   const isCompactTopBar = overlaySize.width < 1200;
 
@@ -547,6 +661,7 @@ export function OverlayPrompter() {
         aria-pressed={isFontMenuOpen}
         onClick={() => {
           setIsJumpMenuOpen(false);
+          setIsTimerMenuOpen(false);
           setIsFontMenuOpen((previous) => !previous);
         }}
       >
@@ -564,6 +679,7 @@ export function OverlayPrompter() {
           aria-pressed={isJumpMenuOpen}
           onClick={() => {
             setIsFontMenuOpen(false);
+            setIsTimerMenuOpen(false);
             setIsJumpMenuOpen((previous) => !previous);
           }}
         >
@@ -630,6 +746,7 @@ export function OverlayPrompter() {
           onClick={(e) => {
             setPlaybackState('paused');
             setScrollPosition(0);
+            resetPresentationTimer();
             e.currentTarget.blur();
             overlayRootRef.current?.focus({ preventScroll: true });
           }}
@@ -663,6 +780,105 @@ export function OverlayPrompter() {
 
         <div className="overlay-control-hint" aria-hidden="true">
           <span className="overlay-control-keycap is-capsule">Space</span>
+        </div>
+      </div>
+      <div className="overlay-timer-row">
+        <div className="overlay-timer-cluster">
+          <button
+            ref={timerTriggerRef}
+            type="button"
+            className={`overlay-timer-chip ${isTimerMenuOpen ? 'is-active' : ''} ${timerIsExpired ? 'is-expired' : ''}`}
+            aria-label={`${timerMode === 'count-down' ? 'Remaining' : 'Elapsed'} timer ${formatTimerClock(timerDisplayMs)}`}
+            aria-haspopup="dialog"
+            aria-expanded={isTimerMenuOpen}
+            onClick={() => {
+              setIsJumpMenuOpen(false);
+              setIsFontMenuOpen(false);
+              setIsTimerMenuOpen((previous) => !previous);
+            }}
+            style={{
+              '--overlay-timer-progress': `${timerProgressPercent.toFixed(2)}%`
+            } as CSSProperties}
+          >
+            <span className="overlay-timer-label">
+              {timerMode === 'count-down' ? 'Remaining' : 'Elapsed'}
+            </span>
+            <span className="overlay-timer-value">{formatTimerClock(timerDisplayMs)}</span>
+          </button>
+          {isTimerMenuOpen ? (
+            <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label="Presentation timer controls">
+              <div className="overlay-timer-mode-group" role="radiogroup" aria-label="Timer mode">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={timerMode === 'count-up'}
+                  className={`overlay-timer-mode-option ${timerMode === 'count-up' ? 'is-selected' : ''}`}
+                  onClick={() => setTimerMode('count-up')}
+                >
+                  Count Up
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={timerMode === 'count-down'}
+                  className={`overlay-timer-mode-option ${timerMode === 'count-down' ? 'is-selected' : ''}`}
+                  onClick={() => setTimerMode('count-down')}
+                >
+                  Count Down
+                </button>
+              </div>
+
+              {timerMode === 'count-down' ? (
+                <div className="overlay-timer-target">
+                  <label>
+                    <span>Minutes</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={399}
+                      value={timerTargetMinutes}
+                      onChange={(event) => {
+                        const minutes = Math.max(0, Math.min(399, Number(event.target.value) || 0));
+                        const next = (minutes * 60) + timerTargetRemainderSeconds;
+                        setTimerTargetSeconds(Math.max(5, Math.min(23_940, next)));
+                      }}
+                    />
+                  </label>
+                  <label>
+                    <span>Seconds</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={timerTargetRemainderSeconds}
+                      onChange={(event) => {
+                        const seconds = Math.max(0, Math.min(59, Number(event.target.value) || 0));
+                        const next = (timerTargetMinutes * 60) + seconds;
+                        setTimerTargetSeconds(Math.max(5, Math.min(23_940, next)));
+                      }}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              <div className="overlay-timer-footer">
+                <button
+                  type="button"
+                  className="overlay-popover-link"
+                  onClick={resetPresentationTimer}
+                >
+                  Reset Timer
+                </button>
+                <button
+                  type="button"
+                  className="overlay-popover-link"
+                  onClick={() => closeTimerMenu(true)}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </footer>
@@ -753,6 +969,20 @@ export function OverlayPrompter() {
     }
   }, []);
 
+  const closeTimerMenu = useCallback((restoreFocus: boolean) => {
+    setIsTimerMenuOpen(false);
+    if (restoreFocus) {
+      window.setTimeout(() => {
+        timerTriggerRef.current?.focus();
+      }, 0);
+    }
+  }, []);
+
+  const resetPresentationTimer = useCallback(() => {
+    setTimerElapsedMs(0);
+    timerTickStartRef.current = playbackState === 'running' ? performance.now() : null;
+  }, [playbackState]);
+
   const jumpToSection = useCallback((index: number) => {
     if (index < 0 || index >= sectionStartLineIndexes.length) {
       return;
@@ -829,6 +1059,38 @@ export function OverlayPrompter() {
   useEffect(() => {
     speedRef.current = scrollSpeed;
   }, [scrollSpeed]);
+
+  useEffect(() => {
+    writeTimerPrefs({
+      mode: timerMode,
+      targetSeconds: timerTargetSeconds
+    });
+  }, [timerMode, timerTargetSeconds]);
+
+  useEffect(() => {
+    if (playbackState !== 'running') {
+      timerTickStartRef.current = null;
+      return;
+    }
+
+    timerTickStartRef.current = performance.now();
+    const intervalId = window.setInterval(() => {
+      const startAt = timerTickStartRef.current;
+      if (startAt === null) {
+        timerTickStartRef.current = performance.now();
+        return;
+      }
+
+      const now = performance.now();
+      const delta = now - startAt;
+      timerTickStartRef.current = now;
+      setTimerElapsedMs((previous) => previous + delta);
+    }, 120);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [playbackState]);
 
   useEffect(() => {
     const maxPosition = Math.max(0, linePositions.totalHeight - lineStride);
@@ -913,6 +1175,11 @@ export function OverlayPrompter() {
     let unlisten: (() => void) | null = null;
 
     void listenForShortcutEvents((payload) => {
+      if (payload.action === 'toggle-overlay') {
+        requestCloseOverlay();
+        return;
+      }
+
       if (payload.action === 'toggle-play') {
         togglePlayback();
         return;
@@ -937,6 +1204,7 @@ export function OverlayPrompter() {
       if (payload.action === 'start-over') {
         setPlaybackState('paused');
         setScrollPosition(0);
+        resetPresentationTimer();
         return;
       }
 
@@ -959,6 +1227,10 @@ export function OverlayPrompter() {
           closeFontMenu(true);
           return;
         }
+        if (isTimerMenuOpen) {
+          closeTimerMenu(true);
+          return;
+        }
         requestCloseOverlay();
       }
     }).then((fn) => {
@@ -978,10 +1250,13 @@ export function OverlayPrompter() {
     changeScrollSpeedBy,
     closeFontMenu,
     closeJumpMenu,
+    closeTimerMenu,
     commitFontScale,
     isFontMenuOpen,
     isJumpMenuOpen,
+    isTimerMenuOpen,
     overlayFontScale,
+    resetPresentationTimer,
     requestCloseOverlay,
     jumpToSection,
     revealSpeedBubble,
@@ -1053,6 +1328,10 @@ export function OverlayPrompter() {
           closeFontMenu(true);
           return;
         }
+        if (isTimerMenuOpen) {
+          closeTimerMenu(true);
+          return;
+        }
         requestCloseOverlay();
         return;
       }
@@ -1074,6 +1353,7 @@ export function OverlayPrompter() {
           event.stopPropagation();
           setPlaybackState('paused');
           setScrollPosition(0);
+          resetPresentationTimer();
           return;
         }
       }
@@ -1156,11 +1436,14 @@ export function OverlayPrompter() {
     changeScrollSpeedBy,
     closeFontMenu,
     closeJumpMenu,
+    closeTimerMenu,
     commitFontScale,
     isFontMenuOpen,
     isJumpMenuOpen,
+    isTimerMenuOpen,
     overlayFontScale,
     requestCloseOverlay,
+    resetPresentationTimer,
     setPlaybackState,
     setScrollPosition,
     togglePlayback
@@ -1187,13 +1470,22 @@ export function OverlayPrompter() {
       ) {
         closeFontMenu(false);
       }
+
+      if (
+        isTimerMenuOpen
+        && timerMenuRef.current
+        && !timerMenuRef.current.contains(target)
+        && !timerTriggerRef.current?.contains(target)
+      ) {
+        closeTimerMenu(false);
+      }
     };
 
     window.addEventListener('pointerdown', onPointerDown);
     return () => {
       window.removeEventListener('pointerdown', onPointerDown);
     };
-  }, [closeFontMenu, closeJumpMenu, isFontMenuOpen, isJumpMenuOpen]);
+  }, [closeFontMenu, closeJumpMenu, closeTimerMenu, isFontMenuOpen, isJumpMenuOpen, isTimerMenuOpen]);
 
   useEffect(() => {
     if (!isJumpMenuOpen) {
@@ -1222,6 +1514,20 @@ export function OverlayPrompter() {
       window.clearTimeout(timer);
     };
   }, [isFontMenuOpen]);
+
+  useEffect(() => {
+    if (!isTimerMenuOpen) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      timerMenuRef.current?.querySelector<HTMLButtonElement>('[role="radio"]')?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isTimerMenuOpen]);
 
   useEffect(() => {
     const contentElement = contentRef.current;
@@ -1420,7 +1726,7 @@ export function OverlayPrompter() {
   }, [queueFocusRecovery, refreshWindowPlacement]);
 
   const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    if (event.button !== 0 || isJumpMenuOpen || isFontMenuOpen) {
+    if (event.button !== 0 || isJumpMenuOpen || isFontMenuOpen || isTimerMenuOpen) {
       return;
     }
 
@@ -1448,7 +1754,7 @@ export function OverlayPrompter() {
 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', cleanup);
-  }, [isFontMenuOpen, isJumpMenuOpen, startWindowDrag]);
+  }, [isFontMenuOpen, isJumpMenuOpen, isTimerMenuOpen, startWindowDrag]);
 
   const handleRootMouseDownCapture = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -1583,6 +1889,11 @@ export function OverlayPrompter() {
       <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label="Overlay size">
         {overlaySize.width} × {overlaySize.height}
       </div>
+      {!isOverlayFocused ? (
+        <div className="overlay-unfocused-hint" aria-live="polite">
+          Press <kbd>{togglePrompterShortcutHint}</kbd> to toggle prompter
+        </div>
+      ) : null}
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
         {!isCompactTopBar ? (
           <div className="overlay-left-sidebar-layout">

@@ -85,7 +85,7 @@ function resetStore(): void {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
-  delete (window as Record<string, unknown>).__TAURI_INTERNALS__;
+  delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
   setViewport(1440, 900);
   resetStore();
 
@@ -305,8 +305,41 @@ describe('OverlayPrompter behavior', () => {
     });
   });
 
+  it('advances timer while running and pauses when playback pauses', () => {
+    vi.useFakeTimers();
+    let now = 0;
+    const perfSpy = vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    try {
+      render(<OverlayPrompter />);
+
+      expect(screen.getByText('00:00')).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+
+      act(() => {
+        now = 1_600;
+        vi.advanceTimersByTime(360);
+      });
+
+      expect(screen.getByText('00:01')).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+
+      act(() => {
+        now = 4_200;
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(screen.getByText('00:01')).toBeTruthy();
+    } finally {
+      perfSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('shows focus-loss hint toast only once after repeated blur events', async () => {
-    (window as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
     const originalShowToast = useAppStore.getState().showToast;
     const showToastSpy = vi.fn((message: string, variant?: 'info' | 'success' | 'warning' | 'error') => {
       originalShowToast(message, variant);

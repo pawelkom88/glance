@@ -4,6 +4,15 @@ export interface SessionSummary {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly lastOpenedAt: string;
+  readonly folderId?: string | null;
+  readonly wordCount?: number;
+}
+
+export interface SessionFolder {
+  readonly id: string;
+  readonly name: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 export interface ScrollState {
@@ -25,6 +34,8 @@ export interface SessionMeta {
   readonly lastOpenedAt: string;
   readonly scroll: ScrollState;
   readonly overlay?: OverlayPreferences;
+  readonly folderId?: string | null;
+  readonly wordCount?: number;
 }
 
 export interface SessionData {
@@ -67,6 +78,7 @@ export interface DisplaySegment {
 
 export interface ShortcutEventPayload {
   readonly action:
+    | 'toggle-overlay'
     | 'toggle-play'
     | 'jump-section'
     | 'speed-change'

@@ -27,6 +27,7 @@ import { useAppStore } from '../store/use-app-store';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
+const globalActions: readonly ShortcutActionId[] = ['toggle-overlay'];
 const jumpActions: readonly ShortcutActionId[] = [
   'jump-1',
   'jump-2',
@@ -137,6 +138,7 @@ function toFallbackDisplayOption(payload: MonitorChangedPayload): DisplayOption 
     displayName: payload.displayName,
     width: payload.width,
     height: payload.height,
+    compositeKey: payload.compositeKey,
     scaleFactor: 1,
     isPrimary: false,
     positionX: 0,
@@ -421,62 +423,60 @@ export function SettingsView() {
 
     return (
       <div key={definition.action} className={`shortcut-row ${shortcutError ? 'has-error' : ''}`}>
-        <label className="shortcut-row-main" htmlFor={`${idPrefix}-${definition.action}`}>
-          <span className="shortcut-action-label">{definition.label}</span>
-          <input
-            id={`${idPrefix}-${definition.action}`}
-            type="text"
-            readOnly
-            value={shortcutConfig[definition.action]}
-            placeholder="Press shortcut"
-            title={captureHint}
-            className={shortcutError ? 'has-error' : ''}
-            aria-invalid={Boolean(shortcutError)}
-            onKeyDown={(event) => {
-              if (event.key === 'Tab') {
-                return;
-              }
+        <span className="shortcut-action-label">{definition.label}</span>
+        <input
+          id={`${idPrefix}-${definition.action}`}
+          type="text"
+          readOnly
+          value={shortcutConfig[definition.action]}
+          placeholder="Press shortcut"
+          title={captureHint}
+          className={shortcutError ? 'has-error' : ''}
+          aria-invalid={Boolean(shortcutError)}
+          onKeyDown={(event) => {
+            if (event.key === 'Tab') {
+              return;
+            }
 
-              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                return;
-              }
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+              return;
+            }
 
-              if (event.key === 'Escape') {
-                event.preventDefault();
-                event.currentTarget.blur();
-                return;
-              }
-
-              const isClearKey = (event.key === 'Backspace' || event.key === 'Delete')
-                && !event.metaKey
-                && !event.ctrlKey
-                && !event.altKey
-                && !event.shiftKey;
-
+            if (event.key === 'Escape') {
               event.preventDefault();
+              event.currentTarget.blur();
+              return;
+            }
 
-              if (isClearKey) {
-                setShortcutConfig((previous) => ({
-                  ...previous,
-                  [definition.action]: ''
-                }));
-                return;
-              }
+            const isClearKey = (event.key === 'Backspace' || event.key === 'Delete')
+              && !event.metaKey
+              && !event.ctrlKey
+              && !event.altKey
+              && !event.shiftKey;
 
-              const captured = captureShortcutFromKeyboardEvent(event);
-              if (!captured) {
-                return;
-              }
+            event.preventDefault();
 
+            if (isClearKey) {
               setShortcutConfig((previous) => ({
                 ...previous,
-                [definition.action]: captured
+                [definition.action]: ''
               }));
-              setShortcutErrors((prev) => ({ ...prev, [definition.action]: '' }));
-            }}
-            aria-label={`${definition.label} shortcut`}
-          />
-        </label>
+              return;
+            }
+
+            const captured = captureShortcutFromKeyboardEvent(event);
+            if (!captured) {
+              return;
+            }
+
+            setShortcutConfig((previous) => ({
+              ...previous,
+              [definition.action]: captured
+            }));
+            setShortcutErrors((prev) => ({ ...prev, [definition.action]: '' }));
+          }}
+          aria-label={`${definition.label} shortcut`}
+        />
         {shortcutError ? <small className="shortcut-row-error">{shortcutError}</small> : null}
       </div>
     );
@@ -710,7 +710,8 @@ export function SettingsView() {
 
           <div className="settings-group" aria-labelledby="shortcuts-builtin">
             <h3 id="shortcuts-builtin" className="settings-group-label">Built-In Controls</h3>
-            <div className="settings-card shortcut-group">
+            <div className="settings-card shortcut-group shortcut-group-builtins">
+              {globalActions.map((action) => renderShortcutInput(action))}
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Close Prompter</span>
                 <span className="shortcut-keycaps">

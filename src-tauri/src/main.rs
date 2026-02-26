@@ -9,7 +9,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
-use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_updater::UpdaterExt;
 
 const APP_READY_EVENT: &str = "app_ready";
@@ -26,7 +25,7 @@ pub struct AppState {
     pub _log_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
-fn should_unregister_shortcuts(window_label: &str, focused: bool) -> bool {
+fn should_keep_only_global_toggle_shortcut(window_label: &str, focused: bool) -> bool {
     !focused || window_label != "overlay"
 }
 
@@ -183,9 +182,14 @@ fn main() {
                     return;
                 }
 
-                if should_unregister_shortcuts(window_label, *focused) {
-                    // Do not hijack keys in other apps when app focus shifts away from the overlay.
-                    let _ = window.app_handle().global_shortcut().unregister_all();
+                if should_keep_only_global_toggle_shortcut(window_label, *focused) {
+                    // When overlay is unfocused, keep only the global toggle shortcut registered.
+                    if let Some(state) = window.try_state::<AppState>() {
+                        let _ = commands::apply_toggle_overlay_binding_only(
+                            window.app_handle(),
+                            &state,
+                        );
+                    }
                 }
             }
         })
@@ -230,9 +234,14 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_sessions,
+            commands::list_folders,
             commands::create_session,
             commands::create_session_from_markdown,
             commands::duplicate_session,
+            commands::create_folder,
+            commands::rename_folder,
+            commands::delete_folder,
+            commands::move_sessions_to_folder,
             commands::delete_session,
             commands::export_session_markdown,
             commands::load_session,
@@ -263,13 +272,13 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::should_unregister_shortcuts;
+    use super::should_keep_only_global_toggle_shortcut;
 
     #[test]
     fn keeps_shortcuts_only_for_focused_overlay() {
-        assert!(!should_unregister_shortcuts("overlay", true));
-        assert!(should_unregister_shortcuts("overlay", false));
-        assert!(should_unregister_shortcuts("main", true));
-        assert!(should_unregister_shortcuts("main", false));
+        assert!(!should_keep_only_global_toggle_shortcut("overlay", true));
+        assert!(should_keep_only_global_toggle_shortcut("overlay", false));
+        assert!(should_keep_only_global_toggle_shortcut("main", true));
+        assert!(should_keep_only_global_toggle_shortcut("main", false));
     }
 }
