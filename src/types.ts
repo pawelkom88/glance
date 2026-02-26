@@ -79,8 +79,10 @@ export interface ShortcutEventPayload {
 }
 
 export interface MonitorInfo {
+  readonly id: string;
   readonly name: string;
   readonly size: string;
+  readonly origin: string;
   readonly primary: boolean;
 }
 

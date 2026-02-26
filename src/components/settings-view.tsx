@@ -147,12 +147,12 @@ export function SettingsView() {
       return 'Auto (Current Display)';
     }
 
-    const found = monitors.find((monitor) => monitor.name === selectedMonitor);
+    const found = monitors.find((monitor) => monitor.id === selectedMonitor);
     if (!found) {
       return selectedMonitor;
     }
 
-    return `${found.name}${found.primary ? ' • Primary' : ''}`;
+    return `${found.name} (${found.size}, @ ${found.origin})${found.primary ? ' • Primary' : ''}`;
   }, [monitors, selectedMonitor]);
   const hasUnsavedShortcutChanges = useMemo(
     () => shortcutDefinitions.some((definition) => {
@@ -166,8 +166,11 @@ export function SettingsView() {
     void listMonitors().then((items) => {
       setMonitors(items);
       const saved = getLastOverlayMonitorName();
-      if (saved && items.some((item) => item.name === saved)) {
-        setSelectedMonitor(saved);
+      if (saved) {
+        const matched = items.find((item) => item.id === saved || item.name === saved);
+        if (matched) {
+          setSelectedMonitor(matched.id);
+        }
       }
     });
   }, []);
@@ -258,17 +261,17 @@ export function SettingsView() {
     };
   }, [hasUnsavedShortcutChanges, shortcutConfig]);
 
-  const updateDisplay = async (monitorName: string | null) => {
+  const updateDisplay = async (monitorId: string | null) => {
     setIsDisplayMenuOpen(false);
 
-    if (!monitorName) {
+    if (!monitorId) {
       setSelectedMonitor('');
       clearLastOverlayMonitorName();
       return;
     }
 
-    setSelectedMonitor(monitorName);
-    await moveOverlayToMonitor(monitorName);
+    setSelectedMonitor(monitorId);
+    await moveOverlayToMonitor(monitorId);
   };
   const handleTabChange = (tab: SettingsTab) => {
     setActiveTab(tab);
@@ -520,19 +523,19 @@ export function SettingsView() {
                       </button>
 
                       {monitors.map((monitor) => {
-                        const isSelected = selectedMonitor === monitor.name;
+                        const isSelected = selectedMonitor === monitor.id;
                         return (
                           <button
-                            key={monitor.name}
+                            key={monitor.id}
                             type="button"
                             role="menuitemradio"
                             aria-checked={isSelected}
                             className="display-picker-option"
                             onClick={() => {
-                              void updateDisplay(monitor.name);
+                              void updateDisplay(monitor.id);
                             }}
                           >
-                            <span>{monitor.name} ({monitor.size}){monitor.primary ? ' • Primary' : ''}</span>
+                            <span>{monitor.name} ({monitor.size}, @ {monitor.origin}){monitor.primary ? ' • Primary' : ''}</span>
                             <span className="display-picker-check" aria-hidden="true">{isSelected ? '✓' : ''}</span>
                           </button>
                         );

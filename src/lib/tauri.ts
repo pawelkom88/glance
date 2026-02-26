@@ -215,6 +215,16 @@ export async function moveOverlayToMonitor(monitorName: string): Promise<void> {
   setLastOverlayMonitorName(monitorName);
 }
 
+export interface SnapOverlayResult {
+  readonly x: number;
+  readonly y: number;
+  readonly monitorName: string;
+}
+
+export async function snapOverlayToTopCenter(): Promise<SnapOverlayResult> {
+  return invoke<SnapOverlayResult>('snap_overlay_to_top_center');
+}
+
 export async function resetOverlayPosition(): Promise<void> {
   const existing = await WebviewWindow.getByLabel('overlay');
   if (!existing) {
