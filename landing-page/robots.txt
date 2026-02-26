@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://atglance.netlify.app/sitemap.xml

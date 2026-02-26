@@ -4,7 +4,102 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Glance — Never break eye contact again.</title>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://atglance.netlify.app/#organization",
+          "name": "Glance",
+          "url": "https://atglance.netlify.app/",
+          "logo": "https://atglance.netlify.app/logo.png"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://atglance.netlify.app/#website",
+          "url": "https://atglance.netlify.app/",
+          "name": "Glance",
+          "publisher": { "@id": "https://atglance.netlify.app/#organization" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://atglance.netlify.app/#software",
+          "name": "Glance",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "macOS, Windows",
+          "description": "A discreet on-screen teleprompter overlay for Zoom, Teams, and Google Meet—built for sales demos, interviews, and creator videos.",
+          "url": "https://atglance.netlify.app/",
+          "publisher": { "@id": "https://atglance.netlify.app/#organization" }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://atglance.netlify.app/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Is Glance visible to other people on the call?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No. Glance is an on-screen overlay on your device. It doesn’t appear in your camera feed. Only you can see it." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does Glance work with Zoom, Teams, and Google Meet?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Glance works as a topmost overlay, meaning it sits above any video conferencing app you use." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does Glance record my screen, camera, or audio?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Never. Glance has no recording capabilities. It is a purely visual aid for your own use." }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I change scroll speed, font size, and transparency?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. You can adjust all of these settings on the fly using keyboard shortcuts or the settings menu." }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I need an account?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No account required. Glance is a standalone application that runs entirely on your local machine." }
+            },
+            {
+              "@type": "Question",
+              "name": "Is my script stored in the cloud?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No. Your scripts stay on your device. Glance does not have a cloud component and does not upload your data anywhere." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does it work offline?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Once downloaded, Glance works perfectly without an internet connection." }
+            },
+            {
+              "@type": "Question",
+              "name": "Is there a Windows version?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes, Glance is available for both macOS and Windows." }
+            }
+          ]
+        }
+      ]
+    }
+  </script>
+  <title>Glance — Teleprompter Overlay for Video Calls</title>
+  <meta name="description"
+    content="A discreet on-screen teleprompter overlay for Zoom, Teams, and Google Meet—built for sales demos, interviews, and creator videos.">
+  <link rel="canonical" href="https://atglance.netlify.app/">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Glance — Teleprompter Overlay for Video Calls">
+  <meta property="og:description"
+    content="A discreet on-screen teleprompter overlay for Zoom, Teams, and Google Meet—built for sales demos, interviews, and creator videos.">
+  <meta property="og:url" content="https://atglance.netlify.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://atglance.netlify.app/og.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Glance — Teleprompter Overlay for Video Calls">
+  <meta name="twitter:description"
+    content="A discreet on-screen teleprompter overlay for Zoom, Teams, and Google Meet—built for sales demos, interviews, and creator videos.">
+  <meta name="twitter:image" content="https://atglance.netlify.app/og.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +111,275 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#ffffff">
 
   <style>
+    /* ─── FAQ ─── */
+    .faq-section {
+      background: var(--bg);
+      padding: var(--space-section-emphasis) 0;
+    }
+
+    .faq-container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    .faq-header {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+
+    .faq-eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      margin-bottom: 12px;
+    }
+
+    .faq-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 900;
+      color: var(--text-1);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .faq-accordion {
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      /* Initial rule for items transition */
+    }
+
+    .faq-item {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .faq-item.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .faq-item:first-of-type {
+      border-top: none;
+    }
+
+    .faq-section .faq-accordion {
+      border-top: none;
+      /* Ensure no top border above first item */
+    }
+
+    .faq-trigger {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 26px 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      gap: 24px;
+      text-align: left;
+    }
+
+    .faq-question {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-1);
+      transition: color 0.3s ease;
+    }
+
+    .faq-item.is-open .faq-question {
+      color: var(--blue);
+    }
+
+    .faq-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 0, 0, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .faq-icon svg {
+      width: 10px;
+      height: 10px;
+      transition: transform 0.3s ease, stroke 0.3s ease;
+    }
+
+    .faq-icon svg line {
+      stroke: rgba(0, 0, 0, 0.5);
+      stroke-width: 1.5;
+      stroke-linecap: round;
+    }
+
+    .faq-item.is-open .faq-icon {
+      background: var(--blue);
+      border-color: var(--blue);
+      transform: rotate(45deg);
+    }
+
+    .faq-item.is-open .faq-icon svg line {
+      stroke: #fff;
+    }
+
+    .faq-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .faq-answer {
+      font-size: 15px;
+      font-weight: 300;
+      color: #6e6e73;
+      line-height: 1.75;
+      max-width: 600px;
+      padding-bottom: 28px;
+    }
+
+    @media (max-width: 640px) {
+      .faq-section {
+        padding: 80px 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .faq-item,
+      .faq-panel,
+      .faq-icon,
+      .faq-question,
+      .faq-icon svg,
+      .problem-item {
+        transition: none !important;
+        transform: none !important;
+      }
+    }
+
+    /* ─── PROBLEMS STATEMENT WALL ─── */
+    .problems-section {
+      background-color: #0a0a0a;
+      padding: 120px 0;
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    .problems-section::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 80%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .problems-container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    .problems-eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+      /* Improved contrast from 30% for accessibility */
+      margin-bottom: 48px;
+    }
+
+    .problems-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .problem-item {
+      display: flex;
+      gap: 32px;
+      padding: 40px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .problem-item:first-child {
+      padding-top: 0;
+    }
+
+    .problem-item:last-child {
+      border-bottom: none;
+    }
+
+    .problem-item.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .problem-num {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.25);
+      /* Improved contrast from 20% */
+      letter-spacing: 0.08em;
+      margin-top: 12px;
+      flex-shrink: 0;
+    }
+
+    .problem-content {
+      flex: 1;
+    }
+
+    .problem-headline {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: rgba(255, 255, 255, 0.95);
+      /* Improved contrast from 92% */
+      margin-bottom: 12px;
+    }
+
+    .problem-headline em {
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.65);
+      /* Improved contrast from 45% */
+    }
+
+    .problem-subtext {
+      font-size: 15px;
+      font-weight: 300;
+      line-height: 1.65;
+      max-width: 560px;
+    }
+
+    @media (max-width: 640px) {
+      .problems-section {
+        padding: 80px 0;
+      }
+
+      .problem-item {
+        gap: 20px;
+      }
+    }
+
     :root {
       --blue: #007AFF;
       --blue-soft: #E8F2FF;
@@ -1297,6 +1659,10 @@
       transition: background 0.3s var(--easing);
     }
 
+    .aud-card-full {
+      grid-column: span 2;
+    }
+
     .card-label {
       display: flex;
       align-items: center;
@@ -1904,7 +2270,12 @@
       }
 
       .aud-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
+        gap: 24px;
+      }
+
+      .aud-grid>* {
+        grid-column: span 1 !important;
       }
 
       .audience {
@@ -2058,13 +2429,13 @@
   <nav>
     <div class="nav-inner">
       <a href="#" class="logo">
-        <img width="48" height="48" src="favicon.svg" alt="Glance logo">
+        <img width="48" height="48" src="icon.png" alt="Glance logo">
         Glance
       </a>
       <div class="nav-links">
         <a href="#features">Features</a>
-        <a href="#privacy">Privacy</a>
-        <a href="https://github.com/pawelkom88/glance">GitHub</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="https://github.com/pawelkom88/glance" target="_blank">GitHub</a>
       </div>
     </div>
   </nav>
@@ -2088,15 +2459,15 @@
   <section class="hero" style="position: relative;">
     <div class="container">
       <div class="hero-eyebrow reveal"><span class="record-dot"></span>Teleprompter for video calls</div>
-      <h1 class="headline reveal">Never <span class="cursive-blue">break eye contact</span> <br>in interviews again.
+      <h1 class="headline reveal">Keep <span class="cursive-blue">eye contact</span>. <br>Say it perfectly.
       </h1>
-      <p class="subhead reveal">Glance overlays your script directly over your video call. Look confident, stay natural,
-        and perform at your highest level.</p>
+      <p class="subhead reveal">A discreet on-screen teleprompter overlay for Zoom, Teams, and Google Meet—built for
+        sales demos, interviews, and creator videos.</p>
 
       <div class="btn-group reveal">
         <div class="cta-wrapper">
           <a href="#" class="btn btn-primary dl-mac-btn">
-            <span class="btn-text">Download for Mac</span>
+            <span class="btn-text">Get Glance</span>
             <span class="btn-subtext dl-mac-subtext">Detecting...</span>
           </a>
           <div class="cta-caption dl-mac-caption">Checking version...</div>
@@ -2111,8 +2482,7 @@
       </div>
       <p
         style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;">
-        100% Free · No Subscription ·
-        Private & Local
+        Private & local • Works with Zoom/Teams/Meet • Adjustable speed, size & transparency
       </p>
 
       <div class="install-security-block">
@@ -2249,36 +2619,76 @@
     </div>
   </dialog>
 
-  <!-- PROBLEM SCULPTURAL -->
+  <!-- PROBLEMS SECTION -->
+  <section class="problems-section">
+    <div class="problems-container">
+      <div class="problems-eyebrow">The reality of reading on camera</div>
+      <div class="problems-list">
+        <div class="problem-item" style="transition-delay: 0ms;">
+          <div class="problem-num">01</div>
+          <div class="problem-content">
+            <h3 class="problem-headline">Eye flicks are <em>obvious.</em></h3>
+            <p class="problem-subtext">On calls, your eyes tell the story. Looking down to read a script breaks trust —
+              whether you’re pitching, interviewing, or recording.</p>
+          </div>
+        </div>
+        <div class="problem-item" style="transition-delay: 100ms;">
+          <div class="problem-num">02</div>
+          <div class="problem-content">
+            <h3 class="problem-headline">You lose your <em>place.</em></h3>
+            <p class="problem-subtext">Looking away mid-sentence makes it easy to fumble your script and lose momentum
+              during a live call.</p>
+          </div>
+        </div>
+        <div class="problem-item" style="transition-delay: 200ms;">
+          <div class="problem-num">03</div>
+          <div class="problem-content">
+            <h3 class="problem-headline">Confidence takes <em>a hit.</em></h3>
+            <p class="problem-subtext">Reading from notes often leads to "umms" and "ahhs," making you sound less
+              confident than you actually are.</p>
+          </div>
+        </div>
+        <div class="problem-item" style="transition-delay: 300ms;">
+          <div class="problem-num">04</div>
+          <div class="problem-content">
+            <h3 class="problem-headline">There's a better <em>way.</em></h3>
+            <p class="problem-subtext">Keep your scripts in your sightline and deliver your message with absolute
+              conviction, every time.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOLUTION -->
   <section class="section">
     <div class="container">
-      <h2 class="section-title reveal">Preparation is useless <br>if it looks like you're reading.</h2>
+      <h2 class="section-title reveal">Put your script where your camera is.</h2>
+      <p
+        style="text-align: center; color: var(--text-2); max-width: 660px; margin: -40px auto 64px; font-size: var(--fs-body-lg);">
+        Glance overlays your words near the webcam, so you can read naturally while staying present.
+      </p>
 
       <div class="cards-grid">
         <div class="card card-1">
           <span class="card-num">01</span>
-          <h3>Trust breaks instantly.</h3>
-          <p>Eye contact is the most powerful signal of confidence. Looking at a second monitor kills that advantage.
-          </p>
-
+          <h3>Discreet overlay.</h3>
+          <p>A transparent prompter that only you can see. No screen glow, no eye movement, no distractions.</p>
         </div>
         <div class="card card-2">
           <span class="card-num">02</span>
-          <h3>Switching is visible.</h3>
-          <p>The "screen glow" change and eye-tracking movement is obvious to anyone on the other end.</p>
-
+          <h3>Full control.</h3>
+          <p>Adjust speed, size, and transparency on the fly to match your speaking pace and comfort.</p>
         </div>
         <div class="card card-3">
           <span class="card-num">03</span>
-          <h3>Panic sets in.</h3>
-          <p>Fumbling for your place in a script during a live call leads to "umms," "ahhs," and lost momentum.</p>
-
+          <h3>Works everywhere.</h3>
+          <p>Stay present on Zoom, Teams, and Google Meet without ever looking away from your audience.</p>
         </div>
         <div class="card card-4">
           <span class="card-num">04</span>
-          <h3>The Glance Edge.</h3>
-          <p>Maintain consistent eye contact while delivering your pitch flawlessly.</p>
-
+          <h3>Stay natural.</h3>
+          <p>Position the overlay perfectly near your camera lens to maintain a steady, engaging gaze.</p>
         </div>
       </div>
     </div>
@@ -2290,11 +2700,11 @@
       <div class="feature-row reveal">
         <div class="feature-content">
           <span
-            style="color:var(--blue); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Simple
-            Workflow</span>
-          <h2>Write Markdown. <br>Get Sections.</h2>
-          <p>Organize your script with simple # headers. Glance automatically splits your script into named sections
-            with instant jump access during your call.</p>
+            style="color:var(--blue); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Markdown
+            Support</span>
+          <h2>Write in Markdown. <br>Stay organized by section.</h2>
+          <p>Paste a script, add simple headings, and move through your talk like an outline—perfect for demos, Q&A, and
+            multi-part scripts.</p>
         </div>
         <div class="feature-visual">
           <div class="mac-window mockup-interactive">
@@ -2314,11 +2724,10 @@
       <div class="feature-row reveal">
         <div class="feature-content">
           <span
-            style="color:var(--gold); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Interactive
-            Control</span>
-          <h2>Stay on track, <br>effortlessly.</h2>
-          <p>Focus on one line at a time. Adjust transparency, font size, and scroll speed with subtle keyboard
-            shortcuts without ever looking away from the camera.</p>
+            style="color:var(--gold); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Customizable
+            Overlay</span>
+          <h2>Control it without <br>breaking flow.</h2>
+          <p>Hotkeys for speed, size, and transparency so you can adapt on the fly—without reaching for the mouse.</p>
         </div>
         <div class="feature-visual">
           <div class="mac-window mockup-interactive">
@@ -2338,11 +2747,11 @@
       <div class="feature-row reveal">
         <div class="feature-content">
           <span
-            style="color:var(--green); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Guided
-            Setup</span>
-          <h2>Teleprompter Help, <br>Ready in 30 Seconds.</h2>
-          <p>Glance walks you through shortcuts, call flow, and section jumps in one clean Help screen. Everything
-            stays on your device - no account, no cloud, no friction before your first call.</p>
+            style="color:var(--green); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Camera
+            Alignment</span>
+          <h2>Keep it in your <br>sightline.</h2>
+          <p>Position the overlay near your camera so your gaze stays steady and natural. Everything stays local—no
+            account or cloud setup required.</p>
         </div>
         <div class="feature-visual">
           <div class="mac-window mockup-interactive">
@@ -2382,31 +2791,49 @@
       <h2 class="section-title reveal" style="text-align: center;">Built for the <br> <span>high-stakes call.</span>
       </h2>
       <div class="aud-grid">
+
         <div class="aud-card reveal">
           <div class="card-label" style="color: var(--blue);">
             <span class="card-label-dot" style="background: var(--blue);"></span>
-            FOR JOB SEEKERS
+            FOR SALES DEMOS
           </div>
-          <h3>Own the interview room.</h3>
-          <p>Answer behavioral and technical questions with quiet confidence — no memorization spirals, no blank
-            moments.</p>
+          <h3>Close with conviction.</h3>
+          <p>Deliver your value prop cleanly and handle objections without losing your place or breaking eye contact.
+          </p>
           <ul>
-            <li style="--bullet-color: var(--blue);">Practice answers confidently</li>
-            <li style="--bullet-color: var(--blue);">Maintain steady, calm eye contact</li>
-            <li style="--bullet-color: var(--blue);">Always know your next talking point</li>
+            <li style="--bullet-color: var(--blue);">Deliver your pitch flawlessly</li>
+            <li style="--bullet-color: var(--blue);">Handle objections with confidence</li>
+            <li style="--bullet-color: var(--blue);">Close more deals through engagement</li>
           </ul>
         </div>
         <div class="aud-card reveal">
           <div class="card-label" style="color: var(--green);">
             <span class="card-label-dot" style="background: var(--green);"></span>
-            FOR SALES PROS
+            FOR INTERVIEWS
           </div>
-          <h3>Close with conviction.</h3>
-          <p>Deliver your pitch with natural flow and handle every objection like a seasoned closer.</p>
+          <h3>Own the room.</h3>
+          <p>Answer behavioral and technical questions with quiet confidence — no memorization spirals or blank
+            moments.
+          </p>
           <ul>
-            <li style="--bullet-color: var(--green);">Deliver scripts with natural flow</li>
-            <li style="--bullet-color: var(--green);">Close with absolute conviction</li>
-            <li style="--bullet-color: var(--green);">Stay attuned to client micro-reactions</li>
+            <li style="--bullet-color: var(--green);">Answer clearly under pressure</li>
+            <li style="--bullet-color: var(--green);">Stay on-message with STAR notes</li>
+            <li style="--bullet-color: var(--green);">Look engaged, not scripted</li>
+          </ul>
+        </div>
+
+
+        <div class="aud-card aud-card-full reveal">
+          <div class="card-label" style="color: var(--gold);">
+            <span class="card-label-dot" style="background: var(--gold);"></span>
+            FOR CREATOR VIDEOS
+          </div>
+          <h3>Record faster.</h3>
+          <p>Nail hooks, transitions, and CTAs while maintaining natural eye contact with your audience.</p>
+          <ul>
+            <li style="--bullet-color: var(--gold);">Nail hooks & transitions</li>
+            <li style="--bullet-color: var(--gold);">Fewer retakes and jump cuts</li>
+            <li style="--bullet-color: var(--gold);">Record naturally with eye contact</li>
           </ul>
         </div>
       </div>
@@ -2448,7 +2875,7 @@
         </h2>
 
         <p class="privacy-description">
-          Glance runs 100% locally. No accounts, no cloud, no tracking.
+          Private & local: your scripts stays on your device. Privacy-friendly website analytics (no in-app tracking).
           Your high-stakes strategy never leaves your machine.
         </p>
 
@@ -2457,22 +2884,156 @@
         <div class="privacy-tag-group">
           <div class="privacy-tag">
             <span class="privacy-tag-dot"></span>
-            Zero Telemetry
+            Zero In-App Telemetry
           </div>
           <div class="privacy-tag">
             <span class="privacy-tag-dot"></span>
-            No Cloud Access
+            No Cloud Storage
           </div>
           <div class="privacy-tag">
             <span class="privacy-tag-dot"></span>
             No Account Required
           </div>
         </div>
+        <p
+          style="margin-top: 32px; color: rgba(255, 255, 255, 0.4); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;">
+          Not affiliated with Zoom, Microsoft, or Google.
+        </p>
       </div>
 
       <div class="privacy-visual">
         <img src="SecureShutter.webp" loading="lazy" alt="Privacy Shutter Closed" class="shutter-frame">
         <div class="status-glow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-section" id="faq">
+    <div class="faq-container">
+      <div class="faq-header">
+        <div class="faq-eyebrow">Questions</div>
+        <h2 class="faq-title">Frequently asked.</h2>
+      </div>
+      <div class="faq-accordion">
+        <div class="faq-item" style="transition-delay: 0ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-1">
+            <span class="faq-question">Is Glance visible to other people on the call?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-1" class="faq-panel">
+            <p class="faq-answer">No. Glance is an on-screen overlay on your device. It doesn’t appear in your camera
+              feed. Only you can see it.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 60ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-2">
+            <span class="faq-question">Does Glance work with Zoom, Teams, and Google Meet?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-2" class="faq-panel">
+            <p class="faq-answer">Yes. Glance works as a topmost overlay, meaning it sits above any video conferencing
+              app you use.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 120ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-3">
+            <span class="faq-question">Does Glance record my screen, camera, or audio?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-3" class="faq-panel">
+            <p class="faq-answer">Never. Glance has no recording capabilities. It is a purely visual aid for your own
+              use.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 180ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-4">
+            <span class="faq-question">Can I change scroll speed, font size, and transparency?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-4" class="faq-panel">
+            <p class="faq-answer">Yes. You can adjust all of these settings on the fly using keyboard shortcuts or the
+              settings menu.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 240ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-5">
+            <span class="faq-question">Do I need an account?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-5" class="faq-panel">
+            <p class="faq-answer">No account required. Glance is a standalone application that runs entirely on your
+              local machine.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 300ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-6">
+            <span class="faq-question">Is my script stored in the cloud?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-6" class="faq-panel">
+            <p class="faq-answer">No. Your scripts stay on your device. Glance does not have a cloud component and does
+              not upload your data anywhere.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 360ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-7">
+            <span class="faq-question">Does it work offline?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-7" class="faq-panel">
+            <p class="faq-answer">Yes. Once downloaded, Glance works perfectly without an internet connection.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 420ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-8">
+            <span class="faq-question">Is there a Windows version?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-8" class="faq-panel">
+            <p class="faq-answer">Yes, Glance is available for both macOS and Windows.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -2484,7 +3045,7 @@
       <div class="btn-group">
         <div class="cta-wrapper">
           <a href="#" class="btn btn-primary dl-mac-btn">
-            <span class="btn-text">Download for Mac</span>
+            <span class="btn-text">Get Glance</span>
             <span class="btn-subtext dl-mac-subtext">Detecting...</span>
           </a>
           <div class="cta-caption dl-mac-caption">Checking version...</div>
@@ -2515,6 +3076,59 @@
     }, { threshold: 0.1 });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // FAQ Accordion Reveal Observer
+    const faqObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          faqObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.faq-item').forEach(el => faqObserver.observe(el));
+
+    // Problems Section Reveal Observer
+    const problemsObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          problemsObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.problem-item').forEach(el => problemsObserver.observe(el));
+
+    // FAQ Accordion Logic
+    document.querySelectorAll('.faq-trigger').forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        const item = trigger.closest('.faq-item');
+        const panel = item.querySelector('.faq-panel');
+        const isOpen = item.classList.contains('is-open');
+
+        // Close other items
+        if (!isOpen) {
+          document.querySelectorAll('.faq-item.is-open').forEach(openItem => {
+            openItem.classList.remove('is-open');
+            openItem.querySelector('.faq-trigger').setAttribute('aria-expanded', 'false');
+            openItem.querySelector('.faq-panel').style.maxHeight = null;
+          });
+        }
+
+        // Toggle current item
+        item.classList.toggle('is-open');
+        const expanded = item.classList.contains('is-open');
+        trigger.setAttribute('aria-expanded', expanded);
+
+        if (expanded) {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        } else {
+          panel.style.maxHeight = null;
+        }
+      });
+    });
 
     const installObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {

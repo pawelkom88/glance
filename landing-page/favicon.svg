@@ -1,36 +1,22 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bgGrad" x1="170" y1="120" x2="854" y2="920" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F4F6FB"/>
-      <stop offset="1" stop-color="#E9EDF6"/>
+    <linearGradient id="eyeStroke" x1="172" y1="512" x2="852" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#45A3FF"/>
+      <stop offset="1" stop-color="#0D7EF0"/>
     </linearGradient>
-    <linearGradient id="glyphGrad" x1="350" y1="340" x2="700" y2="675" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#49A9FF"/>
-      <stop offset="1" stop-color="#157CFF"/>
+    <linearGradient id="iris" x1="450" y1="398" x2="596" y2="606" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#58B4FF"/>
+      <stop offset="1" stop-color="#1788F6"/>
     </linearGradient>
-    <radialGradient id="innerGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 760) rotate(90) scale(250 420)">
-      <stop stop-color="#C8D7F5" stop-opacity="0.6"/>
-      <stop offset="1" stop-color="#C8D7F5" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="surfaceShadow" x="120" y="120" width="784" height="784" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#A9B7D4" flood-opacity="0.35"/>
-    </filter>
-    <filter id="glyphShadow" x="220" y="290" width="584" height="430" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#157CFF" flood-opacity="0.20"/>
-    </filter>
   </defs>
 
-  <g filter="url(#surfaceShadow)">
-    <rect x="144" y="144" width="736" height="736" rx="168" fill="url(#bgGrad)"/>
-    <rect x="147" y="147" width="730" height="730" rx="165" stroke="#CED6E7" stroke-width="6"/>
-    <rect x="164" y="164" width="696" height="696" rx="146" stroke="white" stroke-opacity="0.75" stroke-width="2"/>
-  </g>
+  <!-- Background Squircle -->
+  <rect x="0" y="0" width="1024" height="1024" rx="225" fill="white"/>
 
-  <ellipse cx="512" cy="760" rx="360" ry="220" fill="url(#innerGlow)"/>
+  <!-- Bold Eye from clean.svg (stroke-width 52) -->
+  <path d="M192 512C270 408 387 340 512 340C637 340 754 408 832 512C754 616 637 684 512 684C387 684 270 616 192 512Z" stroke="url(#eyeStroke)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <g filter="url(#glyphShadow)">
-    <path d="M254 526C334 425 426 373 512 373C598 373 690 425 770 526C690 627 598 679 512 679C426 679 334 627 254 526Z" stroke="url(#glyphGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="522" cy="512" r="92" fill="url(#iris)"/>
 
-    <path d="M512 422C570 422 618 468 618 526C618 584 570 630 512 630C496 630 481 626 468 619L430 623L442 587C428 570 420 549 420 526C420 468 468 422 512 422Z" fill="url(#glyphGrad)"/>
-  </g>
+  <path d="M472 610C516 610 552 579 552 542C552 506 516 476 472 476C428 476 392 506 392 542C392 560 401 576 417 588L407 626L446 612C454 614 463 615 472 615Z" fill="url(#iris)"/>
 </svg>

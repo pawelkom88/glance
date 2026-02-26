@@ -17,16 +17,29 @@
 
     <style>
         :root {
-            --bg: #fff;
-            --text: #111;
-            --text-muted: rgba(0, 0, 0, 0.65);
-            --border: rgba(0, 0, 0, 0.1);
-            --link: #0091FE;
+            --blue: #007AFF;
+            --blue-soft: #E8F2FF;
+            --green: #34C759;
+            --green-soft: #EBF9EE;
+            --gold: #FFCC00;
+            --gold-soft: #FFF9E5;
+            --text-1: #1d1d1f;
+            --text-2: #86868b;
+            --bg: #ffffff;
+            --bg-2: #f5f5f7;
+            --radius-xl: 32px;
+            --radius-lg: 24px;
+            --easing: cubic-bezier(0.16, 1, 0.3, 1);
+            --shadow-diffused: 0 40px 100px rgba(0, 0, 0, 0.12);
+            --shadow-window: 0 20px 60px rgba(0, 0, 0, 0.2);
+            --fs-small: clamp(0.8125rem, 0.777rem + 0.179vw, 0.875rem);
+            --border: rgba(0, 0, 0, 0.05);
+            --link: #007AFF;
         }
 
         body {
             margin: 0;
-            color: var(--text);
+            color: var(--text-1);
             background: var(--bg);
             font-family: 'Inter', sans-serif;
             font-weight: 300;
@@ -34,40 +47,60 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* ─── NAV ─── */
         nav {
-            padding: 24px 48px;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
+            justify-content: center;
         }
 
-        .nav-logo {
+        .nav-inner {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
-            text-decoration: none;
-            color: var(--text);
-            font-weight: 500;
-            font-size: 18px;
         }
 
-        .nav-logo img {
-            width: 24px;
-            height: 24px;
+        .logo img {
+            width: 48px;
             border-radius: 6px;
         }
 
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
         .nav-links a {
-            font-size: 14px;
-            color: rgba(0, 0, 0, 0.55);
+            color: var(--text-2);
+            font-size: var(--fs-small);
             font-weight: 500;
             text-decoration: none;
-            transition: color 0.15s ease;
+            transition: color 0.2s;
         }
 
         .nav-links a:hover {
-            color: #111;
+            color: var(--text-1);
         }
 
         .container {
@@ -90,23 +123,23 @@
             font-weight: 500;
             margin-top: 48px;
             margin-bottom: 16px;
-            color: var(--text);
+            color: var(--text-1);
         }
 
         .last-updated {
             font-size: 14px;
-            color: var(--text-muted);
+            color: var(--text-2);
             margin-bottom: 48px;
         }
 
         p {
-            color: var(--text-muted);
+            color: var(--text-2);
             font-size: 16px;
             margin-bottom: 20px;
         }
 
         ul {
-            color: var(--text-muted);
+            color: var(--text-2);
             font-size: 16px;
             padding-left: 20px;
             margin-bottom: 24px;
@@ -143,12 +176,14 @@
 
 <body>
     <nav>
-        <a href="/" class="nav-logo">
-            <img src="/landing-page/glance-new-icon-macos.svg" alt="Glance">
-            Glance
-        </a>
-        <div class="nav-links">
-            <a href="/">&larr; Back to App</a>
+        <div class="nav-inner">
+            <a href="/" class="logo">
+                <img width="48" height="48" src="icon.png" alt="Glance">
+                Glance
+            </a>
+            <div class="nav-links">
+                <a href="index.html">&larr; Back to App</a>
+            </div>
         </div>
     </nav>
 
@@ -158,27 +193,34 @@
 
         <p>Glance was built with a core philosophy: <strong>your words belong to you.</strong> Because Glance is
             designed to help you read your private notes, scripts, and presentations, we've built the app to be
-            completely local and private by design.</p>
+            completely local and private by design. While our website uses basic, privacy-friendly analytics to help us
+            understand how people find us, your work within the app never leaves your device.</p>
 
-        <h2>1. Zero Data Collection</h2>
-        <p>We do not collect, store, or transmit any personal information, usage data, or analytics. Glance does not
-            have user accounts, and there is no login required.</p>
+        <h2>1. Zero In-App Data Collection</h2>
+        <p>We do not collect, store, or transmit any personal information, usage data, or scripts from within the Glance
+            application. Glance does not have user accounts, and there is no login required.</p>
 
         <h2>2. Local Processing Only</h2>
         <p>All of your Markdown files, notes, and preferences are processed and stored exclusively on your local device.
             Glance never uploads your documents to the cloud or syncs them to any external servers.</p>
 
-        <h2>3. No Telemetry or Tracking</h2>
-        <p>We do not embed any analytics SDKs, crash reporters, or telemetry tools inside the Glance application. What
-            you do inside the app is entirely your business.</p>
+        <h2>3. Website Analytics</h2>
+        <p>This website uses basic analytics (such as Mixpanel) to help us understand discovery and download trends.
+            This is limited to website visits and download button clicks; no telemetry or tracking exists within the
+            Glance application itself.</p>
 
         <h2>4. Network Requests</h2>
-        <p>Glance operates entirely offline. The only time the app interacts with the internet is if you manually click
-            on external links (such as the "Buy me a coffee" link), which will open in your default web browser.</p>
+        <p>The Glance application operates entirely offline. It does not make network requests unless you manually click
+            on external links (such as the GitHub repository or support links), which open in your default web browser.
+        </p>
 
-        <h2>5. Changes to this Policy</h2>
-        <p>If we ever decide to introduce optional features that require network access (such as automatic software
-            updates), this policy will be explicitly updated, and those features will always be strictly opt-in.</p>
+        <h2>5. Not Affiliated</h2>
+        <p>Glance is an independent tool and is not affiliated with, sponsored by, or endorsed by Zoom Video
+            Communications, Inc., Microsoft Corporation, or Google LLC.</p>
+
+        <h2>6. Changes to this Policy</h2>
+        <p>If we ever decide to introduce optional features that require network access, this policy will be explicitly
+            updated, and those features will always be strictly opt-in.</p>
 
     </div>
 </body>
