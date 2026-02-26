@@ -19,8 +19,10 @@ const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MonitorInfo {
+    pub id: String,
     pub name: String,
     pub size: String,
+    pub origin: String,
     pub primary: bool,
 }
 
@@ -46,6 +48,14 @@ pub struct ShowOverlayRequest {
 pub struct ShowOverlayResult {
     pub monitor_name: String,
     pub used_saved_bounds: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SnapOverlayResult {
+    pub x: i32,
+    pub y: i32,
+    pub monitor_name: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -246,7 +256,7 @@ pub fn show_overlay_window(
         .or_else(|| monitors.first().cloned())
         .ok_or_else(|| String::from("Unable to resolve target monitor"))?;
 
-    let target_monitor_name = monitor_label(&target_monitor);
+    let target_monitor_id = monitor_key(&target_monitor);
     let mut used_saved_bounds = false;
 
     // Guard against accidental fullscreen/maximized state which blocks normal dragging.
@@ -267,7 +277,10 @@ pub fn show_overlay_window(
         ))))
         .map_err(|error| error.to_string())?;
 
-    if request.saved_monitor_name.as_deref() == Some(target_monitor_name.as_str()) {
+    let saved_monitor_matches = request.saved_monitor_name.as_deref().is_some_and(|saved| {
+        saved == target_monitor_id.as_str() || saved == monitor_label(&target_monitor).as_str()
+    });
+    if saved_monitor_matches {
         if let Some(saved_bounds) = request.saved_bounds.as_ref() {
             if is_bounds_inside_monitor(saved_bounds, &target_monitor) {
                 apply_overlay_bounds(&overlay, saved_bounds)?;
@@ -315,7 +328,7 @@ pub fn show_overlay_window(
     recover_overlay_focus_inner(&app, &state)?;
 
     Ok(ShowOverlayResult {
-        monitor_name: target_monitor_name,
+        monitor_name: target_monitor_id,
         used_saved_bounds,
     })
 }
@@ -423,25 +436,30 @@ pub fn set_overlay_always_on_top(enabled: bool, app: AppHandle) -> Result<(), St
 
 #[tauri::command]
 pub fn list_monitors(app: AppHandle) -> Result<Vec<MonitorInfo>, String> {
-    let primary_name = app
+    let primary_key = app
         .primary_monitor()
         .map_err(|error| error.to_string())?
         .as_ref()
-        .map(monitor_label)
-        .unwrap_or_default();
+        .map(monitor_key);
 
     let monitors = app
         .available_monitors()
         .map_err(|error| error.to_string())?
         .into_iter()
         .map(|monitor| {
+            let id = monitor_key(&monitor);
             let name = monitor_label(&monitor);
-            let size = format!("{}x{}", monitor.size().width, monitor.size().height);
-            let primary = name == primary_name;
+            let monitor_size = monitor.size();
+            let monitor_position = monitor.position();
+            let size = format!("{}x{}", monitor_size.width, monitor_size.height);
+            let origin = format!("{},{}", monitor_position.x, monitor_position.y);
+            let primary = primary_key.as_ref().is_some_and(|key| key == &id);
 
             MonitorInfo {
+                id,
                 name,
                 size,
+                origin,
                 primary,
             }
         })
@@ -461,7 +479,11 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
         .available_monitors()
         .map_err(|error| error.to_string())?
         .into_iter()
-        .find(|item| monitor_label(item).as_str() == monitor_name.as_str())
+        .find(|item| {
+            let key = monitor_key(item);
+            let label = monitor_label(item);
+            key.as_str() == monitor_name.as_str() || label.as_str() == monitor_name.as_str()
+        })
         .ok_or_else(|| String::from("Selected monitor was not found"))?;
 
     let overlay_size = overlay
@@ -493,6 +515,60 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
         overlay.show().map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn snap_overlay_to_top_center(app: AppHandle) -> Result<SnapOverlayResult, String> {
+    let overlay = app
+        .get_webview_window("overlay")
+        .ok_or_else(|| String::from("Overlay window is not available"))?;
+
+    let monitors = app
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+    if monitors.is_empty() {
+        return Err(String::from("No monitors available"));
+    }
+
+    let overlay_position = overlay
+        .outer_position()
+        .map_err(|error| error.to_string())?;
+    let overlay_size = overlay
+        .outer_size()
+        .map_err(|error| error.to_string())
+        .unwrap_or(PhysicalSize::new(
+            OVERLAY_DEFAULT_WIDTH,
+            OVERLAY_DEFAULT_HEIGHT,
+        ));
+
+    let center_x = overlay_position.x + (overlay_size.width as i32 / 2);
+    let center_y = overlay_position.y + (overlay_size.height as i32 / 2);
+    let primary_monitor = app.primary_monitor().map_err(|error| error.to_string())?;
+    let target_monitor = monitors
+        .iter()
+        .find(|monitor| monitor_contains_point(monitor, center_x, center_y))
+        .cloned()
+        .or(primary_monitor)
+        .or_else(|| monitors.first().cloned())
+        .ok_or_else(|| String::from("Unable to resolve target monitor"))?;
+
+    let width = overlay_size.width.max(OVERLAY_MIN_WIDTH) as i32;
+    let height = overlay_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
+    let monitor_position = target_monitor.position();
+    let monitor_size = target_monitor.size();
+    let centered_x = monitor_position.x + ((monitor_size.width as i32 - width) / 2);
+    let top_y = monitor_position.y;
+    let (x, y) = clamp_to_monitor(centered_x, top_y, width, height, &target_monitor);
+
+    overlay
+        .set_position(Position::Physical(PhysicalPosition::new(x, y)))
+        .map_err(|error| error.to_string())?;
+
+    Ok(SnapOverlayResult {
+        x,
+        y,
+        monitor_name: monitor_key(&target_monitor),
+    })
 }
 
 #[tauri::command]
@@ -594,6 +670,16 @@ fn monitor_label(monitor: &Monitor) -> String {
         .name()
         .cloned()
         .unwrap_or_else(|| String::from("Unnamed Monitor"))
+}
+
+fn monitor_key(monitor: &Monitor) -> String {
+    let label = monitor_label(monitor);
+    let position = monitor.position();
+    let size = monitor.size();
+    format!(
+        "{}|{}:{}|{}x{}",
+        label, position.x, position.y, size.width, size.height
+    )
 }
 
 fn monitor_contains_point(monitor: &Monitor, x: i32, y: i32) -> bool {

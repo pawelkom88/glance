@@ -10,6 +10,8 @@
     "core:default",
     "dialog:default",
     "global-shortcut:default",
-    "shell:default"
+    "shell:default",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size"
   ]
 }

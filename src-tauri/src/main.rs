@@ -138,6 +138,7 @@ fn main() {
             commands::set_overlay_always_on_top,
             commands::list_monitors,
             commands::move_overlay_to_monitor,
+            commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
             commands::export_diagnostics
         ])
