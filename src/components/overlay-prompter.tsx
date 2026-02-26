@@ -1244,10 +1244,8 @@ export function OverlayPrompter() {
     };
 
     window.addEventListener('keydown', onKeyDown, { capture: true });
-    document.addEventListener('keydown', onKeyDown, { capture: true });
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true });
-      document.removeEventListener('keydown', onKeyDown, { capture: true });
     };
   }, [
     changeScrollSpeedBy,

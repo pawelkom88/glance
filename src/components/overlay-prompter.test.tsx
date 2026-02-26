@@ -145,24 +145,76 @@ describe('OverlayPrompter behavior', () => {
     });
   });
 
-  it('supports Cmd/Ctrl font shortcuts in non-Tauri mode', () => {
+  it('supports Cmd/Ctrl font shortcuts in non-Tauri mode', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args) => {
+      const message = String(args[0] ?? '');
+      if (message.includes('not wrapped in act')) {
+        return;
+      }
+    });
+    const rafQueue: FrameRequestCallback[] = [];
+    const rafSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        rafQueue.push(callback);
+        return rafQueue.length;
+      });
+    const cancelSpy = vi
+      .spyOn(window, 'cancelAnimationFrame')
+      .mockImplementation(() => undefined);
+    const flushRaf = () => {
+      while (rafQueue.length > 0) {
+        const callback = rafQueue.shift();
+        if (callback) {
+          callback(0);
+        }
+      }
+    };
+
+    try {
+      useAppStore.setState({ activeSessionId: null });
+      render(<OverlayPrompter />);
+      await act(async () => {
+        flushRaf();
+        await Promise.resolve();
+      });
+
+      act(() => {
+        fireEvent.keyDown(window, { key: '=', ctrlKey: true });
+        flushRaf();
+      });
+      expect(useAppStore.getState().overlayFontScale).toBe(1.05);
+
+      act(() => {
+        fireEvent.keyDown(window, { key: '-', ctrlKey: true });
+        flushRaf();
+      });
+      expect(useAppStore.getState().overlayFontScale).toBe(1);
+
+      useAppStore.setState({ overlayFontScale: 1.25 });
+      act(() => {
+        fireEvent.keyDown(window, { key: '0', ctrlKey: true });
+        flushRaf();
+      });
+      expect(useAppStore.getState().overlayFontScale).toBe(1);
+    } finally {
+      rafSpy.mockRestore();
+      cancelSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
+  it('dispatches overlay close once for a single Escape keydown event', async () => {
     render(<OverlayPrompter />);
 
-    act(() => {
-      fireEvent.keyDown(window, { key: '=', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(tauriMocks.closeOverlayWindow).toHaveBeenCalled();
+      expect(tauriMocks.showMainWindow).toHaveBeenCalled();
     });
-    expect(useAppStore.getState().overlayFontScale).toBe(1.05);
-
-    act(() => {
-      fireEvent.keyDown(window, { key: '-', ctrlKey: true });
-    });
-    expect(useAppStore.getState().overlayFontScale).toBe(1);
-
-    useAppStore.setState({ overlayFontScale: 1.25 });
-    act(() => {
-      fireEvent.keyDown(window, { key: '0', ctrlKey: true });
-    });
-    expect(useAppStore.getState().overlayFontScale).toBe(1);
+    await new Promise((resolve) => window.setTimeout(resolve, 220));
+    expect(tauriMocks.closeOverlayWindow).toHaveBeenCalledTimes(1);
+    expect(tauriMocks.showMainWindow).toHaveBeenCalledTimes(1);
   });
 
   it('applies speed keyboard shortcuts with visible speed feedback', () => {
