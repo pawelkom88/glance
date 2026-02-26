@@ -9,6 +9,7 @@ import {
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { ShortcutBinding } from './shortcuts';
 import type {
+  DetectedMonitor,
   MonitorInfo,
   OverlayBounds,
   ThemeMode,
@@ -205,6 +206,52 @@ export function clearLastMainMonitorName(): void {
   window.localStorage.removeItem(mainLastMonitorStorageKey);
 }
 
+export function toMonitorPreferenceKey(name: string, width: number, height: number): string {
+  return `${name}|${width}x${height}`;
+}
+
+export function parseMonitorPreferenceKey(
+  key: string
+): { name: string; width: number; height: number } | null {
+  const parseSizeSegment = (segment: string): { width: number; height: number } | null => {
+    const [widthRaw, heightRaw] = segment.split('x');
+    const width = Number(widthRaw);
+    const height = Number(heightRaw);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { width, height };
+  };
+
+  const separatorIndex = key.lastIndexOf('|');
+  if (separatorIndex > 0 && separatorIndex < key.length - 1) {
+    const name = key.slice(0, separatorIndex);
+    const size = parseSizeSegment(key.slice(separatorIndex + 1));
+    if (size) {
+      return { name, ...size };
+    }
+  }
+
+  const legacyParts = key.split('|');
+  if (legacyParts.length >= 3) {
+    const sizeIndex = legacyParts.length - 2;
+    const size = parseSizeSegment(legacyParts[sizeIndex]);
+    if (!size) {
+      return null;
+    }
+
+    const name = legacyParts.slice(0, sizeIndex).join('|');
+    if (!name) {
+      return null;
+    }
+
+    return { name, ...size };
+  }
+
+  return null;
+}
+
 export function getOverlayAlwaysOnTopPreference(): boolean {
   if (typeof window === 'undefined') {
     return true;
@@ -307,6 +354,43 @@ export async function setOverlayAlwaysOnTop(enabled: boolean): Promise<void> {
   setOverlayAlwaysOnTopPreference(enabled);
 }
 
+export async function getMonitors(): Promise<readonly DetectedMonitor[]> {
+  if (!inTauri()) {
+    return [];
+  }
+
+  try {
+    const monitors = await invoke<DetectedMonitor[]>('get_monitors');
+    return [...monitors].sort((left, right) => {
+      if (left.isPrimary !== right.isPrimary) {
+        return left.isPrimary ? -1 : 1;
+      }
+
+      if (left.positionX !== right.positionX) {
+        return left.positionX - right.positionX;
+      }
+
+      return left.positionY - right.positionY;
+    });
+  } catch (error) {
+    logMonitorDebug('backend get_monitors failed', { error: String(error) });
+    return [];
+  }
+}
+
+export async function moveWindowToMonitor(
+  monitorName: string,
+  monitorWidth: number,
+  monitorHeight: number
+): Promise<void> {
+  await invoke('move_window_to_monitor', {
+    monitorName,
+    monitorWidth,
+    monitorHeight
+  });
+  setLastMainMonitorName(toMonitorPreferenceKey(monitorName, monitorWidth, monitorHeight));
+}
+
 export async function listMonitors(): Promise<readonly MonitorInfo[]> {
   if (!inTauri()) {
     return [];
@@ -361,6 +445,47 @@ export async function listMonitors(): Promise<readonly MonitorInfo[]> {
   });
 
   return merged;
+}
+
+export async function getRuntimeCurrentMonitorId(): Promise<string | null> {
+  if (!inTauri()) {
+    return null;
+  }
+
+  try {
+    const monitor = await runtimeCurrentMonitor();
+    return monitor ? monitorIdFromRuntime(monitor) : null;
+  } catch (error) {
+    logMonitorDebug('runtime currentMonitor failed', { error: String(error) });
+    return null;
+  }
+}
+
+export async function getRuntimePrimaryMonitorId(): Promise<string | null> {
+  if (!inTauri()) {
+    return null;
+  }
+
+  try {
+    const monitor = await runtimePrimaryMonitor();
+    return monitor ? monitorIdFromRuntime(monitor) : null;
+  } catch (error) {
+    logMonitorDebug('runtime primaryMonitor failed', { error: String(error) });
+    return null;
+  }
+}
+
+export async function getMainWindowCurrentMonitor(): Promise<MonitorInfo | null> {
+  if (!inTauri()) {
+    return null;
+  }
+
+  try {
+    return await invoke<MonitorInfo | null>('get_main_window_current_monitor');
+  } catch (error) {
+    logMonitorDebug('backend current main monitor failed', { error: String(error) });
+    return null;
+  }
 }
 
 export async function moveOverlayToMonitor(monitorName: string): Promise<void> {
@@ -435,8 +560,8 @@ export async function showMainWindow(): Promise<void> {
   if (!inTauri()) {
     return;
   }
-  const savedMonitorName = getLastMainMonitorName();
-  await invoke('show_main_window', { savedMonitorName });
+  const savedMonitorKey = getLastMainMonitorName();
+  await invoke('show_main_window', { savedMonitorKey });
 }
 
 export async function startOverlayDrag(): Promise<void> {

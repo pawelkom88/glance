@@ -3,17 +3,14 @@ import { isTauri } from '@tauri-apps/api/core';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { save } from '@tauri-apps/plugin-dialog';
 import {
-  clearLastMainMonitorName,
-  clearLastOverlayMonitorName,
   exportDiagnostics,
+  getMonitors,
   getLastMainMonitorName,
-  getLastOverlayMonitorName,
   getOverlayAlwaysOnTopPreference,
-  listMonitors,
-  moveMainToMonitor,
-  moveOverlayToMonitor,
+  moveWindowToMonitor,
   registerShortcuts,
-  setOverlayAlwaysOnTop
+  setOverlayAlwaysOnTop,
+  toMonitorPreferenceKey
 } from '../lib/tauri';
 import {
   defaultShortcutConfig,
@@ -26,7 +23,7 @@ import {
   validateShortcutConfig
 } from '../lib/shortcuts';
 import { useAppStore } from '../store/use-app-store';
-import type { MonitorInfo, ThemeMode } from '../types';
+import type { DetectedMonitor, ThemeMode } from '../types';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
 const jumpActions: readonly ShortcutActionId[] = [
@@ -41,6 +38,12 @@ const jumpActions: readonly ShortcutActionId[] = [
   'jump-9'
 ];
 type SettingsTab = 'general' | 'shortcuts' | 'support';
+
+interface DisplayOption extends DetectedMonitor {
+  readonly key: string;
+  readonly displayName: string;
+  readonly logicalResolutionLabel: string;
+}
 
 function isMacPlatform(): boolean {
   return navigator.platform.includes('Mac');
@@ -118,11 +121,28 @@ function captureShortcutFromKeyboardEvent(event: ReactKeyboardEvent<HTMLInputEle
   return parts.join('+');
 }
 
+function normalizeDisplayName(name: string, position: number): string {
+  if (/^\\\\\./.test(name)) {
+    return `Display ${position + 1}`;
+  }
+  return name;
+}
+
+function toDisplayOptions(monitors: readonly DetectedMonitor[]): DisplayOption[] {
+  return monitors.map((monitor, index) => ({
+    ...monitor,
+    key: toMonitorPreferenceKey(monitor.name, monitor.width, monitor.height),
+    displayName: normalizeDisplayName(monitor.name, index),
+    logicalResolutionLabel: `${Math.round(monitor.logicalWidth)} x ${Math.round(monitor.logicalHeight)}`
+  }));
+}
+
 export function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const [monitors, setMonitors] = useState<readonly MonitorInfo[]>([]);
+  const [monitors, setMonitors] = useState<readonly DisplayOption[]>([]);
   const [alwaysOnTop, setAlwaysOnTopState] = useState(() => getOverlayAlwaysOnTopPreference());
   const [selectedMonitor, setSelectedMonitor] = useState('');
+  const [displayLoadError, setDisplayLoadError] = useState(false);
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [savedShortcutConfig, setSavedShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [shortcutErrors, setShortcutErrors] = useState<Record<string, string>>({});
@@ -145,37 +165,61 @@ export function SettingsView() {
     () => (navigator.platform.includes('Mac') ? '⌘ + 1…9' : 'Ctrl + 1…9'),
     []
   );
+  const activeMonitor = useMemo(
+    () => monitors.find((monitor) => monitor.key === selectedMonitor) ?? monitors[0] ?? null,
+    [monitors, selectedMonitor]
+  );
+  const activeMonitorId = activeMonitor?.key ?? '';
+  const swapTargets = useMemo(
+    () => monitors.filter((monitor) => monitor.key !== activeMonitorId),
+    [activeMonitorId, monitors]
+  );
+  const canSwapDisplay = swapTargets.length > 0 && !displayLoadError;
   const selectedMonitorLabel = useMemo(() => {
-    if (!selectedMonitor) {
-      return 'Auto (Current Display)';
+    if (displayLoadError || monitors.length === 0) {
+      return 'Unable to detect displays. Please restart the app.';
     }
 
-    const found = monitors.find((monitor) => monitor.id === selectedMonitor);
-    if (!found) {
-      return selectedMonitor;
+    if (!activeMonitor) {
+      return 'Display unavailable';
     }
 
-    return `${found.name} (${found.size}, @ ${found.origin})${found.primary ? ' • Primary' : ''}`;
-  }, [monitors, selectedMonitor]);
+    return `${activeMonitor.displayName} (${activeMonitor.logicalResolutionLabel})${activeMonitor.isPrimary ? ' • Primary' : ''}`;
+  }, [activeMonitor, displayLoadError, monitors.length]);
   const hasUnsavedShortcutChanges = useMemo(
     () => shortcutDefinitions.some((definition) => {
       return shortcutConfig[definition.action] !== savedShortcutConfig[definition.action];
     }),
     [savedShortcutConfig, shortcutConfig]
   );
-  const shouldShowDisplaySetting = monitors.length > 1;
+  const shouldShowDisplaySetting = true;
 
   useEffect(() => {
-    void listMonitors().then((items) => {
-      setMonitors(items);
-      const savedMonitor = getLastMainMonitorName() ?? getLastOverlayMonitorName();
-      if (savedMonitor) {
-        const matched = items.find((item) => item.id === savedMonitor || item.name === savedMonitor);
-        if (matched) {
-          setSelectedMonitor(matched.id);
+    void getMonitors()
+      .then((items) => {
+        const options = toDisplayOptions(items);
+        setMonitors(options);
+        setDisplayLoadError(options.length === 0);
+
+        if (options.length === 0) {
+          setSelectedMonitor('');
+          return;
         }
-      }
-    });
+
+        const savedMonitorKey = getLastMainMonitorName();
+        if (savedMonitorKey && options.some((monitor) => monitor.key === savedMonitorKey)) {
+          setSelectedMonitor(savedMonitorKey);
+          return;
+        }
+
+        const primaryMonitorKey = options.find((monitor) => monitor.isPrimary)?.key;
+        setSelectedMonitor(primaryMonitorKey ?? options[0].key);
+      })
+      .catch(() => {
+        setMonitors([]);
+        setDisplayLoadError(true);
+        setSelectedMonitor('');
+      });
   }, []);
 
   useEffect(() => {
@@ -264,25 +308,31 @@ export function SettingsView() {
     };
   }, [hasUnsavedShortcutChanges, shortcutConfig]);
 
-  const updateDisplay = async (monitorId: string | null) => {
+  const updateDisplay = async (monitorKey: string) => {
     setIsDisplayMenuOpen(false);
 
-    if (!monitorId) {
-      setSelectedMonitor('');
-      clearLastMainMonitorName();
-      clearLastOverlayMonitorName();
+    if (monitorKey === activeMonitorId) {
       return;
     }
 
-    const previousMonitor = selectedMonitor;
-    setSelectedMonitor(monitorId);
+    const targetMonitor = monitors.find((monitor) => monitor.key === monitorKey);
+    if (!targetMonitor) {
+      showToast('Selected display is no longer available', 'error');
+      return;
+    }
+
+    const previousMonitor = activeMonitorId;
+    setSelectedMonitor(monitorKey);
     try {
-      // Move the visible main window first so the UI immediately reflects the selection.
-      await moveMainToMonitor(monitorId);
-      await moveOverlayToMonitor(monitorId);
+      await moveWindowToMonitor(
+        targetMonitor.name,
+        targetMonitor.width,
+        targetMonitor.height
+      );
+      setSelectedMonitor(targetMonitor.key);
     } catch (error) {
       setSelectedMonitor(previousMonitor);
-      const message = error instanceof Error ? error.message : 'Unable to move windows to selected display';
+      const message = error instanceof Error ? error.message : 'Unable to move window to selected display';
       showToast(message, 'error');
     }
   };
@@ -501,7 +551,7 @@ export function SettingsView() {
               <div className="setting-row setting-row-display">
                 <div className="setting-copy">
                   <span className="setting-title">App Display</span>
-                  <span className="setting-subtitle">Where Glance opens (app + prompter).</span>
+                  <span className="setting-subtitle">Where Glance opens.</span>
                 </div>
                 <div className="display-picker" ref={displayMenuRef}>
                   <button
@@ -509,8 +559,12 @@ export function SettingsView() {
                     type="button"
                     className="display-picker-button"
                     aria-haspopup="menu"
-                    aria-expanded={isDisplayMenuOpen}
+                    aria-expanded={canSwapDisplay ? isDisplayMenuOpen : false}
+                    disabled={!canSwapDisplay}
                     onClick={() => {
+                      if (!canSwapDisplay) {
+                        return;
+                      }
                       setIsDisplayMenuOpen((previous) => !previous);
                     }}
                   >
@@ -522,35 +576,22 @@ export function SettingsView() {
                     </span>
                   </button>
 
-                  {isDisplayMenuOpen ? (
+                  {isDisplayMenuOpen && canSwapDisplay ? (
                     <div className="display-picker-menu" role="menu" aria-label="App display options">
-                      <button
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={selectedMonitor === ''}
-                        className="display-picker-option"
-                        onClick={() => {
-                          void updateDisplay(null);
-                        }}
-                      >
-                        <span>Auto (Current Display)</span>
-                        <span className="display-picker-check" aria-hidden="true">{selectedMonitor === '' ? '✓' : ''}</span>
-                      </button>
-
-                      {monitors.map((monitor) => {
-                        const isSelected = selectedMonitor === monitor.id;
+                      {swapTargets.map((monitor) => {
+                        const isSelected = activeMonitorId === monitor.key;
                         return (
                           <button
-                            key={monitor.id}
+                            key={monitor.key}
                             type="button"
                             role="menuitemradio"
                             aria-checked={isSelected}
                             className="display-picker-option"
                             onClick={() => {
-                              void updateDisplay(monitor.id);
+                              void updateDisplay(monitor.key);
                             }}
                           >
-                            <span>{monitor.name} ({monitor.size}, @ {monitor.origin}){monitor.primary ? ' • Primary' : ''}</span>
+                            <span>{monitor.displayName} ({monitor.logicalResolutionLabel}){monitor.isPrimary ? ' • Primary' : ''}</span>
                             <span className="display-picker-check" aria-hidden="true">{isSelected ? '✓' : ''}</span>
                           </button>
                         );

@@ -78,6 +78,18 @@ export interface ShortcutEventPayload {
   readonly delta?: number;
 }
 
+export interface DetectedMonitor {
+  readonly name: string;
+  readonly width: number;
+  readonly height: number;
+  readonly scaleFactor: number;
+  readonly isPrimary: boolean;
+  readonly positionX: number;
+  readonly positionY: number;
+  readonly logicalWidth: number;
+  readonly logicalHeight: number;
+}
+
 export interface MonitorInfo {
   readonly id: string;
   readonly name: string;
