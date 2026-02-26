@@ -103,10 +103,9 @@ function calculateSnapTarget(
   windowSize: { width: number; height: number }
 ): { x: number; y: number } {
   const monitorCenterX = monitor.position.x + (monitor.size.width / 2);
-  const monitorCenterY = monitor.position.y + (monitor.size.height / 2);
   return {
     x: Math.round(monitorCenterX - (windowSize.width / 2)),
-    y: Math.round(monitorCenterY - (windowSize.height / 2))
+    y: Math.round(monitor.position.y)
   };
 }
 

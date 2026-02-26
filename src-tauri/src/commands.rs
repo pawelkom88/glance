@@ -564,7 +564,7 @@ pub fn snap_overlay_to_center(app: AppHandle) -> Result<SnapOverlayResult, Strin
         });
     };
 
-    let (x, y) = centre_window_on_monitor(&overlay, &target_monitor)?;
+    let (x, y) = top_center_window_on_monitor(&overlay, &target_monitor)?;
 
     Ok(SnapOverlayResult {
         x,
@@ -1236,9 +1236,10 @@ fn top_center_logical_position_for_monitor(
     (logical_x, monitor_logical_y)
 }
 
-fn centre_window_on_monitor(
+fn position_window_on_monitor(
     window: &tauri::WebviewWindow,
     monitor: &Monitor,
+    pin_to_top: bool,
 ) -> Result<(i32, i32), String> {
     let inner_size = window.inner_size().map_err(|error| error.to_string())?;
     let window_scale = window
@@ -1256,9 +1257,13 @@ fn centre_window_on_monitor(
     let window_logical_width = inner_size.width as f64 / window_scale;
     let window_logical_height = inner_size.height as f64 / window_scale;
 
-    let target_x = monitor_logical_x + (monitor_logical_width / 2.0) - (window_logical_width / 2.0);
-    let target_y =
-        monitor_logical_y + (monitor_logical_height / 2.0) - (window_logical_height / 2.0);
+    let target_x =
+        monitor_logical_x + (monitor_logical_width / 2.0) - (window_logical_width / 2.0);
+    let target_y = if pin_to_top {
+        monitor_logical_y
+    } else {
+        monitor_logical_y + (monitor_logical_height / 2.0) - (window_logical_height / 2.0)
+    };
     let rounded_x = target_x.round();
     let rounded_y = target_y.round();
 
@@ -1274,6 +1279,20 @@ fn centre_window_on_monitor(
     let _ = window.set_focus();
 
     Ok((rounded_x as i32, rounded_y as i32))
+}
+
+fn centre_window_on_monitor(
+    window: &tauri::WebviewWindow,
+    monitor: &Monitor,
+) -> Result<(i32, i32), String> {
+    position_window_on_monitor(window, monitor, false)
+}
+
+fn top_center_window_on_monitor(
+    window: &tauri::WebviewWindow,
+    monitor: &Monitor,
+) -> Result<(i32, i32), String> {
+    position_window_on_monitor(window, monitor, true)
 }
 
 #[cfg(test)]
