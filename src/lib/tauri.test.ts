@@ -138,6 +138,7 @@ describe('tauri monitor bridge behavior', () => {
     invokeMock.mockResolvedValue([
       {
         name: '\\\\.\\DISPLAY2',
+        displayName: 'Display 2',
         width: 1920,
         height: 1080,
         scaleFactor: 1,
@@ -149,6 +150,7 @@ describe('tauri monitor bridge behavior', () => {
       },
       {
         name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
         scaleFactor: 2,

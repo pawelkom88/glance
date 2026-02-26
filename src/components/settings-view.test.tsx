@@ -1,8 +1,15 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let tauriRuntime = true;
+let monitorChangedCallback: ((payload: {
+  name: string;
+  displayName: string;
+  width: number;
+  height: number;
+  compositeKey: string;
+}) => void) | null = null;
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -22,8 +29,23 @@ vi.mock('../lib/tauri', () => ({
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
   getMonitors: vi.fn().mockResolvedValue([]),
   getOverlayAlwaysOnTopPreference: vi.fn().mockReturnValue(true),
+  listenForMonitorChanged: vi.fn().mockImplementation(async (
+    callback: (payload: {
+      name: string;
+      displayName: string;
+      width: number;
+      height: number;
+      compositeKey: string;
+    }) => void
+  ) => {
+    monitorChangedCallback = callback;
+    return () => {
+      monitorChangedCallback = null;
+    };
+  }),
   moveWindowToMonitor: vi.fn().mockResolvedValue(undefined),
   registerShortcuts: vi.fn().mockResolvedValue(undefined),
+  setLastMainMonitorName: vi.fn(),
   setOverlayAlwaysOnTop: vi.fn().mockResolvedValue(undefined),
   toMonitorPreferenceKey: (name: string, width: number, height: number) => `${name}|${width}x${height}`
 }));
@@ -35,8 +57,10 @@ import { SettingsView } from './settings-view';
 const tauriMock = tauriBridge as unknown as {
   getLastMainMonitorName: ReturnType<typeof vi.fn>;
   getMonitors: ReturnType<typeof vi.fn>;
+  listenForMonitorChanged: ReturnType<typeof vi.fn>;
   moveWindowToMonitor: ReturnType<typeof vi.fn>;
   registerShortcuts: ReturnType<typeof vi.fn>;
+  setLastMainMonitorName: ReturnType<typeof vi.fn>;
 };
 
 function resetStore() {
@@ -59,6 +83,7 @@ function setPlatform(value: string): void {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
+  monitorChangedCallback = null;
   tauriRuntime = true;
   setPlatform('MacIntel');
   resetStore();
@@ -66,6 +91,7 @@ beforeEach(() => {
   tauriMock.getMonitors.mockResolvedValue([]);
   tauriMock.moveWindowToMonitor.mockResolvedValue(undefined);
   tauriMock.registerShortcuts.mockResolvedValue(undefined);
+  tauriMock.setLastMainMonitorName.mockImplementation(() => undefined);
 });
 
 describe('SettingsView behavior', () => {
@@ -100,6 +126,7 @@ describe('SettingsView behavior', () => {
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
         scaleFactor: 2,
@@ -111,6 +138,7 @@ describe('SettingsView behavior', () => {
       },
       {
         name: 'DELL U2722D',
+        displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
         scaleFactor: 1,
@@ -140,6 +168,7 @@ describe('SettingsView behavior', () => {
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
         scaleFactor: 2,
@@ -151,6 +180,7 @@ describe('SettingsView behavior', () => {
       },
       {
         name: 'DELL U2722D',
+        displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
         scaleFactor: 1,
@@ -174,6 +204,7 @@ describe('SettingsView behavior', () => {
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
         scaleFactor: 2,
@@ -210,6 +241,7 @@ describe('SettingsView behavior', () => {
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
         scaleFactor: 2,
@@ -221,6 +253,7 @@ describe('SettingsView behavior', () => {
       },
       {
         name: 'DELL U2722D',
+        displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
         scaleFactor: 1,
@@ -259,6 +292,7 @@ describe('SettingsView behavior', () => {
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
         width: 3024,
         height: 1964,
         scaleFactor: 2,
@@ -270,6 +304,7 @@ describe('SettingsView behavior', () => {
       },
       {
         name: 'DELL U2722D',
+        displayName: 'DELL U2722D',
         width: 1920,
         height: 1080,
         scaleFactor: 1,
@@ -297,6 +332,57 @@ describe('SettingsView behavior', () => {
       });
     });
     expect(screen.getByRole('button', { name: /Built-in Retina Display \(1512 x 982\)/i })).toBeTruthy();
+  });
+
+  it('updates picker selection and persists preference on monitor_changed event', async () => {
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      },
+      {
+        name: 'DELL U2722D',
+        displayName: 'DELL U2722D',
+        width: 1920,
+        height: 1080,
+        scaleFactor: 1,
+        isPrimary: false,
+        positionX: 1512,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      }
+    ]);
+
+    render(<SettingsView />);
+    await screen.findByRole('button', { name: /Built-in Retina Display \(1512 x 982\)/i });
+
+    await waitFor(() => {
+      expect(monitorChangedCallback).not.toBeNull();
+    });
+
+    act(() => {
+      monitorChangedCallback?.({
+        name: 'DELL U2722D',
+        displayName: 'DELL U2722D',
+        width: 1920,
+        height: 1080,
+        compositeKey: 'DELL U2722D|1920x1080'
+      });
+    });
+
+    await waitFor(() => {
+      expect(tauriMock.setLastMainMonitorName).toHaveBeenCalledWith('DELL U2722D|1920x1080');
+      expect(screen.getByRole('button', { name: /DELL U2722D \(1920 x 1080\)/i })).toBeTruthy();
+    });
   });
 
   it('shows validation warning and does not register shortcuts when config is invalid', async () => {
