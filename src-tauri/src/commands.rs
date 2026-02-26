@@ -53,6 +53,7 @@ pub struct MonitorChangedPayload {
     pub composite_key: String,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OverlayBounds {
@@ -60,14 +61,6 @@ pub struct OverlayBounds {
     pub y: f64,
     pub width: f64,
     pub height: f64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ShowOverlayRequest {
-    pub saved_monitor_name: Option<String>,
-    pub saved_bounds: Option<OverlayBounds>,
-    pub prefer_top_center: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -249,7 +242,6 @@ pub fn save_session(
 
 #[tauri::command]
 pub fn show_overlay_window(
-    request: ShowOverlayRequest,
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<ShowOverlayResult, String> {
@@ -259,30 +251,14 @@ pub fn show_overlay_window(
     let main_window = app
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
-
-    let monitors = collect_monitor_descriptors(&app)?;
-    if monitors.is_empty() {
-        return Err(String::from("No monitors available"));
-    }
-
-    let main_position = main_window
-        .outer_position()
-        .map_err(|error| error.to_string())?;
-    let main_size = main_window
-        .outer_size()
-        .map_err(|error| error.to_string())?;
-    let center_x = main_position.x + (main_size.width as i32 / 2);
-    let center_y = main_position.y + (main_size.height as i32 / 2);
-
-    let target_monitor = request
-        .saved_monitor_name
-        .as_deref()
-        .and_then(|saved| find_monitor_by_id_or_label(&monitors, saved))
-        .or_else(|| resolve_monitor_for_point_or_primary(&monitors, center_x, center_y))
-        .ok_or_else(|| String::from("Unable to resolve target monitor"))?;
-
-    let target_monitor_id = target_monitor.id.clone();
-    let mut used_saved_bounds = false;
+    let target_monitor = main_window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+        .or(main_window
+            .primary_monitor()
+            .map_err(|error| error.to_string())?)
+        .ok_or_else(|| String::from("No monitors available"))?;
+    let target_monitor_id = monitor_key(&target_monitor);
 
     // Guard against accidental fullscreen/maximized state which blocks normal dragging.
     if overlay.is_fullscreen().map_err(|error| error.to_string())? {
@@ -302,49 +278,8 @@ pub fn show_overlay_window(
         ))))
         .map_err(|error| error.to_string())?;
 
-    let saved_monitor_matches = request
-        .saved_monitor_name
-        .as_deref()
-        .is_some_and(|saved| monitor_matches_identifier(&target_monitor, saved));
-    if saved_monitor_matches {
-        if let Some(saved_bounds) = request.saved_bounds.as_ref() {
-            if is_bounds_inside_monitor(saved_bounds, &target_monitor) {
-                apply_overlay_bounds(&overlay, saved_bounds)?;
-                used_saved_bounds = true;
-            }
-        }
-    }
-
-    if !used_saved_bounds {
-        let current_size = overlay
-            .outer_size()
-            .map_err(|error| error.to_string())
-            .unwrap_or(PhysicalSize::new(
-                OVERLAY_DEFAULT_WIDTH,
-                OVERLAY_DEFAULT_HEIGHT,
-            ));
-        let width = current_size.width.max(OVERLAY_MIN_WIDTH) as i32;
-        let height = current_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
-        let raw_x = target_monitor.position.x + ((target_monitor.size.width as i32 - width) / 2);
-        let raw_y = if request.prefer_top_center {
-            target_monitor.position.y
-        } else {
-            target_monitor.position.y + ((target_monitor.size.height as i32 - height) / 2)
-        };
-
-        let (clamped_x, clamped_y) = clamp_to_monitor(raw_x, raw_y, width, height, &target_monitor);
-        overlay
-            .set_size(Size::Physical(PhysicalSize::new(
-                width as u32,
-                height as u32,
-            )))
-            .map_err(|error| error.to_string())?;
-        overlay
-            .set_position(Position::Physical(PhysicalPosition::new(
-                clamped_x, clamped_y,
-            )))
-            .map_err(|error| error.to_string())?;
-    }
+    let _ = overlay.hide();
+    centre_window_on_monitor(&overlay, &target_monitor)?;
 
     overlay.show().map_err(|error| error.to_string())?;
     overlay.set_focus().map_err(|error| error.to_string())?;
@@ -352,7 +287,7 @@ pub fn show_overlay_window(
 
     Ok(ShowOverlayResult {
         monitor_name: target_monitor_id,
-        used_saved_bounds,
+        used_saved_bounds: false,
     })
 }
 
@@ -607,43 +542,34 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
 
 #[tauri::command]
 pub fn snap_overlay_to_top_center(app: AppHandle) -> Result<SnapOverlayResult, String> {
+    snap_overlay_to_center(app)
+}
+
+#[tauri::command]
+pub fn snap_overlay_to_center(app: AppHandle) -> Result<SnapOverlayResult, String> {
     let overlay = app
         .get_webview_window("overlay")
         .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let Some(target_monitor) = overlay
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+    else {
+        let position = overlay
+            .outer_position()
+            .map_err(|error| error.to_string())?;
+        return Ok(SnapOverlayResult {
+            x: position.x,
+            y: position.y,
+            monitor_name: String::new(),
+        });
+    };
 
-    let monitors = collect_monitor_descriptors(&app)?;
-    if monitors.is_empty() {
-        return Err(String::from("No monitors available"));
-    }
-
-    let overlay_position = overlay
-        .outer_position()
-        .map_err(|error| error.to_string())?;
-    let overlay_size = overlay
-        .outer_size()
-        .map_err(|error| error.to_string())
-        .unwrap_or(PhysicalSize::new(
-            OVERLAY_DEFAULT_WIDTH,
-            OVERLAY_DEFAULT_HEIGHT,
-        ));
-
-    let center_x = overlay_position.x + (overlay_size.width as i32 / 2);
-    let center_y = overlay_position.y + (overlay_size.height as i32 / 2);
-    let target_monitor = resolve_monitor_for_point_or_primary(&monitors, center_x, center_y)
-        .ok_or_else(|| String::from("Unable to resolve target monitor"))?;
-
-    let width = overlay_size.width.max(OVERLAY_MIN_WIDTH) as i32;
-    let height = overlay_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
-    let (x, y) = top_center_position_for_monitor(&target_monitor, width, height);
-
-    overlay
-        .set_position(Position::Physical(PhysicalPosition::new(x, y)))
-        .map_err(|error| error.to_string())?;
+    let (x, y) = centre_window_on_monitor(&overlay, &target_monitor)?;
 
     Ok(SnapOverlayResult {
         x,
         y,
-        monitor_name: target_monitor.id,
+        monitor_name: monitor_key(&target_monitor),
     })
 }
 
@@ -1240,6 +1166,7 @@ fn parse_monitor_selection_key(value: &str) -> Option<(String, u32, u32)> {
     None
 }
 
+#[cfg(test)]
 fn monitor_contains_point(monitor: &MonitorDescriptor, x: i32, y: i32) -> bool {
     let max_x = monitor.position.x + monitor.size.width as i32;
     let max_y = monitor.position.y + monitor.size.height as i32;
@@ -1247,6 +1174,7 @@ fn monitor_contains_point(monitor: &MonitorDescriptor, x: i32, y: i32) -> bool {
     x >= monitor.position.x && x < max_x && y >= monitor.position.y && y < max_y
 }
 
+#[cfg(test)]
 fn is_bounds_inside_monitor(bounds: &OverlayBounds, monitor: &MonitorDescriptor) -> bool {
     if bounds.width <= 0.0 || bounds.height <= 0.0 {
         return false;
@@ -1306,6 +1234,46 @@ fn top_center_logical_position_for_monitor(
     let window_logical_width = window_width as f64 / window_scale;
     let logical_x = monitor_logical_x + ((monitor_logical_width - window_logical_width) / 2.0);
     (logical_x, monitor_logical_y)
+}
+
+fn centre_window_on_monitor(
+    window: &tauri::WebviewWindow,
+    monitor: &Monitor,
+) -> Result<(i32, i32), String> {
+    let inner_size = window.inner_size().map_err(|error| error.to_string())?;
+    let window_scale = window
+        .scale_factor()
+        .map_err(|error| error.to_string())?
+        .max(0.0001);
+    let monitor_scale = monitor.scale_factor().max(0.0001);
+    let monitor_position = monitor.position();
+    let monitor_size = monitor.size();
+
+    let monitor_logical_x = monitor_position.x as f64;
+    let monitor_logical_y = monitor_position.y as f64;
+    let monitor_logical_width = monitor_size.width as f64 / monitor_scale;
+    let monitor_logical_height = monitor_size.height as f64 / monitor_scale;
+    let window_logical_width = inner_size.width as f64 / window_scale;
+    let window_logical_height = inner_size.height as f64 / window_scale;
+
+    let target_x = monitor_logical_x + (monitor_logical_width / 2.0) - (window_logical_width / 2.0);
+    let target_y =
+        monitor_logical_y + (monitor_logical_height / 2.0) - (window_logical_height / 2.0);
+    let rounded_x = target_x.round();
+    let rounded_y = target_y.round();
+
+    window
+        .set_position(Position::Logical(LogicalPosition::new(
+            rounded_x, rounded_y,
+        )))
+        .map_err(|error| error.to_string())?;
+    std::thread::sleep(Duration::from_millis(MAIN_WINDOW_MOVE_SETTLE_MS));
+    window
+        .set_size(Size::Physical(inner_size))
+        .map_err(|error| error.to_string())?;
+    let _ = window.set_focus();
+
+    Ok((rounded_x as i32, rounded_y as i32))
 }
 
 #[cfg(test)]
@@ -1528,6 +1496,7 @@ fn move_main_window_to_monitor(
     Ok(())
 }
 
+#[cfg(test)]
 fn resolve_monitor_for_point_or_primary(
     monitors: &[MonitorDescriptor],
     x: i32,
@@ -1541,6 +1510,7 @@ fn resolve_monitor_for_point_or_primary(
         .or_else(|| monitors.first().cloned())
 }
 
+#[cfg(test)]
 fn apply_overlay_bounds(
     overlay: &tauri::WebviewWindow,
     bounds: &OverlayBounds,

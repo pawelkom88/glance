@@ -9,7 +9,6 @@ import {
   useState
 } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { PhysicalPosition } from '@tauri-apps/api/dpi';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
   closeOverlayWindow,
@@ -104,9 +103,10 @@ function calculateSnapTarget(
   windowSize: { width: number; height: number }
 ): { x: number; y: number } {
   const monitorCenterX = monitor.position.x + (monitor.size.width / 2);
+  const monitorCenterY = monitor.position.y + (monitor.size.height / 2);
   return {
     x: Math.round(monitorCenterX - (windowSize.width / 2)),
-    y: Math.round(monitor.position.y)
+    y: Math.round(monitorCenterY - (windowSize.height / 2))
   };
 }
 
@@ -504,34 +504,6 @@ export function OverlayPrompter() {
     }
   }, []);
 
-  const resolveLiveSnapTarget = useCallback(async (): Promise<{
-    target: { x: number; y: number } | null;
-  }> => {
-    if (!isTauriRuntime()) {
-      return { target: null };
-    }
-
-    const appWindow = getCurrentWindow();
-    const monitorAware = appWindow as unknown as {
-      currentMonitor?: () => Promise<MonitorSnapshot | null>;
-    };
-
-    const windowSize = await appWindow.outerSize();
-    if (typeof monitorAware.currentMonitor !== 'function') {
-      return { target: snapTargetRef.current };
-    }
-
-    const monitor = await monitorAware.currentMonitor().catch((err) => {
-      console.warn('[snap] error:', err);
-      return null;
-    });
-    if (!monitor) {
-      return { target: snapTargetRef.current };
-    }
-
-    return { target: calculateSnapTarget(monitor, windowSize) };
-  }, []);
-
   useEffect(() => {
     if (isSnapButtonVisible) {
       setShouldRenderSnap(true);
@@ -551,74 +523,8 @@ export function OverlayPrompter() {
 
     setIsSnapping(true);
     try {
-      const appWindow = getCurrentWindow();
-      const currentPosition = await appWindow.outerPosition();
-      const { target } = await resolveLiveSnapTarget();
-
-      try {
-        const snapped = await snapOverlayToTopCenter();
-        const snappedTarget = { x: snapped.x, y: snapped.y };
-        snapTargetRef.current = snappedTarget;
-        setSnapTarget(snappedTarget);
-        setWindowPosition(snappedTarget);
-        if (snapped.monitorName) {
-          monitorNameRef.current = snapped.monitorName;
-          setLastOverlayMonitorName(snapped.monitorName);
-        }
-        logSnapDebug('snap applied (backend)', {
-          currentPosition,
-          predictedTarget: target,
-          snappedTarget,
-          monitorName: snapped.monitorName
-        });
-        return;
-      } catch (backendError) {
-        logSnapDebug('backend snap failed', {
-          message: backendError instanceof Error ? backendError.message : String(backendError)
-        });
-      }
-
-      if (!target) {
-        showToast('Could not detect current monitor — try again', 'error');
-        await refreshWindowPlacement();
-        return;
-      }
-
-      const dx = Math.abs(currentPosition.x - target.x);
-      const dy = Math.abs(currentPosition.y - target.y);
-      logSnapDebug('snap requested', {
-        currentPosition,
-        target,
-        delta: { dx, dy }
-      });
-      if (dx <= 1 && dy <= 1) {
-        // Already at the snap target — just sync state and exit cleanly.
-        setWindowPosition(target);
-        setSnapTarget(target);
-        return;
-      }
-
-      // Eagerly update state so onMoved does not race us back to a stale target.
-      snapTargetRef.current = target;
-      setSnapTarget(target);
-
-      await appWindow.setPosition(new PhysicalPosition(target.x, target.y));
-
-      // Confirm the final resting position (skipped by onMoved guard during snap).
-      let finalPosition = await appWindow.outerPosition().catch(() => null);
-      if (
-        !finalPosition ||
-        Math.abs(finalPosition.x - target.x) > 1 ||
-        Math.abs(finalPosition.y - target.y) > 1
-      ) {
-        await appWindow.setPosition(new PhysicalPosition(target.x, target.y));
-        finalPosition = await appWindow.outerPosition().catch(() => null);
-      }
-      logSnapDebug('snap applied', {
-        target,
-        finalPosition
-      });
-      setWindowPosition(finalPosition ?? target);
+      await snapOverlayToTopCenter();
+      await refreshWindowPlacement();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to snap overlay to centre';
       showToast(message, 'error');
@@ -626,7 +532,7 @@ export function OverlayPrompter() {
       setIsSnapping(false);
       void refreshWindowPlacement();
     }
-  }, [isSnapping, refreshWindowPlacement, resolveLiveSnapTarget, showToast]);
+  }, [isSnapping, refreshWindowPlacement, showToast]);
 
 
   const renderTopActions = () => (

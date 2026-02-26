@@ -14,7 +14,8 @@
         {
           "commands": [
             "get_monitors",
-            "move_window_to_monitor"
+            "move_window_to_monitor",
+            "snap_overlay_to_center"
           ]
         }
       ]

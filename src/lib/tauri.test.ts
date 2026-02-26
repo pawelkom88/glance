@@ -8,6 +8,7 @@ import {
   moveOverlayToMonitor,
   moveWindowToMonitor,
   openOverlayWindow,
+  snapOverlayToTopCenter,
   showMainWindow
 } from './tauri';
 
@@ -182,7 +183,15 @@ describe('tauri monitor bridge behavior', () => {
     expect(window.localStorage.getItem(mainMonitorKey)).toBe('Built-in Retina Display|3024x1964');
   });
 
-  it('openOverlayWindow uses saved monitor+bounds and persists returned monitor id', async () => {
+  it('snapOverlayToTopCenter invokes backend snap command without arguments', async () => {
+    invokeMock.mockResolvedValue({ x: 100, y: 80, monitorName: 'Display A|0:0|1920x1080|sf:1.0000' });
+
+    await snapOverlayToTopCenter();
+
+    expect(invokeMock).toHaveBeenCalledWith('snap_overlay_to_center');
+  });
+
+  it('openOverlayWindow lets backend decide monitor and persists returned monitor id', async () => {
     window.localStorage.setItem(overlayMonitorKey, 'saved-overlay-monitor');
     window.localStorage.setItem(
       overlayLayoutKey,
@@ -209,18 +218,7 @@ describe('tauri monitor bridge behavior', () => {
 
     await openOverlayWindow();
 
-    expect(invokeMock).toHaveBeenCalledWith('show_overlay_window', {
-      request: {
-        savedMonitorName: 'saved-overlay-monitor',
-        savedBounds: {
-          x: 100,
-          y: 120,
-          width: 1100,
-          height: 420
-        },
-        preferTopCenter: true
-      }
-    });
+    expect(invokeMock).toHaveBeenCalledWith('show_overlay_window');
     expect(invokeMock).toHaveBeenCalledWith('set_overlay_always_on_top', { enabled: true });
     expect(window.localStorage.getItem(overlayMonitorKey)).toBe('resolved-overlay-monitor');
   });

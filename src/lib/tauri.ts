@@ -18,7 +18,6 @@ import type {
   SessionMeta,
   SessionSummary,
   ShortcutEventPayload,
-  ShowOverlayRequest,
   ShowOverlayResult
 } from '../types';
 
@@ -506,7 +505,7 @@ export interface SnapOverlayResult {
 }
 
 export async function snapOverlayToTopCenter(): Promise<SnapOverlayResult> {
-  return invoke<SnapOverlayResult>('snap_overlay_to_top_center');
+  return invoke<SnapOverlayResult>('snap_overlay_to_center');
 }
 
 export async function resetOverlayPosition(): Promise<void> {
@@ -527,14 +526,7 @@ export async function openOverlayWindow(): Promise<ShowOverlayResult | null> {
     return null;
   }
 
-  const savedMonitorName = getLastOverlayMonitorName();
-  const request: ShowOverlayRequest = {
-    savedMonitorName,
-    savedBounds: readSavedOverlayBounds(savedMonitorName),
-    preferTopCenter: true
-  };
-
-  const result = await invoke<ShowOverlayResult>('show_overlay_window', { request });
+  const result = await invoke<ShowOverlayResult>('show_overlay_window');
   if (result.monitorName) {
     setLastOverlayMonitorName(result.monitorName);
   }

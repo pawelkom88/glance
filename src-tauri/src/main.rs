@@ -252,6 +252,7 @@ fn main() {
             commands::move_overlay_to_monitor,
             commands::move_main_to_monitor,
             commands::move_window_to_monitor,
+            commands::snap_overlay_to_center,
             commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
             commands::export_diagnostics
