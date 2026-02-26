@@ -16,6 +16,7 @@ const OVERLAY_MIN_WIDTH: u32 = 500;
 const OVERLAY_MIN_HEIGHT: u32 = 400;
 const OVERLAY_DEFAULT_WIDTH: u32 = 1120;
 const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
+const MAIN_WINDOW_MOVE_SETTLE_MS: u64 = 50;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +26,20 @@ pub struct MonitorInfo {
     pub size: String,
     pub origin: String,
     pub primary: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectedMonitor {
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub scale_factor: f64,
+    pub is_primary: bool,
+    pub position_x: i32,
+    pub position_y: i32,
+    pub logical_width: f64,
+    pub logical_height: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -351,19 +366,22 @@ pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn show_main_window(saved_monitor_name: Option<String>, app: AppHandle) -> Result<(), String> {
+pub fn show_main_window(saved_monitor_key: Option<String>, app: AppHandle) -> Result<(), String> {
     let main_window = app
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
 
-    let monitors = collect_monitor_descriptors(&app)?;
-    if let Some(saved_monitor_name) = saved_monitor_name {
-        if let Some(target_monitor) =
-            find_monitor_by_id_or_label(&monitors, saved_monitor_name.as_str())
-        {
-            normalize_main_window_state(&main_window)?;
-            move_main_window_to_monitor(&main_window, &target_monitor)?;
-        }
+    if let Some((monitor_name, monitor_width, monitor_height)) = saved_monitor_key
+        .as_deref()
+        .and_then(parse_monitor_selection_key)
+    {
+        normalize_main_window_state(&main_window)?;
+        move_main_window_to_monitor_selection(
+            &main_window,
+            monitor_name.as_str(),
+            monitor_width,
+            monitor_height,
+        )?;
     }
 
     main_window.show().map_err(|error| error.to_string())?;
@@ -448,22 +466,84 @@ pub fn list_monitors(app: AppHandle) -> Result<Vec<MonitorInfo>, String> {
     let monitors = collect_monitor_descriptors(&app)?;
 
     let monitors = monitors
+        .iter()
+        .map(monitor_info_from_descriptor)
+        .collect::<Vec<_>>();
+
+    Ok(monitors)
+}
+
+#[tauri::command]
+pub fn get_monitors(app: AppHandle) -> Result<Vec<DetectedMonitor>, String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| String::from("Main window is not available"))?;
+    let monitors = collect_main_window_monitor_descriptors(&main_window)?;
+
+    let detected = monitors
         .into_iter()
         .map(|monitor| {
-            let size = format!("{}x{}", monitor.size.width, monitor.size.height);
-            let origin = format!("{},{}", monitor.position.x, monitor.position.y);
+            let scale = monitor.scale_factor.max(0.0001);
+            let logical_width = monitor.size.width as f64 / scale;
+            let logical_height = monitor.size.height as f64 / scale;
 
-            MonitorInfo {
-                id: monitor.id,
+            DetectedMonitor {
                 name: monitor.name,
-                size,
-                origin,
-                primary: monitor.primary,
+                width: monitor.size.width,
+                height: monitor.size.height,
+                scale_factor: monitor.scale_factor,
+                is_primary: monitor.primary,
+                position_x: monitor.position.x,
+                position_y: monitor.position.y,
+                logical_width,
+                logical_height,
             }
         })
         .collect::<Vec<_>>();
 
-    Ok(monitors)
+    Ok(detected)
+}
+
+#[tauri::command]
+pub fn get_main_window_current_monitor(app: AppHandle) -> Result<Option<MonitorInfo>, String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| String::from("Main window is not available"))?;
+
+    let Some(runtime_monitor) = main_window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+    else {
+        return Ok(None);
+    };
+
+    let runtime_position = *runtime_monitor.position();
+    let runtime_size = *runtime_monitor.size();
+    let runtime_id = monitor_key(&runtime_monitor);
+    let runtime_name = monitor_label(&runtime_monitor);
+
+    let descriptors = collect_monitor_descriptors(&app)?;
+    if let Some(matched) = descriptors
+        .iter()
+        .find(|monitor| monitor.position == runtime_position && monitor.size == runtime_size)
+    {
+        return Ok(Some(monitor_info_from_descriptor(matched)));
+    }
+
+    let is_primary = app
+        .primary_monitor()
+        .map_err(|error| error.to_string())?
+        .is_some_and(|monitor| {
+            *monitor.position() == runtime_position && *monitor.size() == runtime_size
+        });
+
+    Ok(Some(MonitorInfo {
+        id: runtime_id,
+        name: runtime_name,
+        size: format!("{}x{}", runtime_size.width, runtime_size.height),
+        origin: format!("{},{}", runtime_position.x, runtime_position.y),
+        primary: is_primary,
+    }))
 }
 
 #[tauri::command]
@@ -558,6 +638,26 @@ pub fn move_main_to_monitor(monitor_name: String, app: AppHandle) -> Result<(), 
 
     normalize_main_window_state(&main_window)?;
     move_main_window_to_monitor(&main_window, &monitor)
+}
+
+#[tauri::command]
+pub fn move_window_to_monitor(
+    monitor_name: String,
+    monitor_width: u32,
+    monitor_height: u32,
+    app: AppHandle,
+) -> Result<(), String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| String::from("Main window is not available"))?;
+
+    normalize_main_window_state(&main_window)?;
+    move_main_window_to_monitor_selection(
+        &main_window,
+        monitor_name.as_str(),
+        monitor_width,
+        monitor_height,
+    )
 }
 
 #[tauri::command]
@@ -681,6 +781,16 @@ fn monitor_key(monitor: &Monitor) -> String {
         "{}|{}:{}|{}x{}|sf:{:.4}",
         label, position.x, position.y, size.width, size.height, scale
     )
+}
+
+fn monitor_info_from_descriptor(monitor: &MonitorDescriptor) -> MonitorInfo {
+    MonitorInfo {
+        id: monitor.id.clone(),
+        name: monitor.name.clone(),
+        size: format!("{}x{}", monitor.size.width, monitor.size.height),
+        origin: format!("{},{}", monitor.position.x, monitor.position.y),
+        primary: monitor.primary,
+    }
 }
 
 fn monitor_geometry_key(position: PhysicalPosition<i32>, size: PhysicalSize<u32>) -> String {
@@ -863,6 +973,58 @@ fn collect_monitor_descriptors(app: &AppHandle) -> Result<Vec<MonitorDescriptor>
     Ok(monitors)
 }
 
+fn collect_main_window_monitor_descriptors(
+    main_window: &tauri::WebviewWindow,
+) -> Result<Vec<MonitorDescriptor>, String> {
+    let primary = main_window
+        .primary_monitor()
+        .map_err(|error| error.to_string())?;
+    let primary_position = primary.as_ref().map(|monitor| *monitor.position());
+    let primary_size = primary.as_ref().map(|monitor| *monitor.size());
+
+    let mut deduped = HashMap::<String, MonitorDescriptor>::new();
+    for monitor in main_window
+        .available_monitors()
+        .map_err(|error| error.to_string())?
+    {
+        let position = *monitor.position();
+        let size = *monitor.size();
+        let key = monitor_geometry_key(position, size);
+
+        deduped.entry(key).or_insert_with(|| MonitorDescriptor {
+            id: monitor_key(&monitor),
+            name: monitor.name().cloned().unwrap_or_default(),
+            position,
+            size,
+            scale_factor: monitor.scale_factor(),
+            primary: primary_position.is_some_and(|value| value == position)
+                && primary_size.is_some_and(|value| value == size),
+        });
+    }
+
+    let mut monitors = deduped.into_values().collect::<Vec<_>>();
+    monitors.sort_by(|left, right| {
+        if left.primary != right.primary {
+            return right.primary.cmp(&left.primary);
+        }
+
+        left.position
+            .x
+            .cmp(&right.position.x)
+            .then(left.position.y.cmp(&right.position.y))
+    });
+
+    let mut fallback_index = 1_u32;
+    for monitor in &mut monitors {
+        if monitor.name.trim().is_empty() {
+            monitor.name = format!("Display {fallback_index}");
+            fallback_index += 1;
+        }
+    }
+
+    Ok(monitors)
+}
+
 #[cfg(target_os = "macos")]
 fn collect_macos_monitor_descriptors() -> Result<Vec<MonitorDescriptor>, String> {
     const SUCCESS: i32 = 0;
@@ -929,6 +1091,34 @@ fn find_monitor_by_id_or_label(
         .cloned()
 }
 
+fn parse_monitor_selection_key(value: &str) -> Option<(String, u32, u32)> {
+    fn parse_size_segment(value: &str) -> Option<(u32, u32)> {
+        let (width, height) = value.split_once('x')?;
+        Some((width.trim().parse().ok()?, height.trim().parse().ok()?))
+    }
+
+    if let Some((name, size_segment)) = value.rsplit_once('|') {
+        if !name.trim().is_empty() {
+            if let Some((width, height)) = parse_size_segment(size_segment) {
+                return Some((name.to_string(), width, height));
+            }
+        }
+    }
+
+    let legacy_parts = value.split('|').collect::<Vec<_>>();
+    if legacy_parts.len() >= 3 {
+        let size_index = legacy_parts.len() - 2;
+        if let Some((width, height)) = parse_size_segment(legacy_parts[size_index]) {
+            let name = legacy_parts[..size_index].join("|");
+            if !name.trim().is_empty() {
+                return Some((name, width, height));
+            }
+        }
+    }
+
+    None
+}
+
 fn monitor_contains_point(monitor: &MonitorDescriptor, x: i32, y: i32) -> bool {
     let max_x = monitor.position.x + monitor.size.width as i32;
     let max_y = monitor.position.y + monitor.size.height as i32;
@@ -982,6 +1172,153 @@ fn top_center_position_for_monitor(
     clamp_to_monitor(centered_x, top_y, width, height, monitor)
 }
 
+fn top_center_logical_position_for_monitor(
+    monitor: &MonitorDescriptor,
+    window_width: u32,
+    window_scale_factor: f64,
+) -> (f64, f64) {
+    let monitor_scale = monitor.scale_factor.max(0.0001);
+    let window_scale = window_scale_factor.max(0.0001);
+    let monitor_logical_x = monitor.position.x as f64;
+    let monitor_logical_y = monitor.position.y as f64;
+    let monitor_logical_width = monitor.size.width as f64 / monitor_scale;
+    let window_logical_width = window_width as f64 / window_scale;
+    let logical_x = monitor_logical_x + ((monitor_logical_width - window_logical_width) / 2.0);
+    (logical_x, monitor_logical_y)
+}
+
+#[cfg(test)]
+fn window_center_x(position_x: i32, window_width: u32) -> i32 {
+    position_x + (window_width as i32 / 2)
+}
+
+#[cfg(test)]
+fn center_x_error_from_target(position_x: i32, window_width: u32, target_x: i32) -> i32 {
+    let target_center_x = window_center_x(target_x, window_width);
+    let actual_center_x = window_center_x(position_x, window_width);
+    target_center_x - actual_center_x
+}
+
+#[cfg(test)]
+fn window_center_is_on_monitor(
+    monitor: &MonitorDescriptor,
+    position: PhysicalPosition<i32>,
+    size: PhysicalSize<u32>,
+) -> bool {
+    let center_x = window_center_x(position.x, size.width);
+    let center_y = position.y + (size.height as i32 / 2);
+    monitor_contains_point(monitor, center_x, center_y)
+}
+
+fn runtime_monitor_matches_descriptor(
+    monitor: &MonitorDescriptor,
+    runtime_monitor: &Monitor,
+) -> bool {
+    let position = *runtime_monitor.position();
+    let size = *runtime_monitor.size();
+    monitor.position == position
+        && monitor.size == size
+        && (monitor.id == monitor_key(runtime_monitor)
+            || monitor.name == monitor_label(runtime_monitor))
+}
+
+fn main_window_is_on_monitor(
+    main_window: &tauri::WebviewWindow,
+    monitor: &MonitorDescriptor,
+) -> bool {
+    main_window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .is_some_and(|runtime_monitor| {
+            runtime_monitor_matches_descriptor(monitor, &runtime_monitor)
+        })
+}
+
+fn set_main_window_position_and_settle(
+    main_window: &tauri::WebviewWindow,
+    position: Position,
+) -> Result<(), String> {
+    main_window
+        .set_position(position)
+        .map_err(|error| error.to_string())?;
+    std::thread::sleep(Duration::from_millis(MAIN_WINDOW_MOVE_SETTLE_MS));
+    Ok(())
+}
+
+fn resolve_main_window_monitor_selection(
+    monitors: &[MonitorDescriptor],
+    monitor_name: &str,
+    monitor_width: u32,
+    monitor_height: u32,
+) -> Option<MonitorDescriptor> {
+    monitors
+        .iter()
+        .find(|monitor| {
+            monitor.name == monitor_name
+                && monitor.size.width == monitor_width
+                && monitor.size.height == monitor_height
+        })
+        .cloned()
+        .or_else(|| {
+            monitors
+                .iter()
+                .find(|monitor| monitor.name == monitor_name)
+                .cloned()
+        })
+        .or_else(|| monitors.iter().find(|monitor| monitor.primary).cloned())
+        .or_else(|| monitors.first().cloned())
+}
+
+fn move_main_window_to_monitor_selection(
+    main_window: &tauri::WebviewWindow,
+    monitor_name: &str,
+    monitor_width: u32,
+    monitor_height: u32,
+) -> Result<(), String> {
+    let monitors = collect_main_window_monitor_descriptors(main_window)?;
+    let target_monitor = resolve_main_window_monitor_selection(
+        &monitors,
+        monitor_name,
+        monitor_width,
+        monitor_height,
+    )
+    .ok_or_else(|| String::from("No monitors available"))?;
+
+    let current_inner_size = main_window
+        .inner_size()
+        .map_err(|error| error.to_string())?;
+    let current_window_scale = main_window
+        .scale_factor()
+        .map_err(|error| error.to_string())?
+        .max(0.0001);
+
+    let monitor_scale = target_monitor.scale_factor.max(0.0001);
+    let monitor_logical_width = target_monitor.size.width as f64 / monitor_scale;
+    let monitor_logical_height = target_monitor.size.height as f64 / monitor_scale;
+    let window_logical_width = current_inner_size.width as f64 / current_window_scale;
+    let window_logical_height = current_inner_size.height as f64 / current_window_scale;
+
+    let target_logical_x =
+        target_monitor.position.x as f64 + ((monitor_logical_width - window_logical_width) / 2.0);
+    let target_logical_y =
+        target_monitor.position.y as f64 + ((monitor_logical_height - window_logical_height) / 2.0);
+
+    main_window
+        .set_position(Position::Logical(LogicalPosition::new(
+            target_logical_x.round(),
+            target_logical_y.round(),
+        )))
+        .map_err(|error| error.to_string())?;
+    std::thread::sleep(Duration::from_millis(MAIN_WINDOW_MOVE_SETTLE_MS));
+    main_window
+        .set_size(Size::Physical(current_inner_size))
+        .map_err(|error| error.to_string())?;
+    main_window.set_focus().map_err(|error| error.to_string())?;
+
+    Ok(())
+}
+
 fn move_main_window_to_monitor(
     main_window: &tauri::WebviewWindow,
     monitor: &MonitorDescriptor,
@@ -989,42 +1326,85 @@ fn move_main_window_to_monitor(
     let current_size = main_window
         .outer_size()
         .map_err(|error| error.to_string())?;
+    let current_scale = main_window
+        .scale_factor()
+        .map_err(|error| error.to_string())?
+        .max(0.0001);
     let width = current_size.width as i32;
     let height = current_size.height as i32;
+    let (target_x, target_y) = top_center_position_for_monitor(monitor, width, height);
+    let source_monitor_scale = main_window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+        .map(|current_monitor| current_monitor.scale_factor())
+        .unwrap_or(current_scale)
+        .max(0.0001);
 
-    let scale = monitor.scale_factor.max(0.0001);
-    let monitor_logical_x = monitor.position.x as f64;
-    let monitor_logical_y = monitor.position.y as f64;
-    let monitor_logical_width = monitor.size.width as f64 / scale;
-    let window_logical_width = current_size.width as f64 / scale;
-    let logical_x = monitor_logical_x + ((monitor_logical_width - window_logical_width) / 2.0);
-    let logical_y = monitor_logical_y;
+    // 1) Force-enter the target monitor using logical origin coordinates.
+    set_main_window_position_and_settle(
+        main_window,
+        Position::Logical(LogicalPosition::new(
+            monitor.position.x as f64 + 8.0,
+            monitor.position.y as f64,
+        )),
+    )?;
 
-    main_window
-        .set_position(Position::Logical(LogicalPosition::new(
-            logical_x.round(),
-            logical_y.round(),
-        )))
-        .map_err(|error| error.to_string())?;
-
-    std::thread::sleep(Duration::from_millis(50));
-    let moved_inside_target = main_window
-        .outer_position()
-        .map(|position| {
-            let center_x = position.x + (current_size.width as i32 / 2);
-            let center_y = position.y + (current_size.height as i32 / 2);
-            monitor_contains_point(monitor, center_x, center_y)
-        })
-        .unwrap_or(false);
-
-    if moved_inside_target {
-        return Ok(());
+    // 2) If still not on target, try centered logical placement based on source scale.
+    if !main_window_is_on_monitor(main_window, monitor) {
+        let (logical_x, logical_y) = top_center_logical_position_for_monitor(
+            monitor,
+            current_size.width,
+            source_monitor_scale,
+        );
+        set_main_window_position_and_settle(
+            main_window,
+            Position::Logical(LogicalPosition::new(logical_x.round(), logical_y.round())),
+        )?;
     }
 
-    let (x, y) = top_center_position_for_monitor(monitor, width, height);
-    main_window
-        .set_position(Position::Physical(PhysicalPosition::new(x, y)))
-        .map_err(|error| error.to_string())
+    // 3) Physical fallback with direct monitor geometry.
+    if !main_window_is_on_monitor(main_window, monitor) {
+        set_main_window_position_and_settle(
+            main_window,
+            Position::Physical(PhysicalPosition::new(target_x, target_y)),
+        )?;
+    }
+
+    // 4) Physical fallback assuming monitor origin is reported in source-monitor points.
+    if !main_window_is_on_monitor(main_window, monitor) {
+        let scaled_origin_x = (monitor.position.x as f64 * source_monitor_scale).round() as i32;
+        let scaled_origin_y = (monitor.position.y as f64 * source_monitor_scale).round() as i32;
+        let scaled_target_x = scaled_origin_x + ((monitor.size.width as i32 - width) / 2);
+        set_main_window_position_and_settle(
+            main_window,
+            Position::Physical(PhysicalPosition::new(scaled_target_x, scaled_origin_y)),
+        )?;
+    }
+
+    if !main_window_is_on_monitor(main_window, monitor) {
+        return Err(String::from(
+            "Unable to move main window to selected monitor",
+        ));
+    }
+
+    // Once we are on target, center with target scale to avoid mixed-DPI drift.
+    let (final_logical_x, final_logical_y) =
+        top_center_logical_position_for_monitor(monitor, current_size.width, monitor.scale_factor);
+    set_main_window_position_and_settle(
+        main_window,
+        Position::Logical(LogicalPosition::new(
+            final_logical_x.round(),
+            final_logical_y.round(),
+        )),
+    )?;
+
+    if !main_window_is_on_monitor(main_window, monitor) {
+        return Err(String::from(
+            "Main window moved away from selected monitor during centering",
+        ));
+    }
+
+    Ok(())
 }
 
 fn resolve_monitor_for_point_or_primary(
@@ -1274,11 +1654,25 @@ mod tests {
         height: u32,
         primary: bool,
     ) -> MonitorDescriptor {
+        make_monitor_with_scale(id, name, x, y, width, height, 1.0, primary)
+    }
+
+    fn make_monitor_with_scale(
+        id: &str,
+        name: &str,
+        x: i32,
+        y: i32,
+        width: u32,
+        height: u32,
+        scale_factor: f64,
+        primary: bool,
+    ) -> MonitorDescriptor {
         MonitorDescriptor {
             id: id.to_string(),
             name: name.to_string(),
             position: PhysicalPosition::new(x, y),
             size: PhysicalSize::new(width, height),
+            scale_factor,
             primary,
         }
     }
@@ -1425,16 +1819,61 @@ mod tests {
     }
 
     #[test]
-    fn test_position_helpers_compute_top_center_and_main_window_positions() {
+    fn test_top_center_position_helper_computes_expected_coordinates() {
         let monitor = make_monitor("id-a", "Display A", 100, 200, 1920, 1080, true);
         assert_eq!(
             top_center_position_for_monitor(&monitor, 1000, 400),
             (560, 200)
         );
+    }
+
+    #[test]
+    fn test_top_center_logical_position_helper_handles_mixed_scale() {
+        let monitor = make_monitor_with_scale("id-a", "Display A", 1470, 0, 2940, 1912, 2.0, true);
+        let (logical_x, logical_y) = top_center_logical_position_for_monitor(&monitor, 1120, 2.0);
+
+        assert_eq!(logical_x.round() as i32, 1925);
+        assert_eq!(logical_y.round() as i32, 0);
+    }
+
+    #[test]
+    fn test_top_center_logical_position_uses_current_window_scale_factor() {
+        let external_monitor =
+            make_monitor_with_scale("id-b", "Display B", 1470, 0, 1920, 1080, 1.0, false);
+        let (logical_x, logical_y) =
+            top_center_logical_position_for_monitor(&external_monitor, 2400, 2.0);
+
+        assert_eq!(logical_x.round() as i32, 1830);
+        assert_eq!(logical_y.round() as i32, 0);
+    }
+
+    #[test]
+    fn test_center_x_error_detects_drift_for_correction_pass() {
+        let target_x = 735;
+        let window_width = 1120;
+        let drifted_x = 760;
         assert_eq!(
-            main_window_position_for_monitor(&monitor, 1200, 900),
-            (460, 200)
+            center_x_error_from_target(drifted_x, window_width, target_x),
+            -25
         );
+    }
+
+    #[test]
+    fn test_window_center_is_on_monitor_detects_monitor_mismatch_for_fallback() {
+        let target_monitor = make_monitor("id-a", "Display A", 0, 0, 1920, 1080, true);
+        let other_monitor_position = PhysicalPosition::new(2200, 120);
+        let window_size = PhysicalSize::new(1200, 800);
+
+        assert!(!window_center_is_on_monitor(
+            &target_monitor,
+            other_monitor_position,
+            window_size
+        ));
+        assert!(window_center_is_on_monitor(
+            &target_monitor,
+            PhysicalPosition::new(100, 80),
+            window_size
+        ));
     }
 
     #[test]

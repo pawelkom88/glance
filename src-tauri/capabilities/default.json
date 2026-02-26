@@ -8,6 +8,17 @@
   ],
   "permissions": [
     "core:default",
+    {
+      "identifier": "core:default",
+      "allow": [
+        {
+          "commands": [
+            "get_monitors",
+            "move_window_to_monitor"
+          ]
+        }
+      ]
+    },
     "dialog:default",
     "global-shortcut:default",
     "shell:default",

@@ -162,6 +162,7 @@ fn main() {
                 _log_guard: guard,
             });
             create_overlay_window_if_missing(app.handle())?;
+            register_main_window_ready_hooks(app.handle());
 
             Ok(())
         })
@@ -184,8 +185,11 @@ fn main() {
             commands::register_default_shortcuts,
             commands::set_overlay_always_on_top,
             commands::list_monitors,
+            commands::get_monitors,
+            commands::get_main_window_current_monitor,
             commands::move_overlay_to_monitor,
             commands::move_main_to_monitor,
+            commands::move_window_to_monitor,
             commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
             commands::export_diagnostics
