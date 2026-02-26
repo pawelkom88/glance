@@ -36,6 +36,18 @@
       --easing: cubic-bezier(0.16, 1, 0.3, 1);
       --shadow-diffused: 0 40px 100px rgba(0, 0, 0, 0.12);
       --shadow-window: 0 20px 60px rgba(0, 0, 0, 0.2);
+      --fs-display: clamp(3rem, 2.357rem + 3.214vw, 5.25rem);
+      --fs-h1: clamp(3rem, 2.571rem + 2.143vw, 4.5rem);
+      --fs-h2: clamp(1.875rem, 1.554rem + 1.607vw, 3rem);
+      --fs-h3: clamp(1.5rem, 1.357rem + 0.714vw, 2rem);
+      --fs-body-lg: clamp(1.25rem, 1.179rem + 0.357vw, 1.5rem);
+      --fs-body: clamp(1rem, 0.964rem + 0.179vw, 1.125rem);
+      --fs-small: clamp(0.875rem, 0.857rem + 0.089vw, 0.9375rem);
+      --fs-caption: clamp(0.6875rem, 0.652rem + 0.179vw, 0.8125rem);
+      --space-hero-top: clamp(7.5rem, 7.143rem + 1.786vw, 8.75rem);
+      --space-hero-bottom: clamp(3rem, 2.429rem + 2.857vw, 5rem);
+      --space-section-y: clamp(4rem, 3.429rem + 2.857vw, 6rem);
+      --space-section-emphasis: clamp(5rem, 4.429rem + 2.857vw, 7rem);
     }
 
     * {
@@ -116,7 +128,7 @@
 
     .nav-links a {
       color: var(--text-2);
-      font-size: 14px;
+      font-size: var(--fs-small);
       text-decoration: none;
       transition: color 0.2s;
     }
@@ -138,8 +150,8 @@
 
     /* ─── HERO ─── */
     .hero {
-      padding-top: 140px;
-      padding-bottom: 80px;
+      padding-top: var(--space-hero-top);
+      padding-bottom: var(--space-hero-bottom);
       text-align: center;
       overflow: hidden;
     }
@@ -152,7 +164,7 @@
       border: 1px solid rgba(0, 122, 255, 0.1);
       border-radius: 980px;
       font-weight: 600;
-      font-size: 11px;
+      font-size: var(--fs-caption);
       margin-bottom: 32px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -187,11 +199,15 @@
     }
 
     .headline {
-      font-size: clamp(48px, 9vw, 84px);
+      font-size: var(--fs-display);
       font-weight: 700;
       line-height: 1.05;
       margin-bottom: 24px;
       position: relative;
+    }
+
+    .section:nth-of-type(6) .headline {
+      font-size: var(--fs-h1);
     }
 
     .cursive-blue {
@@ -214,7 +230,7 @@
     }
 
     .subhead {
-      font-size: clamp(20px, 3vw, 24px);
+      font-size: var(--fs-body-lg);
       color: var(--text-2);
       max-width: 720px;
       margin: 0 auto 52px;
@@ -241,7 +257,7 @@
     }
 
     .cta-caption {
-      font-size: 13px;
+      font-size: var(--fs-caption);
       color: var(--text-2);
       opacity: 0.7;
     }
@@ -344,7 +360,7 @@
       margin-bottom: 8px;
       color: #1D1D1F;
       font-family: 'Instrument Serif', serif;
-      font-size: 21px;
+      font-size: var(--fs-body-lg);
       font-weight: 400;
       line-height: 1.2;
       letter-spacing: -0.2px;
@@ -353,7 +369,7 @@
     .install-security-description {
       max-width: 760px;
       color: #6e6e73;
-      font-size: 14px;
+      font-size: var(--fs-small);
       line-height: 1.68;
       font-weight: 300;
     }
@@ -368,7 +384,7 @@
       padding: 9px 17px;
       color: #1D1D1F;
       text-decoration: none;
-      font-size: 13.5px;
+      font-size: var(--fs-caption);
       font-weight: 500;
       line-height: 1.2;
       transition: all 0.2s ease;
@@ -615,7 +631,7 @@
     .install-security-platform-label {
       margin-bottom: 4px;
       color: #1D1D1F;
-      font-size: 11px;
+      font-size: var(--fs-caption);
       font-weight: 500;
       line-height: 1.2;
       text-transform: uppercase;
@@ -624,7 +640,7 @@
 
     .install-security-platform-description {
       color: #6e6e73;
-      font-size: 12.5px;
+      font-size: var(--fs-caption);
       line-height: 1.55;
       font-weight: 300;
     }
@@ -636,7 +652,7 @@
 
     @media (max-width: 850px) {
       .hero {
-        padding-bottom: 20px;
+        padding-bottom: var(--space-hero-bottom);
       }
 
       .install-security-block {
@@ -694,12 +710,12 @@
     }
 
     .btn-text {
-      font-size: 17px;
+      font-size: var(--fs-body);
       font-weight: 600;
     }
 
     .btn-subtext {
-      font-size: 11px;
+      font-size: var(--fs-caption);
       opacity: 0.7;
       margin-top: 2px;
       font-weight: 400;
@@ -771,11 +787,11 @@
 
     /* ─── DYNAMIC FEATURES ─── */
     .section {
-      padding: 100px 0;
+      padding: var(--space-section-y) 0;
     }
 
     .section-title {
-      font-size: clamp(32px, 5vw, 48px);
+      font-size: var(--fs-h2);
       font-weight: 700;
       text-align: center;
       margin-bottom: 80px;
@@ -844,7 +860,7 @@
     }
 
     .card-num {
-      font-size: 11px;
+      font-size: var(--fs-caption);
       font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -867,9 +883,9 @@
       color: #007AFF;
     }
 
-    .card h2 {
+    .card h3 {
       font-family: 'Instrument Serif', serif;
-      font-size: 28px;
+      font-size: var(--fs-h3);
       font-weight: 400;
       line-height: 1.1;
       letter-spacing: -0.3px;
@@ -877,7 +893,7 @@
     }
 
     .card p {
-      font-size: 16px;
+      font-size: var(--fs-body);
       font-weight: 300;
       line-height: 1.65;
       color: #747485;
@@ -1135,12 +1151,12 @@
     }
 
     .feature-content h2 {
-      font-size: 48px;
+      font-size: var(--fs-h2);
       margin-bottom: 24px;
     }
 
     .feature-content p {
-      font-size: 16px;
+      font-size: var(--fs-body);
       color: var(--text-2);
       margin-bottom: 32px;
     }
@@ -1149,7 +1165,7 @@
     .audience {
       background: #F3F1EE;
       color: #fff;
-      padding: 160px 0;
+      padding: var(--space-section-emphasis) 0;
       margin: 0;
       border-radius: 0;
       box-shadow: none;
@@ -1161,7 +1177,7 @@
       justify-content: center;
       gap: 12px;
       color: #1D1D1F;
-      font-size: 11px;
+      font-size: var(--fs-caption);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.2em;
@@ -1178,7 +1194,7 @@
 
     .audience .section-title {
       font-family: 'Times New Roman', serif;
-      font-size: clamp(48px, 6vw, 72px);
+      font-size: var(--fs-h1);
       font-weight: 400;
       line-height: 1.1;
       margin-bottom: 24px;
@@ -1221,7 +1237,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 11px;
+      font-size: var(--fs-caption);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
@@ -1236,14 +1252,14 @@
 
     .aud-card h3 {
       font-family: 'Times New Roman', serif;
-      font-size: 32px;
+      font-size: var(--fs-h3);
       font-weight: 400;
       margin-bottom: 24px;
       color: #1D1D1F;
     }
 
     .aud-card p {
-      font-size: 15px;
+      font-size: var(--fs-body);
       color: #1D1D1F;
       line-height: 1.6;
       margin-bottom: 40px;
@@ -1256,7 +1272,7 @@
     }
 
     .aud-card li {
-      font-size: 15px;
+      font-size: var(--fs-body);
       margin-bottom: 12px;
       display: flex;
       align-items: center;
@@ -1335,7 +1351,7 @@
     }
 
     .dl-btn-row .btn-title {
-      font-size: 17px;
+      font-size: var(--fs-body);
       font-weight: 600;
       display: block;
     }
@@ -1349,7 +1365,7 @@
     }
 
     .dl-btn-row .btn-sub {
-      font-size: 11px;
+      font-size: var(--fs-caption);
       font-weight: 400;
       display: block;
       margin-top: 2px;
@@ -1373,7 +1389,7 @@
     }
 
     .cta-note {
-      font-size: 12px;
+      font-size: var(--fs-caption);
       font-weight: 300;
       color: #747485;
       text-align: center;
@@ -1386,7 +1402,7 @@
       background: #fafaf8;
       color: #1D1D1F;
       font-family: inherit;
-      font-size: 12px;
+      font-size: var(--fs-caption);
       font-weight: 500;
       line-height: 1.25;
       padding: 3px 10px;
@@ -1425,7 +1441,7 @@
       text-align: left;
       background: #000;
       color: #fff;
-      padding: 160px 0;
+      padding: var(--space-section-emphasis) 0;
     }
 
     .privacy-container {
@@ -1465,7 +1481,7 @@
 
     .privacy-eyebrow {
       color: rgba(255, 255, 255, 0.5);
-      font-size: 11px;
+      font-size: var(--fs-caption);
       font-weight: 600;
       letter-spacing: 0.2em;
       text-transform: uppercase;
@@ -1473,7 +1489,7 @@
 
     .privacy-title {
       font-family: 'Times New Roman', serif;
-      font-size: clamp(54px, 8vw, 84px);
+      font-size: var(--fs-h1);
       font-weight: 400;
       line-height: 1.05;
       margin-bottom: 24px;
@@ -1489,7 +1505,7 @@
     }
 
     .privacy-description {
-      font-size: 16px;
+      font-size: var(--fs-body);
       line-height: 1.6;
       color: rgba(255, 255, 255, 0.6);
       max-width: 480px;
@@ -1513,7 +1529,7 @@
       background: #111;
       padding: 8px 16px;
       border-radius: 980px;
-      font-size: 13px;
+      font-size: var(--fs-caption);
       font-weight: 500;
       display: flex;
       align-items: center;
@@ -1636,13 +1652,13 @@
       border-top: 1px solid rgba(0, 0, 0, 0.05);
       text-align: center;
       color: var(--text-2);
-      font-size: 14px;
+      font-size: var(--fs-small);
     }
 
     @media (max-width: 850px) {
 
       .privacy {
-        padding: 80px 0;
+        padding: var(--space-section-emphasis) 0;
       }
 
       .privacy-container {
@@ -1666,7 +1682,7 @@
       }
 
       .privacy-title {
-        font-size: 48px;
+        font-size: var(--fs-h1);
         line-height: 1.1;
       }
 
@@ -1725,7 +1741,7 @@
       }
 
       .section {
-        padding: 60px 0;
+        padding: var(--space-section-y) 0;
       }
 
       .hero-bg-text {
@@ -1761,7 +1777,7 @@
       }
 
       .audience {
-        padding: 80px 0;
+        padding: var(--space-section-emphasis) 0;
         border-radius: 0;
       }
 
@@ -1769,6 +1785,126 @@
         width: 100%;
       }
 
+    }
+
+    .cookie-banner-minimal {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+
+      width: calc(100% - 48px);
+      max-width: 860px;
+
+      background: #1D1D1F;
+      border-radius: 16px;
+      padding: 18px 24px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+
+      /* Entrance animation */
+      animation: cookieSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Hidden state */
+    .cookie-banner-minimal.hidden {
+      display: none;
+    }
+
+    .cookie-minimal-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--bg-2);
+      line-height: 1.5;
+    }
+
+    .cookie-minimal-text strong {
+      color: var(--bg-2);
+      font-weight: 400;
+    }
+
+    .cookie-minimal-text a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+      transition: border-color 0.15s;
+    }
+
+    .cookie-minimal-text a:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .cookie-minimal-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .cookie-btn-accept {
+      background: #fff;
+      color: #1D1D1F;
+      border: none;
+      border-radius: 100px;
+      padding: 9px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .cookie-btn-accept:hover {
+      background: #F0EDE6;
+      transform: translateY(-1px);
+    }
+
+    .cookie-btn-decline {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 100px;
+      padding: 9px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .cookie-btn-decline:hover {
+      color: rgba(255, 255, 255, 0.75);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    @keyframes cookieSlideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .cookie-banner-minimal {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        bottom: 16px;
+        padding: 18px 20px;
+      }
     }
   </style>
 </head>
@@ -1829,7 +1965,8 @@
           <div class="cta-caption dl-win-caption">No cloud access.</div>
         </div>
       </div>
-      <p style="margin-top: 24px; color: var(--text-2); font-size: 14px;">100% Free · No Subscription · Private & Local
+      <p style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-small);">100% Free · No Subscription ·
+        Private & Local
       </p>
 
       <div class="install-security-block">
@@ -1970,26 +2107,26 @@
       <div class="cards-grid">
         <div class="card card-1">
           <span class="card-num">01</span>
-          <h2>Trust breaks instantly.</h2>
+          <h3>Trust breaks instantly.</h3>
           <p>Eye contact is the most powerful signal of confidence. Looking at a second monitor kills that advantage.
           </p>
 
         </div>
         <div class="card card-2">
           <span class="card-num">02</span>
-          <h2>Switching is visible.</h2>
+          <h3>Switching is visible.</h3>
           <p>The "screen glow" change and eye-tracking movement is obvious to anyone on the other end.</p>
 
         </div>
         <div class="card card-3">
           <span class="card-num">03</span>
-          <h2>Panic sets in.</h2>
+          <h3>Panic sets in.</h3>
           <p>Fumbling for your place in a script during a live call leads to "umms," "ahhs," and lost momentum.</p>
 
         </div>
         <div class="card card-4">
           <span class="card-num">04</span>
-          <h2>The Glance Edge.</h2>
+          <h3>The Glance Edge.</h3>
           <p>Maintain consistent eye contact while delivering your pitch flawlessly.</p>
 
         </div>
@@ -2003,7 +2140,7 @@
       <div class="feature-row reveal">
         <div class="feature-content">
           <span
-            style="color:var(--blue); font-weight:600; font-size:14px; text-transform:uppercase; margin-bottom:12px; display:block">Simple
+            style="color:var(--blue); font-weight:600; font-size:var(--fs-small); text-transform:uppercase; margin-bottom:12px; display:block">Simple
             Workflow</span>
           <h2>Write Markdown. <br>Get Sections.</h2>
           <p>Organize your script with simple # headers. Glance automatically splits your script into named sections
@@ -2027,7 +2164,7 @@
       <div class="feature-row reveal">
         <div class="feature-content">
           <span
-            style="color:var(--gold); font-weight:600; font-size:14px; text-transform:uppercase; margin-bottom:12px; display:block">Interactive
+            style="color:var(--gold); font-weight:600; font-size:var(--fs-small); text-transform:uppercase; margin-bottom:12px; display:block">Interactive
             Control</span>
           <h2>Stay on track, <br>effortlessly.</h2>
           <p>Focus on one line at a time. Adjust transparency, font size, and scroll speed with subtle keyboard
@@ -2166,7 +2303,7 @@
   </section>
 
   <!-- FINAL CTA -->
-  <section class="section" style="text-align:center; padding: 100px 0;">
+  <section class="section" style="text-align:center; padding: var(--space-section-y) 0;">
     <div class="container reveal">
       <h2 class="headline">Ready to look <br>more confident?</h2>
       <div class="btn-group">
@@ -2439,6 +2576,95 @@
         });
       }
     });
+  </script>
+
+  <div id="cookie-banner" class="cookie-banner-minimal" aria-live="polite" role="dialog" aria-label="Cookie consent">
+    <p class="cookie-minimal-text">
+      <strong>Cookies.</strong> We use basic analytics to understand how Glance is discovered. No personal data.
+      <a href="/privacy">Privacy Policy →</a>
+    </p>
+    <div class="cookie-minimal-actions">
+      <button id="cookie-decline" class="cookie-btn-decline">Decline</button>
+      <button id="cookie-accept" class="cookie-btn-accept">Accept</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+
+      const STORAGE_KEY = 'glance_cookie_consent';
+      const MIXPANEL_TOKEN = 'YOUR_MIXPANEL_TOKEN';
+
+      const banner = document.getElementById('cookie-banner');
+      const btnAccept = document.getElementById('cookie-accept');
+      const btnDecline = document.getElementById('cookie-decline');
+
+      // ── Mixpanel loader ──────────────────────────────────
+      function loadMixpanel() {
+        (function (f, b) { if (!b.__SV) { var e, g, i, h; window.mixpanel = b; b._i = []; b.init = function (e, f, c) { function g(a, d) { var b = d.split("."); 2 == b.length && (a = a[b[0]], d = b[1]); a[d] = function () { a.push([d].concat(Array.prototype.slice.call(arguments, 0))) } } var a = b; "undefined" !== typeof c ? a = b[c] = [] : c = "mixpanel"; a.people = a.people || []; a.toString = function (a) { var d = "mixpanel"; "mixpanel" !== c && (d += "." + c); a || (d += " (stub)"); return d }; a.people.toString = function () { return a.toString(1) + ".people (stub)" }; i = "disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" "); for (h = 0; h < i.length; h++)g(a, i[h]); var j = "set set_once union unset remove delete".split(" "); a.get_group = function () { function b(c) { d[c] = function () { call2_args = arguments; call2 = [c].concat(Array.prototype.slice.call(call2_args, 0)); a.push([e, call2]) } } for (var d = {}, c = 0; c < j.length; c++)b(j[c]); return d }; b._i.push([e, f, c]) }; b.__SV = 1.2; e = f.createElement("script"); e.type = "text/javascript"; e.async = !0; e.src = "https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js"; h = f.getElementsByTagName("script")[0]; h.parentNode.insertBefore(e, h) } })(document, window.mixpanel || []);
+
+        mixpanel.init(MIXPANEL_TOKEN, {
+          track_pageview: true,
+          persistence: 'localStorage'
+        });
+
+        mixpanel.track('Page Viewed', {
+          page: window.location.pathname
+        });
+
+        // Track download clicks
+        const trackDownload = (platform) => {
+          mixpanel.track('Download Clicked', {
+            platform: platform,
+            page: window.location.pathname
+          });
+        };
+
+        document.querySelectorAll('.dl-win-btn').forEach(btn => {
+          btn.addEventListener('click', () => trackDownload('Windows'));
+        });
+
+        document.querySelectorAll('.dl-mac-btn').forEach(btn => {
+          btn.addEventListener('click', () => trackDownload('macOS'));
+        });
+      }
+
+      // ── Dismiss banner ───────────────────────────────────
+      function dismissBanner() {
+        banner.style.animation = 'none';
+        banner.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateX(-50%) translateY(10px)';
+        setTimeout(() => banner.classList.add('hidden'), 260);
+      }
+
+      // ── Check existing consent ───────────────────────────
+      const existing = localStorage.getItem(STORAGE_KEY);
+
+      if (existing === 'accepted') {
+        loadMixpanel();
+        banner.classList.add('hidden');
+        return;
+      }
+
+      if (existing === 'declined') {
+        banner.classList.add('hidden');
+        return;
+      }
+
+      // ── No prior decision — show banner ──────────────────
+      btnAccept.addEventListener('click', function () {
+        localStorage.setItem(STORAGE_KEY, 'accepted');
+        loadMixpanel();
+        dismissBanner();
+      });
+
+      btnDecline.addEventListener('click', function () {
+        localStorage.setItem(STORAGE_KEY, 'declined');
+        dismissBanner();
+      });
+
+    })();
   </script>
 </body>
 
