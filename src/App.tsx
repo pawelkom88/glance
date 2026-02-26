@@ -8,6 +8,7 @@ import { LibraryView } from './components/library-view';
 import { OverlayPrompter } from './components/overlay-prompter';
 import { SettingsView } from './components/settings-view';
 import { PrivacyGate } from './components/privacy-gate';
+import { useAppReady } from './hooks/useAppReady';
 import { parseMarkdown } from './lib/markdown';
 import {
   closeOverlayWindow,
@@ -160,6 +161,7 @@ export default function App() {
   const tabSwitchTimeoutRef = useRef<number | null>(null);
   const themeTransitionTimeoutRef = useRef<number | null>(null);
   const hasAppliedInitialThemeRef = useRef(false);
+  const markAppReady = useAppReady();
 
   const initialized = useAppStore((state) => state.initialized);
   const sessions = useAppStore((state) => state.sessions);
@@ -185,10 +187,35 @@ export default function App() {
   const syncSystemTheme = useAppStore((state) => state.syncSystemTheme);
 
   const sections = useMemo(() => parseMarkdown(markdown).sections, [markdown]);
+  const hasStartupContentReady = isOverlay || initialized;
 
   useEffect(() => {
     void loadInitialState();
   }, [loadInitialState]);
+
+  useEffect(() => {
+    if (!hasStartupContentReady || typeof window === 'undefined') {
+      return;
+    }
+
+    let firstFrameId: number | null = null;
+    let secondFrameId: number | null = null;
+
+    firstFrameId = window.requestAnimationFrame(() => {
+      secondFrameId = window.requestAnimationFrame(() => {
+        markAppReady();
+      });
+    });
+
+    return () => {
+      if (firstFrameId !== null) {
+        window.cancelAnimationFrame(firstFrameId);
+      }
+      if (secondFrameId !== null) {
+        window.cancelAnimationFrame(secondFrameId);
+      }
+    };
+  }, [hasStartupContentReady, markAppReady]);
 
   useEffect(() => {
     if (typeof document === 'undefined') {

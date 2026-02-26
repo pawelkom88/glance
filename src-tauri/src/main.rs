@@ -5,10 +5,16 @@ mod sessions;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_updater::UpdaterExt;
+
+const APP_READY_EVENT: &str = "app_ready";
+const MAIN_WINDOW_LABEL: &str = "main";
+const MAIN_WINDOW_SHOW_FALLBACK_MS: u64 = 3000;
 
 pub struct AppState {
     pub sessions_root: PathBuf,
@@ -41,6 +47,42 @@ fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String
         .map_err(|error: tauri::Error| error.to_string())?;
 
     Ok(())
+}
+
+fn show_main_window(app: &tauri::AppHandle) {
+    let Some(main_window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
+        return;
+    };
+
+    let _ = main_window.show();
+    let _ = main_window.set_focus();
+}
+
+fn register_main_window_ready_hooks(app: &tauri::AppHandle) {
+    let has_shown_main_window = Arc::new(AtomicBool::new(false));
+
+    let event_window_flag = Arc::clone(&has_shown_main_window);
+    let event_window_handle = app.clone();
+    app.listen(APP_READY_EVENT, move |_| {
+        if event_window_flag
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok()
+        {
+            show_main_window(&event_window_handle);
+        }
+    });
+
+    let fallback_window_flag = Arc::clone(&has_shown_main_window);
+    let fallback_window_handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(MAIN_WINDOW_SHOW_FALLBACK_MS));
+        if fallback_window_flag
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok()
+        {
+            show_main_window(&fallback_window_handle);
+        }
+    });
 }
 
 async fn check_update(app: tauri::AppHandle) {

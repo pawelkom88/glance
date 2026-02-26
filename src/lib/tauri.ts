@@ -495,6 +495,14 @@ export async function emitThemeChanged(mode: ThemeMode): Promise<void> {
   await emit<ThemeChangedPayload>('glance-theme-changed', { mode });
 }
 
+export async function emitAppReady(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await emit('app_ready');
+}
+
 export async function listenForThemeChanged(
   onThemeChanged: (payload: ThemeChangedPayload) => void
 ): Promise<() => void> {
