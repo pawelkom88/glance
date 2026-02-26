@@ -34,6 +34,7 @@ pub struct DetectedMonitor {
     pub name: String,
     pub width: u32,
     pub height: u32,
+    pub composite_key: String,
     pub display_name: String,
     pub scale_factor: f64,
     pub is_primary: bool,
@@ -317,24 +318,17 @@ pub fn show_main_window(saved_monitor_key: Option<String>, app: AppHandle) -> Re
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
 
-    if let Some((monitor_name, monitor_width, monitor_height)) = saved_monitor_key
+    if let Some(monitor_selection) = saved_monitor_key
         .as_deref()
         .and_then(parse_monitor_selection_key)
     {
+        let monitor_key = monitor_selection.to_key();
         normalize_main_window_state(&main_window)?;
-        move_main_window_to_monitor_selection(
-            &main_window,
-            monitor_name.as_str(),
-            monitor_width,
-            monitor_height,
-        )?;
+        let selected_monitor =
+            move_main_window_to_monitor_selection(&main_window, monitor_key.as_str())?;
         set_saved_main_monitor_key(
             &app,
-            Some(monitor_composite_key(
-                monitor_name.as_str(),
-                monitor_width,
-                monitor_height,
-            )),
+            Some(monitor_descriptor_selection_key(&selected_monitor)),
         );
     }
 
@@ -432,7 +426,42 @@ pub fn get_monitors(app: AppHandle) -> Result<Vec<DetectedMonitor>, String> {
     let main_window = app
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
-    let monitors = collect_main_window_monitor_descriptors(&main_window)?;
+    let raw_available_monitors = main_window
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+    let primary_monitor = app.primary_monitor().map_err(|error| error.to_string())?;
+    let current_monitor = main_window
+        .current_monitor()
+        .map_err(|error| error.to_string())?;
+
+    if monitor_debug_enabled() {
+        monitor_debug_log("[get_monitors] raw available_monitors:");
+        if raw_available_monitors.is_empty() {
+            monitor_debug_log("  <empty>");
+        } else {
+            for (index, monitor) in raw_available_monitors.iter().enumerate() {
+                monitor_debug_log(format_monitor_debug_line(index, monitor));
+            }
+        }
+
+        monitor_debug_log("[get_monitors] primary_monitor:");
+        monitor_debug_log(format_single_monitor_debug_line(primary_monitor.as_ref()));
+
+        monitor_debug_log("[get_monitors] current_monitor:");
+        monitor_debug_log(format_single_monitor_debug_line(current_monitor.as_ref()));
+    }
+
+    let mut monitors = collect_monitor_descriptors(&app)?;
+    monitors.sort_by(|left, right| {
+        if left.primary != right.primary {
+            return right.primary.cmp(&left.primary);
+        }
+
+        left.position
+            .x
+            .cmp(&right.position.x)
+            .then(left.position.y.cmp(&right.position.y))
+    });
 
     let detected = monitors
         .iter()
@@ -444,6 +473,7 @@ pub fn get_monitors(app: AppHandle) -> Result<Vec<DetectedMonitor>, String> {
 
             DetectedMonitor {
                 name: monitor.name.clone(),
+                composite_key: monitor_descriptor_selection_key(monitor),
                 display_name: resolve_display_name(monitor.name.as_str(), index),
                 width: monitor.size.width,
                 height: monitor.size.height,
@@ -456,6 +486,28 @@ pub fn get_monitors(app: AppHandle) -> Result<Vec<DetectedMonitor>, String> {
             }
         })
         .collect::<Vec<_>>();
+
+    if monitor_debug_enabled() {
+        monitor_debug_log("[get_monitors] merged result (after dedup + sort):");
+        if detected.is_empty() {
+            monitor_debug_log("  <empty>");
+        } else {
+            for (index, monitor) in detected.iter().enumerate() {
+                monitor_debug_log(format!(
+                    "  [{index}] name=\"{}\" physical={}x{} scale={:.4} pos={},{} logical={}x{} key=\"{}\"",
+                    monitor.name,
+                    monitor.width,
+                    monitor.height,
+                    monitor.scale_factor,
+                    monitor.position_x,
+                    monitor.position_y,
+                    monitor.logical_width.round() as i32,
+                    monitor.logical_height.round() as i32,
+                    monitor.composite_key
+                ));
+            }
+        }
+    }
 
     Ok(detected)
 }
@@ -585,43 +637,29 @@ pub fn move_main_to_monitor(monitor_name: String, app: AppHandle) -> Result<(), 
 
     normalize_main_window_state(&main_window)?;
     move_main_window_to_monitor(&main_window, &monitor)?;
-    set_saved_main_monitor_key(
-        &app,
-        Some(monitor_composite_key(
-            monitor.name.as_str(),
-            monitor.size.width,
-            monitor.size.height,
-        )),
-    );
+    set_saved_main_monitor_key(&app, Some(monitor_descriptor_selection_key(&monitor)));
     Ok(())
 }
 
 #[tauri::command]
-pub fn move_window_to_monitor(
-    monitor_name: String,
-    monitor_width: u32,
-    monitor_height: u32,
-    app: AppHandle,
-) -> Result<(), String> {
+pub fn move_window_to_monitor(monitor_key: String, app: AppHandle) -> Result<(), String> {
     let main_window = app
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
 
-    normalize_main_window_state(&main_window)?;
-    move_main_window_to_monitor_selection(
-        &main_window,
-        monitor_name.as_str(),
-        monitor_width,
-        monitor_height,
-    )?;
+    if monitor_debug_enabled() {
+        monitor_debug_log(format!(
+            "[move_window_to_monitor] target composite_key=\"{}\"",
+            monitor_key
+        ));
+    }
 
+    normalize_main_window_state(&main_window)?;
+    let selected_monitor =
+        move_main_window_to_monitor_selection(&main_window, monitor_key.as_str())?;
     set_saved_main_monitor_key(
         &app,
-        Some(monitor_composite_key(
-            monitor_name.as_str(),
-            monitor_width,
-            monitor_height,
-        )),
+        Some(monitor_descriptor_selection_key(&selected_monitor)),
     );
 
     Ok(())
@@ -640,10 +678,13 @@ pub fn check_and_notify_monitor_change(
 
     let monitor_name = monitor_label(&current_monitor);
     let monitor_size = *current_monitor.size();
+    let monitor_position = *current_monitor.position();
     let composite_key = monitor_composite_key(
         monitor_name.as_str(),
         monitor_size.width,
         monitor_size.height,
+        monitor_position.x,
+        monitor_position.y,
     );
 
     let saved_key = read_saved_main_monitor_key(app);
@@ -651,13 +692,14 @@ pub fn check_and_notify_monitor_change(
         return Ok(());
     }
 
-    let monitors = collect_main_window_monitor_descriptors(window)?;
+    let monitors = collect_monitor_descriptors(app)?;
     let monitor_index = monitors
         .iter()
         .position(|monitor| {
             monitor.name == monitor_name
                 && monitor.size.width == monitor_size.width
                 && monitor.size.height == monitor_size.height
+                && monitor.position == monitor_position
         })
         .unwrap_or(0);
 
@@ -772,8 +814,37 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
     }
 }
 
-fn monitor_composite_key(name: &str, width: u32, height: u32) -> String {
-    format!("{name}|{width}x{height}")
+fn monitor_composite_key(
+    name: &str,
+    width: u32,
+    height: u32,
+    position_x: i32,
+    position_y: i32,
+) -> String {
+    format!("{name}|{width}x{height}|{position_x},{position_y}")
+}
+
+fn monitor_debug_enabled() -> bool {
+    if cfg!(debug_assertions) {
+        return true;
+    }
+
+    std::env::var("GLANCE_MONITOR_DEBUG")
+        .ok()
+        .is_some_and(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+}
+
+fn monitor_debug_log(message: impl AsRef<str>) {
+    if !monitor_debug_enabled() {
+        return;
+    }
+
+    println!("{}", message.as_ref());
 }
 
 fn is_windows_device_path(name: &str) -> bool {
@@ -809,6 +880,34 @@ fn monitor_label(monitor: &Monitor) -> String {
         .unwrap_or_else(|| String::from("Unnamed Monitor"))
 }
 
+fn format_monitor_debug_line(index: usize, monitor: &Monitor) -> String {
+    let name = monitor_label(monitor);
+    let position = monitor.position();
+    let size = monitor.size();
+    let scale = monitor.scale_factor().max(0.0001);
+    let logical_width = (size.width as f64 / scale).round() as i32;
+    let logical_height = (size.height as f64 / scale).round() as i32;
+
+    format!(
+        "  [{index}] name=\"{}\" physical={}x{} scale={:.4} pos={},{} logical={}x{}",
+        name, size.width, size.height, scale, position.x, position.y, logical_width, logical_height
+    )
+}
+
+fn format_single_monitor_debug_line(monitor: Option<&Monitor>) -> String {
+    let Some(monitor) = monitor else {
+        return String::from("  <none>");
+    };
+
+    let name = monitor_label(monitor);
+    let size = monitor.size();
+    let scale = monitor.scale_factor().max(0.0001);
+    format!(
+        "  name=\"{}\" physical={}x{} scale={:.4}",
+        name, size.width, size.height, scale
+    )
+}
+
 #[derive(Debug, Clone)]
 struct MonitorDescriptor {
     id: String,
@@ -819,6 +918,30 @@ struct MonitorDescriptor {
     primary: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct MonitorSelection {
+    name: String,
+    width: u32,
+    height: u32,
+    position_x: Option<i32>,
+    position_y: Option<i32>,
+}
+
+impl MonitorSelection {
+    fn to_key(&self) -> String {
+        match (self.position_x, self.position_y) {
+            (Some(position_x), Some(position_y)) => monitor_composite_key(
+                self.name.as_str(),
+                self.width,
+                self.height,
+                position_x,
+                position_y,
+            ),
+            _ => format!("{}|{}x{}", self.name, self.width, self.height),
+        }
+    }
+}
+
 fn monitor_key(monitor: &Monitor) -> String {
     let label = monitor_label(monitor);
     let position = monitor.position();
@@ -827,6 +950,16 @@ fn monitor_key(monitor: &Monitor) -> String {
     format!(
         "{}|{}:{}|{}x{}|sf:{:.4}",
         label, position.x, position.y, size.width, size.height, scale
+    )
+}
+
+fn monitor_descriptor_selection_key(monitor: &MonitorDescriptor) -> String {
+    monitor_composite_key(
+        monitor.name.as_str(),
+        monitor.size.width,
+        monitor.size.height,
+        monitor.position.x,
+        monitor.position.y,
     )
 }
 
@@ -848,30 +981,30 @@ fn monitor_geometry_key(position: PhysicalPosition<i32>, size: PhysicalSize<u32>
 }
 
 fn collect_tauri_monitors(app: &AppHandle) -> Result<Vec<Monitor>, String> {
-    let mut all_monitors = app
-        .available_monitors()
-        .map_err(|error| error.to_string())?;
+    let main_window = app.get_webview_window("main");
+    let mut all_monitors = if let Some(main_window) = &main_window {
+        main_window
+            .available_monitors()
+            .map_err(|error| error.to_string())?
+    } else {
+        app.available_monitors()
+            .map_err(|error| error.to_string())?
+    };
 
-    if let Some(main) = app.get_webview_window("main") {
-        if let Ok(monitors) = main.available_monitors() {
-            all_monitors.extend(monitors);
-        }
-        if let Ok(Some(monitor)) = main.current_monitor() {
-            all_monitors.push(monitor);
-        }
-    }
-
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        if let Ok(monitors) = overlay.available_monitors() {
-            all_monitors.extend(monitors);
-        }
-        if let Ok(Some(monitor)) = overlay.current_monitor() {
-            all_monitors.push(monitor);
-        }
-    }
-
+    // Work around tao macOS monitor enumeration quirks by merging multiple sources.
+    // `available_monitors` can be context-sensitive; primary/current help preserve
+    // stable coverage for the monitor currently hosting the window and the primary display.
     if let Some(primary) = app.primary_monitor().map_err(|error| error.to_string())? {
         all_monitors.push(primary);
+    }
+
+    if let Some(main_window) = &main_window {
+        if let Some(current) = main_window
+            .current_monitor()
+            .map_err(|error| error.to_string())?
+        {
+            all_monitors.push(current);
+        }
     }
 
     let mut deduped = HashMap::<String, Monitor>::new();
@@ -925,6 +1058,20 @@ unsafe extern "C" {
 fn monitor_matches_identifier(monitor: &MonitorDescriptor, target: &str) -> bool {
     if monitor.id == target || monitor.name == target {
         return true;
+    }
+
+    if let Some(selection) = parse_monitor_selection_key(target) {
+        let is_size_match =
+            monitor.size.width == selection.width && monitor.size.height == selection.height;
+        if !is_size_match {
+            return false;
+        }
+
+        if let (Some(position_x), Some(position_y)) = (selection.position_x, selection.position_y) {
+            return monitor.position.x == position_x && monitor.position.y == position_y;
+        }
+
+        return monitor.name == selection.name;
     }
 
     let Some((x, y, width, height)) = parse_monitor_geometry_from_key(target) else {
@@ -1017,49 +1164,6 @@ fn collect_monitor_descriptors(app: &AppHandle) -> Result<Vec<MonitorDescriptor>
 
     let mut monitors = unique.into_values().collect::<Vec<_>>();
     monitors.sort_by_key(|monitor| (monitor.position.x, monitor.position.y));
-    Ok(monitors)
-}
-
-fn collect_main_window_monitor_descriptors(
-    main_window: &tauri::WebviewWindow,
-) -> Result<Vec<MonitorDescriptor>, String> {
-    let primary = main_window
-        .primary_monitor()
-        .map_err(|error| error.to_string())?;
-    let primary_position = primary.as_ref().map(|monitor| *monitor.position());
-    let primary_size = primary.as_ref().map(|monitor| *monitor.size());
-
-    let mut deduped = HashMap::<String, MonitorDescriptor>::new();
-    for monitor in main_window
-        .available_monitors()
-        .map_err(|error| error.to_string())?
-    {
-        let position = *monitor.position();
-        let size = *monitor.size();
-        let key = monitor_geometry_key(position, size);
-
-        deduped.entry(key).or_insert_with(|| MonitorDescriptor {
-            id: monitor_key(&monitor),
-            name: monitor.name().cloned().unwrap_or_default(),
-            position,
-            size,
-            scale_factor: monitor.scale_factor(),
-            primary: primary_position.is_some_and(|value| value == position)
-                && primary_size.is_some_and(|value| value == size),
-        });
-    }
-
-    let mut monitors = deduped.into_values().collect::<Vec<_>>();
-    monitors.sort_by(|left, right| {
-        if left.primary != right.primary {
-            return right.primary.cmp(&left.primary);
-        }
-
-        left.position
-            .x
-            .cmp(&right.position.x)
-            .then(left.position.y.cmp(&right.position.y))
-    });
 
     let mut fallback_index = 1_u32;
     for monitor in &mut monitors {
@@ -1138,27 +1242,72 @@ fn find_monitor_by_id_or_label(
         .cloned()
 }
 
-fn parse_monitor_selection_key(value: &str) -> Option<(String, u32, u32)> {
+fn parse_monitor_selection_key(value: &str) -> Option<MonitorSelection> {
     fn parse_size_segment(value: &str) -> Option<(u32, u32)> {
         let (width, height) = value.split_once('x')?;
         Some((width.trim().parse().ok()?, height.trim().parse().ok()?))
     }
 
-    if let Some((name, size_segment)) = value.rsplit_once('|') {
-        if !name.trim().is_empty() {
-            if let Some((width, height)) = parse_size_segment(size_segment) {
-                return Some((name.to_string(), width, height));
+    fn parse_position_segment(value: &str) -> Option<(i32, i32)> {
+        let (x, y) = value.split_once(',')?;
+        Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
+    }
+
+    fn parse_runtime_position_segment(value: &str) -> Option<(i32, i32)> {
+        let (x, y) = value.split_once(':')?;
+        Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
+    }
+
+    if let Some((prefix, position_segment)) = value.rsplit_once('|') {
+        if let Some((position_x, position_y)) = parse_position_segment(position_segment) {
+            if let Some((name, size_segment)) = prefix.rsplit_once('|') {
+                if !name.trim().is_empty() {
+                    if let Some((width, height)) = parse_size_segment(size_segment) {
+                        return Some(MonitorSelection {
+                            name: name.to_string(),
+                            width,
+                            height,
+                            position_x: Some(position_x),
+                            position_y: Some(position_y),
+                        });
+                    }
+                }
             }
         }
     }
 
-    let legacy_parts = value.split('|').collect::<Vec<_>>();
-    if legacy_parts.len() >= 3 {
-        let size_index = legacy_parts.len() - 2;
-        if let Some((width, height)) = parse_size_segment(legacy_parts[size_index]) {
-            let name = legacy_parts[..size_index].join("|");
-            if !name.trim().is_empty() {
-                return Some((name, width, height));
+    if let Some((name, size_segment)) = value.rsplit_once('|') {
+        if !name.trim().is_empty() {
+            if let Some((width, height)) = parse_size_segment(size_segment) {
+                return Some(MonitorSelection {
+                    name: name.to_string(),
+                    width,
+                    height,
+                    position_x: None,
+                    position_y: None,
+                });
+            }
+        }
+    }
+
+    let parts = value.split('|').collect::<Vec<_>>();
+    if parts.len() >= 4 {
+        let size_index = parts.len() - 2;
+        if let Some((width, height)) = parse_size_segment(parts[size_index]) {
+            let runtime_position_index = size_index - 1;
+            if let Some((position_x, position_y)) =
+                parse_runtime_position_segment(parts[runtime_position_index])
+            {
+                let name = parts[..runtime_position_index].join("|");
+                if !name.trim().is_empty() {
+                    return Some(MonitorSelection {
+                        name,
+                        width,
+                        height,
+                        position_x: Some(position_x),
+                        position_y: Some(position_y),
+                    });
+                }
             }
         }
     }
@@ -1257,8 +1406,7 @@ fn position_window_on_monitor(
     let window_logical_width = inner_size.width as f64 / window_scale;
     let window_logical_height = inner_size.height as f64 / window_scale;
 
-    let target_x =
-        monitor_logical_x + (monitor_logical_width / 2.0) - (window_logical_width / 2.0);
+    let target_x = monitor_logical_x + (monitor_logical_width / 2.0) - (window_logical_width / 2.0);
     let target_y = if pin_to_top {
         monitor_logical_y
     } else {
@@ -1356,40 +1504,66 @@ fn set_main_window_position_and_settle(
 
 fn resolve_main_window_monitor_selection(
     monitors: &[MonitorDescriptor],
-    monitor_name: &str,
-    monitor_width: u32,
-    monitor_height: u32,
+    monitor_selection: Option<&MonitorSelection>,
+    monitor_identifier: &str,
 ) -> Option<MonitorDescriptor> {
+    if let Some(selection) = monitor_selection {
+        if let (Some(position_x), Some(position_y)) = (selection.position_x, selection.position_y) {
+            if let Some(found) = monitors.iter().find(|monitor| {
+                monitor.name == selection.name
+                    && monitor.size.width == selection.width
+                    && monitor.size.height == selection.height
+                    && monitor.position.x == position_x
+                    && monitor.position.y == position_y
+            }) {
+                return Some(found.clone());
+            }
+
+            if let Some(found) = monitors.iter().find(|monitor| {
+                monitor.size.width == selection.width
+                    && monitor.size.height == selection.height
+                    && monitor.position.x == position_x
+                    && monitor.position.y == position_y
+            }) {
+                return Some(found.clone());
+            }
+        }
+
+        if let Some(found) = monitors.iter().find(|monitor| {
+            monitor.name == selection.name
+                && monitor.size.width == selection.width
+                && monitor.size.height == selection.height
+        }) {
+            return Some(found.clone());
+        }
+
+        if let Some(found) = monitors
+            .iter()
+            .find(|monitor| monitor.name == selection.name)
+            .cloned()
+        {
+            return Some(found);
+        }
+    }
+
     monitors
         .iter()
-        .find(|monitor| {
-            monitor.name == monitor_name
-                && monitor.size.width == monitor_width
-                && monitor.size.height == monitor_height
-        })
+        .find(|monitor| monitor_matches_identifier(monitor, monitor_identifier))
         .cloned()
-        .or_else(|| {
-            monitors
-                .iter()
-                .find(|monitor| monitor.name == monitor_name)
-                .cloned()
-        })
         .or_else(|| monitors.iter().find(|monitor| monitor.primary).cloned())
         .or_else(|| monitors.first().cloned())
 }
 
 fn move_main_window_to_monitor_selection(
     main_window: &tauri::WebviewWindow,
-    monitor_name: &str,
-    monitor_width: u32,
-    monitor_height: u32,
-) -> Result<(), String> {
-    let monitors = collect_main_window_monitor_descriptors(main_window)?;
+    monitor_identifier: &str,
+) -> Result<MonitorDescriptor, String> {
+    let monitors = collect_monitor_descriptors(&main_window.app_handle())?;
+    let parsed_selection = parse_monitor_selection_key(monitor_identifier);
     let target_monitor = resolve_main_window_monitor_selection(
         &monitors,
-        monitor_name,
-        monitor_width,
-        monitor_height,
+        parsed_selection.as_ref(),
+        monitor_identifier,
     )
     .ok_or_else(|| String::from("No monitors available"))?;
 
@@ -1411,11 +1585,44 @@ fn move_main_window_to_monitor_selection(
         target_monitor.position.x as f64 + ((monitor_logical_width - window_logical_width) / 2.0);
     let target_logical_y =
         target_monitor.position.y as f64 + ((monitor_logical_height - window_logical_height) / 2.0);
+    let rounded_x = target_logical_x.round();
+    let rounded_y = target_logical_y.round();
+
+    if monitor_debug_enabled() {
+        monitor_debug_log(format!(
+            "[move_window_to_monitor] matched monitor: name=\"{}\" pos={},{} size={}x{} scale={:.4}",
+            target_monitor.name,
+            target_monitor.position.x,
+            target_monitor.position.y,
+            target_monitor.size.width,
+            target_monitor.size.height,
+            target_monitor.scale_factor
+        ));
+        monitor_debug_log(format!(
+            "[move_window_to_monitor] window current logical size: {}x{}",
+            window_logical_width.round() as i32,
+            window_logical_height.round() as i32
+        ));
+        monitor_debug_log(format!(
+            "[move_window_to_monitor] computed target LogicalPosition: x={}+({}-{})/2={}, y={}+({}-{})/2={}",
+            target_monitor.position.x,
+            monitor_logical_width.round() as i32,
+            window_logical_width.round() as i32,
+            rounded_x as i32,
+            target_monitor.position.y,
+            monitor_logical_height.round() as i32,
+            window_logical_height.round() as i32,
+            rounded_y as i32
+        ));
+        monitor_debug_log(format!(
+            "[move_window_to_monitor] calling set_position(LogicalPosition {{ x: {}, y: {} }})",
+            rounded_x as i32, rounded_y as i32
+        ));
+    }
 
     main_window
         .set_position(Position::Logical(LogicalPosition::new(
-            target_logical_x.round(),
-            target_logical_y.round(),
+            rounded_x, rounded_y,
         )))
         .map_err(|error| error.to_string())?;
     std::thread::sleep(Duration::from_millis(MAIN_WINDOW_MOVE_SETTLE_MS));
@@ -1424,7 +1631,7 @@ fn move_main_window_to_monitor_selection(
         .map_err(|error| error.to_string())?;
     main_window.set_focus().map_err(|error| error.to_string())?;
 
-    Ok(())
+    Ok(target_monitor)
 }
 
 fn move_main_window_to_monitor(
@@ -1841,6 +2048,42 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_monitor_selection_key_supports_new_legacy_and_runtime_formats() {
+        assert_eq!(
+            parse_monitor_selection_key("Display A|3024x1964|0,0"),
+            Some(MonitorSelection {
+                name: String::from("Display A"),
+                width: 3024,
+                height: 1964,
+                position_x: Some(0),
+                position_y: Some(0),
+            })
+        );
+
+        assert_eq!(
+            parse_monitor_selection_key("Display B|1920x1080"),
+            Some(MonitorSelection {
+                name: String::from("Display B"),
+                width: 1920,
+                height: 1080,
+                position_x: None,
+                position_y: None,
+            })
+        );
+
+        assert_eq!(
+            parse_monitor_selection_key("Display C|3840:0|1920x1080|sf:1.0000"),
+            Some(MonitorSelection {
+                name: String::from("Display C"),
+                width: 1920,
+                height: 1080,
+                position_x: Some(3840),
+                position_y: Some(0),
+            })
+        );
+    }
+
+    #[test]
     fn test_monitor_matches_identifier_by_id_name_and_geometry() {
         let monitor = make_monitor(
             "Display A|0:0|1920x1080|sf:2.0000",
@@ -1882,6 +2125,31 @@ mod tests {
         assert_eq!(by_geometry.id, "id-b");
 
         assert!(find_monitor_by_id_or_label(&monitors, "Missing").is_none());
+    }
+
+    #[test]
+    fn test_resolve_main_window_monitor_selection_prefers_position_when_available() {
+        let monitors = vec![
+            make_monitor("id-a", "Display A", 0, 0, 1920, 1080, true),
+            make_monitor("id-b", "Display B", 1920, 0, 1920, 1080, false),
+            make_monitor("id-c", "Display B", 3840, 0, 1920, 1080, false),
+        ];
+
+        let parsed = MonitorSelection {
+            name: String::from("Display B"),
+            width: 1920,
+            height: 1080,
+            position_x: Some(3840),
+            position_y: Some(0),
+        };
+
+        let selected = resolve_main_window_monitor_selection(
+            &monitors,
+            Some(&parsed),
+            parsed.to_key().as_str(),
+        )
+        .unwrap();
+        assert_eq!(selected.id, "id-c");
     }
 
     #[test]
