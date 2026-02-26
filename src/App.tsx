@@ -413,12 +413,13 @@ export default function App() {
             void createSessionWithName(name);
             switchTab('editor');
           }}
-          onDelete={(id) => {
-            void deleteSessionById(id);
+          onDelete={(id, notify = true) => {
+            void deleteSessionById(id, notify);
           }}
           onImport={() => {
             importInputRef.current?.click();
           }}
+          showToast={showToast}
         />
       );
     }

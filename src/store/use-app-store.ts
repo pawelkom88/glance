@@ -52,7 +52,7 @@ interface AppStoreState {
   readonly loadInitialState: () => Promise<void>;
   readonly createSessionWithName: (name: string) => Promise<void>;
   readonly duplicateSessionById: (id: string) => Promise<void>;
-  readonly deleteSessionById: (id: string) => Promise<void>;
+  readonly deleteSessionById: (id: string, notify?: boolean) => Promise<void>;
   readonly importMarkdown: (name: string, markdown: string) => Promise<void>;
   readonly exportSessionById: (id: string, targetPath: string, notify?: boolean) => Promise<string | null>;
   readonly openSession: (id: string) => Promise<void>;
@@ -319,7 +319,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
     },
 
-    deleteSessionById: async (id: string) => {
+    deleteSessionById: async (id: string, notify = true) => {
       try {
         await deleteSession(id);
         const sessions = await listSessions();
@@ -349,7 +349,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           }
         }
 
-        get().showToast('Session deleted', 'success');
+        if (notify) {
+          get().showToast('Session deleted', 'success');
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to delete session';
         get().showToast(message, 'error');

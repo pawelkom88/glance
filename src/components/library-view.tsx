@@ -6,8 +6,9 @@ interface LibraryViewProps {
   readonly activeSessionId: string | null;
   readonly onOpen: (id: string) => void;
   readonly onCreate: (name: string) => void;
-  readonly onDelete: (id: string) => void;
+  readonly onDelete: (id: string, notify?: boolean) => void;
   readonly onImport: () => void;
+  readonly showToast: (message: string, variant?: any) => void;
 }
 
 function defaultSessionName(): string {
@@ -35,6 +36,14 @@ function TrashIcon() {
       <path d="M39,9a2,2,0,0,0-2,2V43H11V11a2,2,0,0,0-4,0V45a2,2,0,0,0,2,2H39a2,2,0,0,0,2-2V11A2,2,0,0,0,39,9Z" />
       <path d="M21,37V19a2,2,0,0,0-4,0V37a2,2,0,0,0,4,0Z" />
       <path d="M31,37V19a2,2,0,0,0-4,0V37a2,2,0,0,0,4,0Z" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="100%" height="100%">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
@@ -75,7 +84,8 @@ export function LibraryView(props: LibraryViewProps) {
     onOpen,
     onCreate,
     onDelete,
-    onImport
+    onImport,
+    showToast
   } = props;
 
   const [draftSessionName, setDraftSessionName] = useState(defaultSessionName());
@@ -85,6 +95,17 @@ export function LibraryView(props: LibraryViewProps) {
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const [isDeleteDialogClosing, setIsDeleteDialogClosing] = useState(false);
   const [exitingSessionIds, setExitingSessionIds] = useState<Set<string>>(new Set());
+
+  // Bulk selection state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
+  const [bulkExitingIds, setBulkExitingIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isBulkDeleteConfirmClosing, setIsBulkDeleteConfirmClosing] = useState(false);
+  const [lastDeletedCount, setLastDeletedCount] = useState(0);
+
+  const longPressTimerRef = useRef<number | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const deleteTimeoutsRef = useRef<Record<string, number>>({});
   const closeDeleteDialogTimeoutRef = useRef<number | null>(null);
@@ -96,7 +117,31 @@ export function LibraryView(props: LibraryViewProps) {
   const cancelDeleteRef = useRef<HTMLButtonElement | null>(null);
   const confirmDeleteRef = useRef<HTMLButtonElement | null>(null);
 
+  const [pulsingCardId, setPulsingCardId] = useState<string | null>(null);
+
   const deleteCandidate = sessions.find((session) => session.id === deleteCandidateId) ?? null;
+
+  const toggleSelection = (sessionId: string) => {
+    setSelectedSessionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedSessionIds(new Set(sessions.map(s => s.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedSessionIds(new Set());
+  };
+
+  const isAllSelected = sessions.length > 0 && selectedSessionIds.size === sessions.length;
 
   const createFromDraft = () => {
     const name = draftSessionName.trim();
@@ -142,6 +187,12 @@ export function LibraryView(props: LibraryViewProps) {
       if (closeComposerTimeoutRef.current !== null) {
         window.clearTimeout(closeComposerTimeoutRef.current);
       }
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+      }
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
 
       Object.values(deleteTimeoutsRef.current).forEach((timeoutId) => {
         window.clearTimeout(timeoutId);
@@ -179,6 +230,56 @@ export function LibraryView(props: LibraryViewProps) {
       return next;
     });
   }, [sessions]);
+
+  const handleBulkDelete = async () => {
+    if (selectedSessionIds.size === 0) return;
+
+    setLastDeletedCount(selectedSessionIds.size);
+    const idsToDelete = Array.from(selectedSessionIds);
+
+    // Staggered exit animation
+    for (let i = 0; i < idsToDelete.length; i++) {
+      const id = idsToDelete[i];
+      setBulkExitingIds((prev) => new Set(prev).add(id));
+      await new Promise((resolve) => setTimeout(resolve, 80)); // Stagger delay
+    }
+
+    // Wait for the last animation to complete
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Execute deletion
+    for (const id of idsToDelete) {
+      onDelete(id, false);
+    }
+
+    // Cleanup and exit selection mode
+    setBulkExitingIds(new Set());
+    setSelectedSessionIds(new Set());
+    setIsSelectionMode(false);
+
+    // Show success toast via prop
+    showToast(`${lastDeletedCount} sessions deleted`, 'success');
+  };
+
+  const startLongPress = (sessionId: string) => {
+    if (isSelectionMode) return;
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      setPulsingCardId(sessionId);
+      window.setTimeout(() => {
+        setIsSelectionMode(true);
+        setSelectedSessionIds(new Set([sessionId]));
+        setPulsingCardId(null);
+      }, 300); // Pulse duration
+    }, 500); // Long press threshold
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const deleteWithTransition = (sessionId: string) => {
     if (exitingSessionIds.has(sessionId)) {
@@ -250,38 +351,112 @@ export function LibraryView(props: LibraryViewProps) {
         <h2 className="sessions-title">Sessions</h2>
 
         <div className="sessions-header-actions">
-          <button
-            type="button"
-            className="sessions-import-button"
-            aria-label="Import Markdown"
-            onClick={onImport}
-          >
-            <span>↓ Import</span>
-          </button>
+          {!isSelectionMode ? (
+            <>
+              <button
+                type="button"
+                className="sessions-import-button"
+                aria-label="Import Markdown"
+                onClick={onImport}
+              >
+                <span>↓ Import</span>
+              </button>
 
-          <button
-            ref={newSessionButtonRef}
-            type="button"
-            className="sessions-new-button"
-            aria-expanded={isCreatingSession}
-            onClick={() => {
-              if (isCreatingSession) {
-                closeComposer(true);
-                return;
-              }
+              <button
+                ref={newSessionButtonRef}
+                type="button"
+                className="sessions-new-button"
+                aria-expanded={isCreatingSession}
+                onClick={() => {
+                  if (isCreatingSession) {
+                    closeComposer(true);
+                    return;
+                  }
 
-              startTransition(() => {
-                setIsComposerClosing(false);
-                setDraftSessionName(defaultSessionName());
-                setShowComposer(true);
-                setIsCreatingSession(true);
-              });
-            }}
-          >
-            <span>+ New Session</span>
-          </button>
+                  startTransition(() => {
+                    setIsComposerClosing(false);
+                    setDraftSessionName(defaultSessionName());
+                    setShowComposer(true);
+                    setIsCreatingSession(true);
+                  });
+                }}
+              >
+                <span>+ New Session</span>
+              </button>
+
+              {sessions.length > 1 && (
+                <button
+                  type="button"
+                  className="sessions-select-mode-button tertiary-button"
+                  onClick={() => setIsSelectionMode(true)}
+                  style={{
+                    background: 'transparent',
+                    color: 'var(--selection-blue)',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    padding: '7px 12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Select
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              type="button"
+              className="sessions-cancel-selection-button"
+              onClick={() => {
+                setIsSelectionMode(false);
+                setSelectedSessionIds(new Set());
+              }}
+              style={{
+                background: 'transparent',
+                color: 'var(--selection-blue)',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: '600',
+                padding: '7px 12px',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </header>
+
+      <div className={`select-all-row ${isSelectionMode ? 'is-visible' : ''}`}>
+        <div
+          className={`selection-checkbox ${isAllSelected ? 'is-checked' : ''}`}
+          onClick={() => {
+            if (isAllSelected) {
+              deselectAll();
+            } else {
+              selectAll();
+            }
+          }}
+        >
+          {isAllSelected && (
+            <div className="selection-checkbox-inner">
+              <CheckIcon />
+            </div>
+          )}
+        </div>
+        <span
+          className="select-all-label"
+          onClick={() => {
+            if (isAllSelected) {
+              deselectAll();
+            } else {
+              selectAll();
+            }
+          }}
+        >
+          {isAllSelected ? 'Deselect All' : 'Select All'}
+        </span>
+      </div>
 
       {showComposer ? (
         <div
@@ -337,35 +512,65 @@ export function LibraryView(props: LibraryViewProps) {
         </div>
       ) : null}
 
-      <div className="session-list">
+      <div className={`session-list ${isSelectionMode ? 'is-selection-mode' : ''}`}>
         {sessions.map((session) => (
           <article
             key={session.id}
-            className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''}`}
+            className={`session-card session-card-selectable 
+              ${activeSessionId === session.id ? 'active' : ''} 
+              ${exitingSessionIds.has(session.id) ? 'is-exiting' : ''} 
+              ${selectedSessionIds.has(session.id) ? 'is-selected' : ''}
+              ${pulsingCardId === session.id ? 'pulse-active' : ''}
+              ${bulkExitingIds.has(session.id) ? 'bulk-exiting' : ''}
+            `}
             role="button"
             tabIndex={0}
-            onClick={() => {
-              if (exitingSessionIds.has(session.id)) {
+            onMouseDown={() => startLongPress(session.id)}
+            onMouseUp={cancelLongPress}
+            onMouseLeave={cancelLongPress}
+            onTouchStart={() => startLongPress(session.id)}
+            onTouchEnd={cancelLongPress}
+            onClick={(e) => {
+              if (isSelectionMode) {
+                e.stopPropagation();
+                toggleSelection(session.id);
+                return;
+              }
+              if (exitingSessionIds.has(session.id) || bulkExitingIds.has(session.id)) {
                 return;
               }
               onOpen(session.id);
             }}
             onKeyDown={(event) => {
-              if (exitingSessionIds.has(session.id)) {
+              if (exitingSessionIds.has(session.id) || bulkExitingIds.has(session.id)) {
                 return;
               }
-              if (event.key === 'Enter') {
+              if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                onOpen(session.id);
-                return;
-              }
-
-              if (event.key === ' ') {
-                event.preventDefault();
-                onOpen(session.id);
+                if (isSelectionMode) {
+                  toggleSelection(session.id);
+                } else {
+                  onOpen(session.id);
+                }
               }
             }}
           >
+            <div className="card-checkbox-wrapper">
+              <div
+                className={`selection-checkbox ${selectedSessionIds.has(session.id) ? 'is-checked' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSelection(session.id);
+                }}
+              >
+                {selectedSessionIds.has(session.id) && (
+                  <div className="selection-checkbox-inner">
+                    <CheckIcon />
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="session-doc-icon" aria-hidden="true">
               <SessionDocIcon />
             </div>
@@ -374,24 +579,26 @@ export function LibraryView(props: LibraryViewProps) {
               <span>{formatUpdatedLabel(session.updatedAt)}</span>
             </div>
             <div className="session-card-end">
-              <span className="session-arrow" aria-hidden="true">›</span>
-              <div className="session-row-menu-wrap">
-                <button
-                  type="button"
-                  className="row-menu-button"
-                  aria-label={`Delete ${session.title}`}
-                  disabled={exitingSessionIds.has(session.id)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    startTransition(() => {
-                      setIsDeleteDialogClosing(false);
-                      setDeleteCandidateId(session.id);
-                    });
-                    modalRestoreFocusRef.current = event.currentTarget;
-                  }}
-                >
-                  <TrashIcon />
-                </button>
+              <div className="session-card-end-content">
+                <span className="session-arrow" aria-hidden="true">›</span>
+                <div className="session-row-menu-wrap">
+                  <button
+                    type="button"
+                    className="row-menu-button"
+                    aria-label={`Delete ${session.title}`}
+                    disabled={exitingSessionIds.has(session.id) || isSelectionMode}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startTransition(() => {
+                        setIsDeleteDialogClosing(false);
+                        setDeleteCandidateId(session.id);
+                      });
+                      modalRestoreFocusRef.current = event.currentTarget;
+                    }}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
               </div>
             </div>
           </article>
@@ -452,7 +659,7 @@ export function LibraryView(props: LibraryViewProps) {
               }
             }}
           >
-            <h3>Delete "{deleteCandidate.title}"?</h3>
+            <h3>Delete "{deleteCandidate.title}" ?</h3>
             <p>This cannot be undone.</p>
             <div className="confirm-actions">
               <button
@@ -480,6 +687,74 @@ export function LibraryView(props: LibraryViewProps) {
           </div>
         </div>
       ) : null}
+
+      <div className={`bottom-action-bar ${isSelectionMode ? 'is-visible' : ''}`}>
+        <div className={`selection-count ${selectedSessionIds.size > 0 ? 'is-visible' : ''}`}>
+          {selectedSessionIds.size} sessions selected
+        </div>
+        <button
+          type="button"
+          className={`bulk-delete-button ${selectedSessionIds.size > 0 ? 'is-visible' : ''}`}
+          disabled={selectedSessionIds.size === 0}
+          onClick={() => setShowBulkDeleteConfirm(true)}
+        >
+          <TrashIcon />
+          Delete {selectedSessionIds.size}
+        </button>
+      </div>
+
+      {showBulkDeleteConfirm && (
+        <div
+          className="confirm-backdrop"
+          data-state={isBulkDeleteConfirmClosing ? 'closing' : 'open'}
+          onClick={() => {
+            setIsBulkDeleteConfirmClosing(true);
+            setTimeout(() => {
+              setShowBulkDeleteConfirm(false);
+              setIsBulkDeleteConfirmClosing(false);
+            }, 140);
+          }}
+        >
+          <div
+            className="confirm-sheet"
+            data-state={isBulkDeleteConfirmClosing ? 'closing' : 'open'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Delete {selectedSessionIds.size} sessions ?</h3>
+            <p>This cannot be undone. All selected recordings and scripts will be permanently removed.</p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={() => {
+                  setIsBulkDeleteConfirmClosing(true);
+                  setTimeout(() => {
+                    setShowBulkDeleteConfirm(false);
+                    setIsBulkDeleteConfirmClosing(false);
+                  }, 140);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="danger-button"
+                onClick={() => {
+                  setIsBulkDeleteConfirmClosing(true);
+                  setTimeout(() => {
+                    setShowBulkDeleteConfirm(false);
+                    setIsBulkDeleteConfirmClosing(false);
+                    void handleBulkDelete();
+                  }, 140);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
