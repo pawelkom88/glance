@@ -787,8 +787,8 @@
       width: 76.4%;
       height: auto;
       border-radius: 20px;
-      overflow: hidden;
-      background: #000;
+      overflow: visible;
+      background: #fff;
       transition: transform 1.2s var(--easing), opacity 1.2s var(--easing);
       transform: rotateY(-12deg) rotateX(4deg) scale(0.96);
       opacity: 0;
@@ -803,6 +803,38 @@
       width: 100%;
       height: auto;
       display: block;
+    }
+
+    .video-camera-dot {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #34C759;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(52, 199, 89, 0.9), 0 0 20px rgba(52, 199, 89, 0.5);
+      z-index: 1000;
+      opacity: 0.95;
+      animation: camera-pulse 2.2s infinite ease-in-out;
+    }
+
+    @keyframes camera-pulse {
+      0% {
+        opacity: 0.4;
+        transform: translateX(-50%) scale(1);
+      }
+
+      50% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.2);
+      }
+
+      100% {
+        opacity: 0.4;
+        transform: translateX(-50%) scale(1);
+      }
     }
 
     /* ─── DYNAMIC FEATURES ─── */
@@ -1699,6 +1731,12 @@
 
     @media (max-width: 850px) {
 
+      .video-camera-dot {
+        top: -11px;
+        width: 5px;
+        height: 5px;
+      }
+
       .privacy {
         padding: var(--space-section-emphasis) 0;
       }
@@ -2148,6 +2186,7 @@
       <div class="hero-visual reveal">
         <img src="glance-mockup.png" alt="MacBook Mockup" class="mockup-frame">
         <div class="video-overlay">
+          <div class="video-camera-dot"></div>
           <video autoplay loop muted playsinline poster="poster.webp">
             <source src="GLANCE.webm" type="video/webm">
             <source src="GLANCE.mp4" type="video/mp4">
@@ -2292,6 +2331,31 @@
             <button type="button" class="mockup-trigger" data-dialog-image="Shortcuts.webp"
               data-dialog-alt="Interactive Control shortcuts preview" data-dialog-title="Interactive Control preview"
               aria-label="Open Interactive Control preview image" aria-haspopup="dialog"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row reveal">
+        <div class="feature-content">
+          <span
+            style="color:var(--green); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Guided
+            Setup</span>
+          <h2>Teleprompter Help, <br>Ready in 30 Seconds.</h2>
+          <p>Glance walks you through shortcuts, call flow, and section jumps in one clean Help screen. Everything
+            stays on your device - no account, no cloud, no friction before your first call.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="mac-window mockup-interactive">
+            <div class="window-bar">
+              <div class="dot dot-1"></div>
+              <div class="dot dot-2"></div>
+              <div class="dot dot-3"></div>
+            </div>
+            <img src="Help.webp" alt="Help screen with keyboard shortcuts and 5-step call flow" class="mockup-img">
+            <button type="button" class="mockup-trigger" data-dialog-image="Help.webp"
+              data-dialog-alt="Help screen with keyboard shortcuts and 5-step call flow"
+              data-dialog-title="Guided Setup preview" aria-label="Open Guided Setup preview image"
+              aria-haspopup="dialog"></button>
           </div>
         </div>
       </div>
