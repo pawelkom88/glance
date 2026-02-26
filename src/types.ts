@@ -80,6 +80,7 @@ export interface ShortcutEventPayload {
 
 export interface DetectedMonitor {
   readonly name: string;
+  readonly displayName: string;
   readonly width: number;
   readonly height: number;
   readonly scaleFactor: number;
@@ -88,6 +89,14 @@ export interface DetectedMonitor {
   readonly positionY: number;
   readonly logicalWidth: number;
   readonly logicalHeight: number;
+}
+
+export interface MonitorChangedPayload {
+  readonly name: string;
+  readonly displayName: string;
+  readonly width: number;
+  readonly height: number;
+  readonly compositeKey: string;
 }
 
 export interface MonitorInfo {

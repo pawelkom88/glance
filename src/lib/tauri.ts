@@ -10,6 +10,7 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { ShortcutBinding } from './shortcuts';
 import type {
   DetectedMonitor,
+  MonitorChangedPayload,
   MonitorInfo,
   OverlayBounds,
   ThemeMode,
@@ -585,6 +586,22 @@ export async function listenForMainWindowShown(onShown: () => void): Promise<() 
 
   const unlisten = await listen('main-window-shown', () => {
     onShown();
+  });
+
+  return () => {
+    unlisten();
+  };
+}
+
+export async function listenForMonitorChanged(
+  onChanged: (payload: MonitorChangedPayload) => void
+): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen<MonitorChangedPayload>('monitor_changed', (event) => {
+    onChanged(event.payload);
   });
 
   return () => {

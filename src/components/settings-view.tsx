@@ -7,7 +7,9 @@ import {
   getMonitors,
   getLastMainMonitorName,
   getOverlayAlwaysOnTopPreference,
+  listenForMonitorChanged,
   moveWindowToMonitor,
+  setLastMainMonitorName,
   registerShortcuts,
   setOverlayAlwaysOnTop,
   toMonitorPreferenceKey
@@ -23,7 +25,7 @@ import {
   validateShortcutConfig
 } from '../lib/shortcuts';
 import { useAppStore } from '../store/use-app-store';
-import type { DetectedMonitor, ThemeMode } from '../types';
+import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
 const jumpActions: readonly ShortcutActionId[] = [
@@ -121,20 +123,30 @@ function captureShortcutFromKeyboardEvent(event: ReactKeyboardEvent<HTMLInputEle
   return parts.join('+');
 }
 
-function normalizeDisplayName(name: string, position: number): string {
-  if (/^\\\\\./.test(name)) {
-    return `Display ${position + 1}`;
-  }
-  return name;
-}
-
 function toDisplayOptions(monitors: readonly DetectedMonitor[]): DisplayOption[] {
   return monitors.map((monitor, index) => ({
     ...monitor,
     key: toMonitorPreferenceKey(monitor.name, monitor.width, monitor.height),
-    displayName: normalizeDisplayName(monitor.name, index),
+    displayName: monitor.displayName || monitor.name || `Display ${index + 1}`,
     logicalResolutionLabel: `${Math.round(monitor.logicalWidth)} x ${Math.round(monitor.logicalHeight)}`
   }));
+}
+
+function toFallbackDisplayOption(payload: MonitorChangedPayload): DisplayOption {
+  return {
+    name: payload.name,
+    displayName: payload.displayName,
+    width: payload.width,
+    height: payload.height,
+    scaleFactor: 1,
+    isPrimary: false,
+    positionX: 0,
+    positionY: 0,
+    logicalWidth: payload.width,
+    logicalHeight: payload.height,
+    key: payload.compositeKey,
+    logicalResolutionLabel: `${payload.width} x ${payload.height}`
+  };
 }
 
 export function SettingsView() {
@@ -220,6 +232,69 @@ export function SettingsView() {
         setDisplayLoadError(true);
         setSelectedMonitor('');
       });
+  }, []);
+
+  useEffect(() => {
+    let isDisposed = false;
+    let unlisten: (() => void) | null = null;
+
+    void listenForMonitorChanged((payload) => {
+      if (isDisposed) {
+        return;
+      }
+
+      // Option A: keep monitor preference synced with the window's actual monitor.
+      setLastMainMonitorName(payload.compositeKey);
+      setSelectedMonitor(payload.compositeKey);
+
+      void getMonitors()
+        .then((items) => {
+          if (isDisposed) {
+            return;
+          }
+
+          const options = toDisplayOptions(items);
+          if (options.length > 0) {
+            setMonitors(options);
+            setDisplayLoadError(false);
+            if (options.some((option) => option.key === payload.compositeKey)) {
+              return;
+            }
+          }
+
+          const fallback = toFallbackDisplayOption(payload);
+          setMonitors((previous) => {
+            const withoutDuplicate = previous.filter((option) => option.key !== fallback.key);
+            return [...withoutDuplicate, fallback];
+          });
+          setDisplayLoadError(false);
+        })
+        .catch(() => {
+          if (isDisposed) {
+            return;
+          }
+
+          const fallback = toFallbackDisplayOption(payload);
+          setMonitors((previous) => {
+            const withoutDuplicate = previous.filter((option) => option.key !== fallback.key);
+            return [...withoutDuplicate, fallback];
+          });
+          setDisplayLoadError(false);
+        });
+    }).then((detach) => {
+      if (isDisposed) {
+        detach();
+        return;
+      }
+      unlisten = detach;
+    });
+
+    return () => {
+      isDisposed = true;
+      if (unlisten) {
+        unlisten();
+      }
+    };
   }, []);
 
   useEffect(() => {
