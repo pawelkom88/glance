@@ -2,9 +2,11 @@ import { availableMonitors, currentMonitor, primaryMonitor } from '@tauri-apps/a
 import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  getMonitors,
   listMonitors,
   moveMainToMonitor,
   moveOverlayToMonitor,
+  moveWindowToMonitor,
   openOverlayWindow,
   showMainWindow
 } from './tauri';
@@ -128,8 +130,54 @@ describe('tauri monitor bridge behavior', () => {
     await showMainWindow();
 
     expect(invokeMock).toHaveBeenCalledWith('show_main_window', {
-      savedMonitorName: 'saved-main-monitor'
+      savedMonitorKey: 'saved-main-monitor'
     });
+  });
+
+  it('getMonitors returns backend monitor metadata sorted primary-first', async () => {
+    invokeMock.mockResolvedValue([
+      {
+        name: '\\\\.\\DISPLAY2',
+        width: 1920,
+        height: 1080,
+        scaleFactor: 1,
+        isPrimary: false,
+        positionX: 1920,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      },
+      {
+        name: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      }
+    ]);
+
+    const monitors = await getMonitors();
+
+    expect(invokeMock).toHaveBeenCalledWith('get_monitors');
+    expect(monitors[0]?.isPrimary).toBe(true);
+    expect(monitors[1]?.positionX).toBe(1920);
+  });
+
+  it('moveWindowToMonitor calls new command and persists composite key', async () => {
+    invokeMock.mockResolvedValue(undefined);
+
+    await moveWindowToMonitor('Built-in Retina Display', 3024, 1964);
+
+    expect(invokeMock).toHaveBeenCalledWith('move_window_to_monitor', {
+      monitorName: 'Built-in Retina Display',
+      monitorWidth: 3024,
+      monitorHeight: 1964
+    });
+    expect(window.localStorage.getItem(mainMonitorKey)).toBe('Built-in Retina Display|3024x1964');
   });
 
   it('openOverlayWindow uses saved monitor+bounds and persists returned monitor id', async () => {

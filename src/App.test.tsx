@@ -6,29 +6,10 @@ import { useAppStore } from './store/use-app-store';
 import App from './App';
 
 let tauriRuntime = true;
-const currentMonitorMock = vi.fn();
-let movedListener: ((event: { payload: { x: number; y: number } }) => void) | null = null;
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
   isTauri: () => tauriRuntime
-}));
-
-vi.mock('@tauri-apps/api/window', () => ({
-  getCurrentWindow: () => ({
-    currentMonitor: currentMonitorMock,
-    onMoved: vi.fn((callback: (event: { payload: { x: number; y: number } }) => void) => {
-      movedListener = callback;
-      return Promise.resolve(() => undefined);
-    }),
-    outerPosition: vi.fn().mockResolvedValue({ x: 0, y: 0 }),
-    outerSize: vi.fn().mockResolvedValue({ width: 1200, height: 900 }),
-    onResized: vi.fn().mockResolvedValue(() => undefined),
-    onFocusChanged: vi.fn().mockResolvedValue(() => undefined),
-    isFocused: vi.fn().mockResolvedValue(true),
-    setPosition: vi.fn().mockResolvedValue(undefined),
-    setFocus: vi.fn().mockResolvedValue(undefined)
-  })
 }));
 
 vi.mock('./components/library-view', () => ({
@@ -63,17 +44,21 @@ vi.mock('./components/privacy-gate', () => ({
 vi.mock('./lib/tauri', () => ({
   closeOverlayWindow: vi.fn().mockResolvedValue(undefined),
   emitThemeChanged: vi.fn().mockResolvedValue(undefined),
+  getLastMainMonitorName: vi.fn().mockReturnValue(null),
   hideMainWindow: vi.fn().mockResolvedValue(undefined),
   listenForThemeChanged: vi.fn().mockResolvedValue(() => undefined),
   listenForMainWindowShown: vi.fn().mockResolvedValue(() => undefined),
+  moveWindowToMonitor: vi.fn().mockResolvedValue(undefined),
   openOverlayWindow: vi.fn().mockResolvedValue(null),
-  setLastMainMonitorName: vi.fn()
+  parseMonitorPreferenceKey: vi.fn().mockReturnValue(null)
 }));
 
 import * as tauriBridge from './lib/tauri';
 
 const tauriMock = tauriBridge as unknown as {
-  setLastMainMonitorName: ReturnType<typeof vi.fn>;
+  getLastMainMonitorName: ReturnType<typeof vi.fn>;
+  moveWindowToMonitor: ReturnType<typeof vi.fn>;
+  parseMonitorPreferenceKey: ReturnType<typeof vi.fn>;
 };
 
 const baseSession = {
@@ -107,13 +92,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   window.location.hash = '';
   tauriRuntime = true;
-  movedListener = null;
-  currentMonitorMock.mockResolvedValue({
-    name: 'Display A',
-    position: { x: 0, y: 0 },
-    size: { width: 1920, height: 1080 },
-    scaleFactor: 2
-  });
+  tauriMock.getLastMainMonitorName.mockReturnValue(null);
+  tauriMock.parseMonitorPreferenceKey.mockReturnValue(null);
+  tauriMock.moveWindowToMonitor.mockResolvedValue(undefined);
   resetStore();
 });
 
@@ -222,40 +203,34 @@ describe('App shell behavior', () => {
     });
   });
 
-  it('persists current monitor id when main window moves', async () => {
+  it('moves main window to saved monitor preference on startup', async () => {
+    tauriMock.getLastMainMonitorName.mockReturnValue('Built-in Retina Display|3024x1964');
+    tauriMock.parseMonitorPreferenceKey.mockReturnValue({
+      name: 'Built-in Retina Display',
+      width: 3024,
+      height: 1964
+    });
+
     render(<App />);
 
     await waitFor(() => {
-      expect(currentMonitorMock).toHaveBeenCalled();
-    });
-
-    act(() => {
-      movedListener?.({ payload: { x: 50, y: 80 } });
-    });
-
-    await waitFor(() => {
-      expect(tauriMock.setLastMainMonitorName).toHaveBeenCalledWith(
-        'Display A|0:0|1920x1080|sf:2.0000'
+      expect(tauriMock.moveWindowToMonitor).toHaveBeenCalledWith(
+        'Built-in Retina Display',
+        3024,
+        1964
       );
     });
   });
 
-  it('does not persist monitor id when monitor lookup fails', async () => {
-    currentMonitorMock.mockRejectedValue(new Error('monitor lookup failed'));
+  it('skips startup monitor move when saved preference cannot be parsed', async () => {
+    tauriMock.getLastMainMonitorName.mockReturnValue('invalid-key');
+    tauriMock.parseMonitorPreferenceKey.mockReturnValue(null);
 
     render(<App />);
 
     await waitFor(() => {
-      expect(currentMonitorMock).toHaveBeenCalled();
-    });
-
-    act(() => {
-      movedListener?.({ payload: { x: 5, y: 5 } });
-    });
-
-    await waitFor(() => {
       expect(screen.queryByText('Library Mock')).not.toBeNull();
     });
-    expect(tauriMock.setLastMainMonitorName).not.toHaveBeenCalled();
+    expect(tauriMock.moveWindowToMonitor).not.toHaveBeenCalled();
   });
 });

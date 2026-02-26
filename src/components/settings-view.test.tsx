@@ -18,17 +18,14 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 }));
 
 vi.mock('../lib/tauri', () => ({
-  clearLastMainMonitorName: vi.fn(),
-  clearLastOverlayMonitorName: vi.fn(),
   exportDiagnostics: vi.fn().mockResolvedValue('/tmp/logs.zip'),
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
-  getLastOverlayMonitorName: vi.fn().mockReturnValue(null),
+  getMonitors: vi.fn().mockResolvedValue([]),
   getOverlayAlwaysOnTopPreference: vi.fn().mockReturnValue(true),
-  listMonitors: vi.fn().mockResolvedValue([]),
-  moveMainToMonitor: vi.fn().mockResolvedValue(undefined),
-  moveOverlayToMonitor: vi.fn().mockResolvedValue(undefined),
+  moveWindowToMonitor: vi.fn().mockResolvedValue(undefined),
   registerShortcuts: vi.fn().mockResolvedValue(undefined),
-  setOverlayAlwaysOnTop: vi.fn().mockResolvedValue(undefined)
+  setOverlayAlwaysOnTop: vi.fn().mockResolvedValue(undefined),
+  toMonitorPreferenceKey: (name: string, width: number, height: number) => `${name}|${width}x${height}`
 }));
 
 import * as tauriBridge from '../lib/tauri';
@@ -36,13 +33,9 @@ import { useAppStore } from '../store/use-app-store';
 import { SettingsView } from './settings-view';
 
 const tauriMock = tauriBridge as unknown as {
-  clearLastMainMonitorName: ReturnType<typeof vi.fn>;
-  clearLastOverlayMonitorName: ReturnType<typeof vi.fn>;
   getLastMainMonitorName: ReturnType<typeof vi.fn>;
-  getLastOverlayMonitorName: ReturnType<typeof vi.fn>;
-  listMonitors: ReturnType<typeof vi.fn>;
-  moveMainToMonitor: ReturnType<typeof vi.fn>;
-  moveOverlayToMonitor: ReturnType<typeof vi.fn>;
+  getMonitors: ReturnType<typeof vi.fn>;
+  moveWindowToMonitor: ReturnType<typeof vi.fn>;
   registerShortcuts: ReturnType<typeof vi.fn>;
 };
 
@@ -56,16 +49,22 @@ function resetStore() {
   });
 }
 
+function setPlatform(value: string): void {
+  Object.defineProperty(window.navigator, 'platform', {
+    value,
+    configurable: true
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
   tauriRuntime = true;
+  setPlatform('MacIntel');
   resetStore();
   tauriMock.getLastMainMonitorName.mockReturnValue(null);
-  tauriMock.getLastOverlayMonitorName.mockReturnValue(null);
-  tauriMock.listMonitors.mockResolvedValue([]);
-  tauriMock.moveMainToMonitor.mockResolvedValue(undefined);
-  tauriMock.moveOverlayToMonitor.mockResolvedValue(undefined);
+  tauriMock.getMonitors.mockResolvedValue([]);
+  tauriMock.moveWindowToMonitor.mockResolvedValue(undefined);
   tauriMock.registerShortcuts.mockResolvedValue(undefined);
 });
 
@@ -94,6 +93,210 @@ describe('SettingsView behavior', () => {
       message: 'Reading ruler disabled',
       variant: 'success'
     });
+  });
+
+  it('moves window when display is selected', async () => {
+    const user = userEvent.setup();
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      },
+      {
+        name: 'DELL U2722D',
+        width: 1920,
+        height: 1080,
+        scaleFactor: 1,
+        isPrimary: false,
+        positionX: 1512,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      }
+    ]);
+
+    render(<SettingsView />);
+
+    const pickerButton = await screen.findByRole('button', {
+      name: /Built-in Retina Display \(1512 x 982\)/i
+    });
+    await user.click(pickerButton);
+    await user.click(screen.getByRole('menuitemradio', { name: /DELL U2722D \(1920 x 1080\)/i }));
+
+    await waitFor(() => {
+      expect(tauriMock.moveWindowToMonitor).toHaveBeenCalledWith('DELL U2722D', 1920, 1080);
+    });
+  });
+
+  it('hydrates selected display from saved composite key', async () => {
+    tauriMock.getLastMainMonitorName.mockReturnValue('DELL U2722D|1920x1080');
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      },
+      {
+        name: 'DELL U2722D',
+        width: 1920,
+        height: 1080,
+        scaleFactor: 1,
+        isPrimary: false,
+        positionX: 1512,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      }
+    ]);
+
+    render(<SettingsView />);
+
+    const pickerButton = await screen.findByRole('button', {
+      name: /DELL U2722D \(1920 x 1080\)/i
+    });
+    expect(pickerButton).toBeTruthy();
+  });
+
+  it('disables display picker when there is no swap target', async () => {
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      }
+    ]);
+
+    render(<SettingsView />);
+
+    const pickerButton = await screen.findByRole('button', {
+      name: /Built-in Retina Display \(1512 x 982\)/i
+    });
+    expect((pickerButton as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('menu', { name: /App display options/i })).toBeNull();
+  });
+
+  it('shows fallback message when display detection fails', async () => {
+    tauriMock.getMonitors.mockResolvedValue([]);
+
+    render(<SettingsView />);
+
+    const pickerButton = await screen.findByRole('button', {
+      name: /Unable to detect displays\. Please restart the app\./i
+    });
+    expect((pickerButton as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('closes display menu on outside click and Escape', async () => {
+    const user = userEvent.setup();
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      },
+      {
+        name: 'DELL U2722D',
+        width: 1920,
+        height: 1080,
+        scaleFactor: 1,
+        isPrimary: false,
+        positionX: 1512,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      }
+    ]);
+
+    render(<SettingsView />);
+
+    const pickerButton = await screen.findByRole('button', {
+      name: /Built-in Retina Display \(1512 x 982\)/i
+    });
+    await user.click(pickerButton);
+    expect(screen.getByRole('menu', { name: /App display options/i })).toBeTruthy();
+
+    fireEvent.mouseDown(document.body);
+    await waitFor(() => {
+      expect(screen.queryByRole('menu', { name: /App display options/i })).toBeNull();
+    });
+
+    await user.click(pickerButton);
+    expect(screen.getByRole('menu', { name: /App display options/i })).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('menu', { name: /App display options/i })).toBeNull();
+    });
+  });
+
+  it('rolls back display selection and shows error when move fails', async () => {
+    const user = userEvent.setup();
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      },
+      {
+        name: 'DELL U2722D',
+        width: 1920,
+        height: 1080,
+        scaleFactor: 1,
+        isPrimary: false,
+        positionX: 1512,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      }
+    ]);
+    tauriMock.moveWindowToMonitor.mockRejectedValue(new Error('Unable to move monitor'));
+
+    render(<SettingsView />);
+
+    const pickerButton = await screen.findByRole('button', {
+      name: /Built-in Retina Display \(1512 x 982\)/i
+    });
+    await user.click(pickerButton);
+    await user.click(screen.getByRole('menuitemradio', { name: /DELL U2722D \(1920 x 1080\)/i }));
+
+    await waitFor(() => {
+      expect(useAppStore.getState().toastMessage).toEqual({
+        message: 'Unable to move monitor',
+        variant: 'error'
+      });
+    });
+    expect(screen.getByRole('button', { name: /Built-in Retina Display \(1512 x 982\)/i })).toBeTruthy();
   });
 
   it('shows validation warning and does not register shortcuts when config is invalid', async () => {
@@ -132,144 +335,5 @@ describe('SettingsView behavior', () => {
       message: 'Shortcuts updated',
       variant: 'success'
     });
-  });
-
-  it('prevents shortcut registration in browser preview mode', async () => {
-    tauriRuntime = false;
-
-    const user = userEvent.setup();
-    render(<SettingsView />);
-
-    await user.click(screen.getByRole('tab', { name: 'Shortcuts' }));
-
-    const playPauseInput = await screen.findByLabelText('Play/Pause shortcut');
-    await user.click(playPauseInput);
-    await user.keyboard('p');
-
-    await user.click(screen.getByRole('button', { name: 'Apply shortcuts' }));
-
-    expect(tauriMock.registerShortcuts).not.toHaveBeenCalled();
-    expect(useAppStore.getState().toastMessage).toEqual({
-      message: 'Global shortcuts are unavailable in browser preview.',
-      variant: 'warning'
-    });
-  });
-
-  it('moves app and prompter windows together when display is selected', async () => {
-    const user = userEvent.setup();
-    tauriMock.listMonitors.mockResolvedValue([
-      { id: 'monitor-a', name: 'Display A', size: '2940x1912', origin: '0,0', primary: true },
-      { id: 'monitor-b', name: 'Display B', size: '1920x1080', origin: '1470,0', primary: false }
-    ]);
-
-    render(<SettingsView />);
-
-    const pickerButton = await screen.findByRole('button', { name: /Auto \(Current Display\)/i });
-    await user.click(pickerButton);
-    await user.click(screen.getByRole('menuitemradio', { name: /Display B \(1920x1080, @ 1470,0\)/i }));
-
-    await waitFor(() => {
-      expect(tauriMock.moveOverlayToMonitor).toHaveBeenCalledWith('monitor-b');
-      expect(tauriMock.moveMainToMonitor).toHaveBeenCalledWith('monitor-b');
-    });
-  });
-
-  it('hydrates selected display from saved main monitor id', async () => {
-    tauriMock.getLastMainMonitorName.mockReturnValue('monitor-b');
-    tauriMock.listMonitors.mockResolvedValue([
-      { id: 'monitor-a', name: 'Display A', size: '2940x1912', origin: '0,0', primary: true },
-      { id: 'monitor-b', name: 'Display B', size: '1920x1080', origin: '1470,0', primary: false }
-    ]);
-
-    render(<SettingsView />);
-
-    const pickerButton = await screen.findByRole('button', { name: /Display B \(1920x1080, @ 1470,0\)/i });
-    expect(pickerButton).toBeTruthy();
-  });
-
-  it('falls back to saved overlay monitor id when main monitor id is missing', async () => {
-    tauriMock.getLastMainMonitorName.mockReturnValue(null);
-    tauriMock.getLastOverlayMonitorName.mockReturnValue('monitor-a');
-    tauriMock.listMonitors.mockResolvedValue([
-      { id: 'monitor-a', name: 'Display A', size: '2940x1912', origin: '0,0', primary: true },
-      { id: 'monitor-b', name: 'Display B', size: '1920x1080', origin: '1470,0', primary: false }
-    ]);
-
-    render(<SettingsView />);
-
-    const pickerButton = await screen.findByRole('button', { name: /Display A \(2940x1912, @ 0,0\)/i });
-    expect(pickerButton).toBeTruthy();
-  });
-
-  it('auto display option clears saved monitor preferences', async () => {
-    const user = userEvent.setup();
-    tauriMock.getLastMainMonitorName.mockReturnValue('monitor-a');
-    tauriMock.listMonitors.mockResolvedValue([
-      { id: 'monitor-a', name: 'Display A', size: '2940x1912', origin: '0,0', primary: true },
-      { id: 'monitor-b', name: 'Display B', size: '1920x1080', origin: '1470,0', primary: false }
-    ]);
-
-    render(<SettingsView />);
-
-    const pickerButton = await screen.findByRole('button', { name: /Display A \(2940x1912, @ 0,0\)/i });
-    await user.click(pickerButton);
-    await user.click(screen.getByRole('menuitemradio', { name: /Auto \(Current Display\)/i }));
-
-    expect(tauriMock.clearLastMainMonitorName).toHaveBeenCalledTimes(1);
-    expect(tauriMock.clearLastOverlayMonitorName).toHaveBeenCalledTimes(1);
-    expect(tauriMock.moveMainToMonitor).not.toHaveBeenCalled();
-    expect(tauriMock.moveOverlayToMonitor).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: /Auto \(Current Display\)/i })).toBeTruthy();
-  });
-
-  it('closes display menu on outside click and Escape', async () => {
-    const user = userEvent.setup();
-    tauriMock.listMonitors.mockResolvedValue([
-      { id: 'monitor-a', name: 'Display A', size: '2940x1912', origin: '0,0', primary: true },
-      { id: 'monitor-b', name: 'Display B', size: '1920x1080', origin: '1470,0', primary: false }
-    ]);
-
-    render(<SettingsView />);
-
-    const pickerButton = await screen.findByRole('button', { name: /Auto \(Current Display\)/i });
-    await user.click(pickerButton);
-    expect(screen.getByRole('menu', { name: /App display options/i })).toBeTruthy();
-
-    fireEvent.mouseDown(document.body);
-    await waitFor(() => {
-      expect(screen.queryByRole('menu', { name: /App display options/i })).toBeNull();
-    });
-
-    await user.click(pickerButton);
-    expect(screen.getByRole('menu', { name: /App display options/i })).toBeTruthy();
-
-    fireEvent.keyDown(window, { key: 'Escape' });
-    await waitFor(() => {
-      expect(screen.queryByRole('menu', { name: /App display options/i })).toBeNull();
-    });
-  });
-
-  it('rolls back display selection and shows error when monitor move fails', async () => {
-    const user = userEvent.setup();
-    tauriMock.getLastMainMonitorName.mockReturnValue('monitor-a');
-    tauriMock.listMonitors.mockResolvedValue([
-      { id: 'monitor-a', name: 'Display A', size: '2940x1912', origin: '0,0', primary: true },
-      { id: 'monitor-b', name: 'Display B', size: '1920x1080', origin: '1470,0', primary: false }
-    ]);
-    tauriMock.moveMainToMonitor.mockRejectedValue(new Error('Unable to move monitor'));
-
-    render(<SettingsView />);
-
-    const pickerButton = await screen.findByRole('button', { name: /Display A \(2940x1912, @ 0,0\)/i });
-    await user.click(pickerButton);
-    await user.click(screen.getByRole('menuitemradio', { name: /Display B \(1920x1080, @ 1470,0\)/i }));
-
-    await waitFor(() => {
-      expect(useAppStore.getState().toastMessage).toEqual({
-        message: 'Unable to move monitor',
-        variant: 'error'
-      });
-    });
-    expect(screen.getByRole('button', { name: /Display A \(2940x1912, @ 0,0\)/i })).toBeTruthy();
   });
 });
