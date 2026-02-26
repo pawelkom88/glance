@@ -173,7 +173,7 @@ fn rotate_backups(session_dir: &Path, base_name: &str) -> Result<(), String> {
     // Move current file to .1
     let current_file = session_dir.join(base_name);
     let first_backup = session_dir.join(format!("{}.bak.1", base_name));
-    
+
     if current_file.exists() {
         let _ = fs::rename(&current_file, &first_backup);
     }
@@ -324,16 +324,19 @@ fn default_markdown(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
     use tempfile::tempdir;
 
     #[test]
     fn test_persistence_non_ascii() {
         let dir = tempdir().unwrap();
         let root = dir.path();
-        
+
         let markdown = "# Hello 🌍\n\n- Zażółć gęślą jaźń\n- 漢字";
-        let summary = create_session_from_markdown(root, "Intl Session".to_string(), markdown.to_string()).unwrap();
-        
+        let summary =
+            create_session_from_markdown(root, "Intl Session".to_string(), markdown.to_string())
+                .unwrap();
+
         let loaded = load_session(root, summary.id).unwrap();
         assert_eq!(loaded.markdown, markdown);
         assert_eq!(loaded.meta.title, "Intl Session");
@@ -343,18 +346,18 @@ mod tests {
     fn test_safe_delete_flow() {
         let dir = tempdir().unwrap();
         let root = dir.path();
-        
+
         let s1 = create_session(root, "One".to_string()).unwrap();
         let s2 = create_session(root, "Two".to_string()).unwrap();
-        
+
         assert_eq!(list_sessions(root).unwrap().len(), 2);
-        
+
         delete_session(root, s1.id.clone()).unwrap();
-        
+
         let remaining = list_sessions(root).unwrap();
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].id, s2.id);
-        
+
         // Assert directory is gone
         assert!(!root.join(&s1.id).exists());
     }
@@ -363,15 +366,21 @@ mod tests {
     fn test_crash_recovery() {
         let dir = tempdir().unwrap();
         let root = dir.path();
-        
+
         let summary = create_session(root, "Crash Test".to_string()).unwrap();
         let mut data = load_session(root, summary.id.clone()).unwrap();
-        
+
         data.markdown = "New content".to_string();
         data.meta.scroll.position = 100.0;
-        
-        save_session(root, summary.id.clone(), data.markdown.clone(), data.meta.clone()).unwrap();
-        
+
+        save_session(
+            root,
+            summary.id.clone(),
+            data.markdown.clone(),
+            data.meta.clone(),
+        )
+        .unwrap();
+
         // Simulate crash by creating a new reference to the same directory
         let recovered = load_session(root, summary.id).unwrap();
         assert_eq!(recovered.markdown, "New content");
@@ -382,17 +391,23 @@ mod tests {
     fn test_backup_rotation_policy() {
         let dir = tempdir().unwrap();
         let root = dir.path();
-        
+
         let summary = create_session(root, "Backup Test".to_string()).unwrap();
         let mut data = load_session(root, summary.id.clone()).unwrap();
-        
+
         for i in 1..=6 {
             data.markdown = format!("Content v{}", i);
-            save_session(root, summary.id.clone(), data.markdown.clone(), data.meta.clone()).unwrap();
+            save_session(
+                root,
+                summary.id.clone(),
+                data.markdown.clone(),
+                data.meta.clone(),
+            )
+            .unwrap();
         }
-        
+
         let session_dir = root.join(&summary.id);
-        
+
         // After 6 saves, we should have the main file + 5 backups
         assert!(session_dir.join(CONTENT_FILE).exists());
         assert!(session_dir.join(format!("{}.bak.1", CONTENT_FILE)).exists());
@@ -400,16 +415,177 @@ mod tests {
         assert!(session_dir.join(format!("{}.bak.3", CONTENT_FILE)).exists());
         assert!(session_dir.join(format!("{}.bak.4", CONTENT_FILE)).exists());
         assert!(session_dir.join(format!("{}.bak.5", CONTENT_FILE)).exists());
-        
+
         // .bak.6 should NOT exist
         assert!(!session_dir.join(format!("{}.bak.6", CONTENT_FILE)).exists());
-        
+
         // Verify .bak.1 is Content v5 (since v6 is the main file)
         let bak1 = fs::read_to_string(session_dir.join(format!("{}.bak.1", CONTENT_FILE))).unwrap();
         assert_eq!(bak1, "Content v5");
-        
+
         // Verify .bak.5 is Content v1
         let bak5 = fs::read_to_string(session_dir.join(format!("{}.bak.5", CONTENT_FILE))).unwrap();
         assert_eq!(bak5, "Content v1");
+    }
+
+    #[test]
+    fn test_next_available_title_case_insensitive_and_blank_seed() {
+        let existing = vec![SessionSummary {
+            id: String::from("1"),
+            title: String::from("Demo"),
+            created_at: String::from("2024-01-01T00:00:00Z"),
+            updated_at: String::from("2024-01-01T00:00:00Z"),
+            last_opened_at: String::from("2024-01-01T00:00:00Z"),
+        }];
+
+        assert_eq!(next_available_title("demo", &existing), "demo (2)");
+        assert_eq!(next_available_title("   ", &existing), "Untitled Session");
+    }
+
+    #[test]
+    fn test_slugify_strips_non_alphanumeric_runs() {
+        assert_eq!(slugify("  Hello, World! 2026  "), "hello-world-2026");
+        assert_eq!(slugify("***"), "");
+    }
+
+    #[test]
+    fn test_list_sessions_orders_by_updated_at_descending() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let older = create_session(root, "Older".to_string()).unwrap();
+        let newer = create_session(root, "Newer".to_string()).unwrap();
+
+        let mut older_data = load_session(root, older.id.clone()).unwrap();
+        older_data.meta.updated_at = String::from("9999-01-01T00:00:00Z");
+        save_session(
+            root,
+            older.id.clone(),
+            older_data.markdown.clone(),
+            older_data.meta.clone(),
+        )
+        .unwrap();
+
+        let listed = list_sessions(root).unwrap();
+        assert_eq!(listed.first().unwrap().id, older.id);
+        assert_eq!(listed.get(1).unwrap().id, newer.id);
+    }
+
+    #[test]
+    fn test_create_session_from_markdown_writes_exact_content_and_default_meta() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let markdown = "# Custom Session\n\n- Exact content";
+
+        let summary =
+            create_session_from_markdown(root, "Custom Session".to_string(), markdown.to_string())
+                .unwrap();
+        let loaded = load_session(root, summary.id.clone()).unwrap();
+
+        assert_eq!(loaded.markdown, markdown);
+        assert_eq!(loaded.meta.title, "Custom Session");
+        assert_eq!(loaded.meta.scroll.position, 0.0);
+        assert_eq!(loaded.meta.scroll.speed, 42.0);
+        assert!(!loaded.meta.scroll.running);
+        assert_eq!(loaded.meta.overlay.font_scale, 1.0);
+    }
+
+    #[test]
+    fn test_duplicate_session_handles_copy_name_collisions() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let original = create_session(root, "Pitch".to_string()).unwrap();
+        std::thread::sleep(Duration::from_millis(2));
+        let first_copy = duplicate_session(root, original.id.clone()).unwrap();
+        std::thread::sleep(Duration::from_millis(2));
+        let second_copy = duplicate_session(root, original.id.clone()).unwrap();
+
+        assert_eq!(first_copy.title, "Pitch Copy");
+        assert_eq!(second_copy.title, "Pitch Copy (2)");
+    }
+
+    #[test]
+    fn test_delete_session_is_idempotent_for_missing_id() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        delete_session(root, "missing".to_string()).unwrap();
+        assert_eq!(list_sessions(root).unwrap().len(), 0);
+
+        let created = create_session(root, "Keep Me".to_string()).unwrap();
+        delete_session(root, "missing-again".to_string()).unwrap();
+
+        let listed = list_sessions(root).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, created.id);
+    }
+
+    #[test]
+    fn test_save_session_updates_existing_index_and_appends_missing_entry() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let created = create_session(root, "Original".to_string()).unwrap();
+        let mut loaded = load_session(root, created.id.clone()).unwrap();
+        loaded.meta.title = "Renamed".to_string();
+        loaded.meta.updated_at = "2026-01-01T00:00:00Z".to_string();
+        loaded.meta.last_opened_at = "2026-01-01T00:00:00Z".to_string();
+
+        save_session(
+            root,
+            created.id.clone(),
+            loaded.markdown.clone(),
+            loaded.meta.clone(),
+        )
+        .unwrap();
+
+        let after_update = list_sessions(root).unwrap();
+        assert_eq!(after_update.len(), 1);
+        assert_eq!(after_update[0].id, created.id);
+        assert_eq!(after_update[0].title, "Renamed");
+
+        let appended_meta = SessionMeta {
+            id: "manual-id".to_string(),
+            title: "Manual Session".to_string(),
+            created_at: "2026-02-01T00:00:00Z".to_string(),
+            updated_at: "2026-02-01T00:00:00Z".to_string(),
+            last_opened_at: "2026-02-01T00:00:00Z".to_string(),
+            scroll: ScrollState {
+                position: 0.0,
+                speed: 42.0,
+                running: false,
+            },
+            overlay: OverlayPreferences::default(),
+        };
+
+        save_session(
+            root,
+            "manual-id".to_string(),
+            "# Manual Session".to_string(),
+            appended_meta,
+        )
+        .unwrap();
+
+        let after_append = list_sessions(root).unwrap();
+        assert_eq!(after_append.len(), 2);
+        assert!(after_append.iter().any(|item| item.id == "manual-id"));
+    }
+
+    #[test]
+    fn test_export_and_load_return_errors_for_missing_or_corrupt_files() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        assert!(export_session_markdown(root, "missing".to_string()).is_err());
+        assert!(load_session(root, "missing".to_string()).is_err());
+
+        let created = create_session(root, "Corrupt".to_string()).unwrap();
+        let session_dir = root.join(&created.id);
+        fs::write(session_dir.join(META_FILE), "{bad-json").unwrap();
+        assert!(load_session(root, created.id.clone()).is_err());
+
+        fs::remove_file(session_dir.join(CONTENT_FILE)).unwrap();
+        assert!(export_session_markdown(root, created.id).is_err());
     }
 }
