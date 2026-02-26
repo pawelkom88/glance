@@ -1,5 +1,6 @@
 import { type ReactElement, startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { save } from '@tauri-apps/plugin-dialog';
 import { EditorView } from './components/editor-view';
 import { HelpView } from './components/help-view';
@@ -14,7 +15,8 @@ import {
   hideMainWindow,
   listenForThemeChanged,
   listenForMainWindowShown,
-  openOverlayWindow
+  openOverlayWindow,
+  setLastMainMonitorName
 } from './lib/tauri';
 import { useAppStore } from './store/use-app-store';
 import type { ToastVariant } from './types';
@@ -69,6 +71,21 @@ const tabs: ReadonlyArray<{
 
 function isOverlayRoute(): boolean {
   return typeof window !== 'undefined' && window.location.hash.includes('overlay');
+}
+
+interface MonitorSnapshot {
+  readonly name?: string | null;
+  readonly position: { x: number; y: number };
+  readonly size: { width: number; height: number };
+  readonly scaleFactor?: number;
+}
+
+function monitorIdFromSnapshot(monitor: MonitorSnapshot): string {
+  const label = monitor.name ?? 'Unnamed Monitor';
+  const scale = typeof monitor.scaleFactor === 'number' && Number.isFinite(monitor.scaleFactor)
+    ? monitor.scaleFactor
+    : 1;
+  return `${label}|${monitor.position.x}:${monitor.position.y}|${monitor.size.width}x${monitor.size.height}|sf:${scale.toFixed(4)}`;
 }
 
 function toExportFilename(title: string): string {
@@ -377,6 +394,43 @@ export default function App() {
       unlisten();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isTauri() || isOverlay) {
+      return;
+    }
+
+    const appWindow = getCurrentWindow();
+    const monitorAware = appWindow as unknown as {
+      currentMonitor?: () => Promise<MonitorSnapshot | null>;
+    };
+    if (typeof monitorAware.currentMonitor !== 'function') {
+      return;
+    }
+
+    let unlistenMoved: (() => void) | null = null;
+    const captureMonitor = () => {
+      void monitorAware.currentMonitor!().then((monitor) => {
+        if (!monitor) {
+          return;
+        }
+        setLastMainMonitorName(monitorIdFromSnapshot(monitor));
+      }).catch(() => {
+        // ignore transient monitor lookup failures
+      });
+    };
+
+    captureMonitor();
+    void appWindow.onMoved(() => {
+      captureMonitor();
+    }).then((fn) => {
+      unlistenMoved = fn;
+    });
+
+    return () => {
+      unlistenMoved?.();
+    };
+  }, [isOverlay]);
 
   const switchTab = (nextTab: MainTab) => {
     if (!initialized || nextTab === activeTab) {

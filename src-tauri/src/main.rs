@@ -17,6 +17,10 @@ pub struct AppState {
     pub _log_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
+fn should_unregister_shortcuts(window_label: &str, focused: bool) -> bool {
+    !focused || window_label != "overlay"
+}
+
 fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
     if app.get_webview_window("overlay").is_some() {
         return Ok(());
@@ -65,18 +69,21 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Focused(focused) = event {
-                if window.label() == "overlay" {
-                    if *focused {
-                        // Re-register active bindings when overlay gains focus
-                        if let Some(state) = window.try_state::<AppState>() {
-                            if let Ok(bindings) = state.active_bindings.lock() {
-                                let _ = commands::apply_bindings(window.app_handle(), &bindings, &state);
-                            }
+                let window_label = window.label();
+                if window_label == "overlay" && *focused {
+                    // Re-register active bindings when overlay gains focus
+                    if let Some(state) = window.try_state::<AppState>() {
+                        if let Ok(bindings) = state.active_bindings.lock() {
+                            let _ =
+                                commands::apply_bindings(window.app_handle(), &bindings, &state);
                         }
-                    } else {
-                        // Do not hijack keys in other apps when overlay is unfocused.
-                        let _ = window.app_handle().global_shortcut().unregister_all();
                     }
+                    return;
+                }
+
+                if should_unregister_shortcuts(window_label, *focused) {
+                    // Do not hijack keys in other apps when app focus shifts away from the overlay.
+                    let _ = window.app_handle().global_shortcut().unregister_all();
                 }
             }
         })
@@ -101,11 +108,9 @@ fn main() {
 
             let file_appender = tracing_appender::rolling::daily(&app_log_dir, "glance.log");
             let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
-            
-            tracing_subscriber::fmt()
-                .with_writer(non_blocking)
-                .init();
-            
+
+            tracing_subscriber::fmt().with_writer(non_blocking).init();
+
             tracing::info!("Glance started");
 
             app.manage(AppState {
@@ -138,10 +143,24 @@ fn main() {
             commands::set_overlay_always_on_top,
             commands::list_monitors,
             commands::move_overlay_to_monitor,
+            commands::move_main_to_monitor,
             commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
             commands::export_diagnostics
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Glance application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_unregister_shortcuts;
+
+    #[test]
+    fn keeps_shortcuts_only_for_focused_overlay() {
+        assert!(!should_unregister_shortcuts("overlay", true));
+        assert!(should_unregister_shortcuts("overlay", false));
+        assert!(should_unregister_shortcuts("main", true));
+        assert!(should_unregister_shortcuts("main", false));
+    }
 }

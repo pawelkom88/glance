@@ -1,6 +1,11 @@
 import { LogicalSize } from '@tauri-apps/api/dpi';
 import { emit, listen } from '@tauri-apps/api/event';
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import {
+  availableMonitors as runtimeAvailableMonitors,
+  currentMonitor as runtimeCurrentMonitor,
+  primaryMonitor as runtimePrimaryMonitor
+} from '@tauri-apps/api/window';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { ShortcutBinding } from './shortcuts';
 import type {
@@ -23,11 +28,83 @@ type OverlayLayoutMap = Record<string, OverlayLayoutEntry>;
 
 const overlayLayoutStorageKey = 'glance-overlay-layout-v2';
 const overlayLastMonitorStorageKey = 'glance-overlay-last-monitor-v2';
+const mainLastMonitorStorageKey = 'glance-main-last-monitor-v1';
 const overlayAlwaysOnTopStorageKey = 'glance-overlay-always-on-top-v1';
 const lastActiveSessionStorageKey = 'glance-last-active-session-v1';
+const monitorDebugStorageKey = 'glance-monitor-debug-v1';
 
 function inTauri(): boolean {
   return isTauri();
+}
+
+function monitorDebugEnabled(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.localStorage.getItem(monitorDebugStorageKey) === '1';
+}
+
+function logMonitorDebug(message: string, payload: unknown): void {
+  if (!monitorDebugEnabled()) {
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.debug(`[monitor-debug] ${message}`, payload);
+}
+
+interface RuntimeMonitorSnapshot {
+  readonly name: string | null;
+  readonly size: { width: number; height: number };
+  readonly position: { x: number; y: number };
+  readonly scaleFactor?: number;
+}
+
+function monitorIdFromRuntime(monitor: RuntimeMonitorSnapshot): string {
+  const label = monitor.name ?? 'Unnamed Monitor';
+  const scale = typeof monitor.scaleFactor === 'number' && Number.isFinite(monitor.scaleFactor)
+    ? monitor.scaleFactor
+    : 1;
+  return `${label}|${monitor.position.x}:${monitor.position.y}|${monitor.size.width}x${monitor.size.height}|sf:${scale.toFixed(4)}`;
+}
+
+function toMonitorInfo(
+  monitor: RuntimeMonitorSnapshot,
+  primaryId: string | null
+): MonitorInfo {
+  const id = monitorIdFromRuntime(monitor);
+  return {
+    id,
+    name: monitor.name ?? 'Unnamed Monitor',
+    size: `${monitor.size.width}x${monitor.size.height}`,
+    origin: `${monitor.position.x},${monitor.position.y}`,
+    primary: primaryId === id
+  };
+}
+
+function mergeMonitorInfos(
+  ...lists: ReadonlyArray<readonly MonitorInfo[]>
+): MonitorInfo[] {
+  const merged = new Map<string, MonitorInfo>();
+  for (const list of lists) {
+    for (const monitor of list) {
+      const existing = merged.get(monitor.id);
+      if (!existing) {
+        merged.set(monitor.id, monitor);
+        continue;
+      }
+
+      if (!existing.primary && monitor.primary) {
+        merged.set(monitor.id, monitor);
+      }
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => {
+    if (a.primary !== b.primary) {
+      return a.primary ? -1 : 1;
+    }
+    return a.origin.localeCompare(b.origin);
+  });
 }
 
 function readOverlayLayoutMap(): OverlayLayoutMap {
@@ -102,6 +179,30 @@ export function clearLastOverlayMonitorName(): void {
   }
 
   window.localStorage.removeItem(overlayLastMonitorStorageKey);
+}
+
+export function getLastMainMonitorName(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.localStorage.getItem(mainLastMonitorStorageKey);
+}
+
+export function setLastMainMonitorName(name: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(mainLastMonitorStorageKey, name);
+}
+
+export function clearLastMainMonitorName(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(mainLastMonitorStorageKey);
 }
 
 export function getOverlayAlwaysOnTopPreference(): boolean {
@@ -207,12 +308,69 @@ export async function setOverlayAlwaysOnTop(enabled: boolean): Promise<void> {
 }
 
 export async function listMonitors(): Promise<readonly MonitorInfo[]> {
-  return invoke<MonitorInfo[]>('list_monitors');
+  if (!inTauri()) {
+    return [];
+  }
+
+  const runtimeMonitorsPromise = (async () => {
+    try {
+      const [available, current, primary] = await Promise.all([
+        runtimeAvailableMonitors(),
+        runtimeCurrentMonitor().catch(() => null),
+        runtimePrimaryMonitor().catch(() => null)
+      ]);
+
+      const snapshots: RuntimeMonitorSnapshot[] = [...available];
+      if (current) {
+        snapshots.push(current);
+      }
+      if (primary) {
+        snapshots.push(primary);
+      }
+
+      const primaryId = primary ? monitorIdFromRuntime(primary) : null;
+      const uniqueById = new Map<string, RuntimeMonitorSnapshot>();
+      for (const monitor of snapshots) {
+        uniqueById.set(monitorIdFromRuntime(monitor), monitor);
+      }
+
+      return Array.from(uniqueById.values()).map((monitor) => toMonitorInfo(monitor, primaryId));
+    } catch (error) {
+      logMonitorDebug('runtime monitor APIs failed', { error: String(error) });
+      return [] as MonitorInfo[];
+    }
+  })();
+
+  const backendMonitorsPromise = invoke<MonitorInfo[]>('list_monitors').catch((error) => {
+    logMonitorDebug('backend list_monitors failed', { error: String(error) });
+    return [];
+  });
+  const [runtimeMonitors, backendMonitors] = await Promise.all([
+    runtimeMonitorsPromise,
+    backendMonitorsPromise
+  ]);
+
+  const merged = mergeMonitorInfos(runtimeMonitors, backendMonitors);
+  logMonitorDebug('monitor sources merged', {
+    runtimeCount: runtimeMonitors.length,
+    backendCount: backendMonitors.length,
+    mergedCount: merged.length,
+    runtimeMonitors,
+    backendMonitors,
+    merged
+  });
+
+  return merged;
 }
 
 export async function moveOverlayToMonitor(monitorName: string): Promise<void> {
   await invoke('move_overlay_to_monitor', { monitorName });
   setLastOverlayMonitorName(monitorName);
+}
+
+export async function moveMainToMonitor(monitorName: string): Promise<void> {
+  await invoke('move_main_to_monitor', { monitorName });
+  setLastMainMonitorName(monitorName);
 }
 
 export interface SnapOverlayResult {
@@ -243,10 +401,10 @@ export async function openOverlayWindow(): Promise<ShowOverlayResult | null> {
     return null;
   }
 
+  const savedMonitorName = getLastOverlayMonitorName();
   const request: ShowOverlayRequest = {
-    // Force deterministic launch position on every open.
-    savedMonitorName: null,
-    savedBounds: null,
+    savedMonitorName,
+    savedBounds: readSavedOverlayBounds(savedMonitorName),
     preferTopCenter: true
   };
 
@@ -277,7 +435,8 @@ export async function showMainWindow(): Promise<void> {
   if (!inTauri()) {
     return;
   }
-  await invoke('show_main_window');
+  const savedMonitorName = getLastMainMonitorName();
+  await invoke('show_main_window', { savedMonitorName });
 }
 
 export async function startOverlayDrag(): Promise<void> {

@@ -3,11 +3,14 @@ import { isTauri } from '@tauri-apps/api/core';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { save } from '@tauri-apps/plugin-dialog';
 import {
+  clearLastMainMonitorName,
   clearLastOverlayMonitorName,
   exportDiagnostics,
+  getLastMainMonitorName,
   getLastOverlayMonitorName,
   getOverlayAlwaysOnTopPreference,
   listMonitors,
+  moveMainToMonitor,
   moveOverlayToMonitor,
   registerShortcuts,
   setOverlayAlwaysOnTop
@@ -165,9 +168,9 @@ export function SettingsView() {
   useEffect(() => {
     void listMonitors().then((items) => {
       setMonitors(items);
-      const saved = getLastOverlayMonitorName();
-      if (saved) {
-        const matched = items.find((item) => item.id === saved || item.name === saved);
+      const savedMonitor = getLastMainMonitorName() ?? getLastOverlayMonitorName();
+      if (savedMonitor) {
+        const matched = items.find((item) => item.id === savedMonitor || item.name === savedMonitor);
         if (matched) {
           setSelectedMonitor(matched.id);
         }
@@ -266,12 +269,22 @@ export function SettingsView() {
 
     if (!monitorId) {
       setSelectedMonitor('');
+      clearLastMainMonitorName();
       clearLastOverlayMonitorName();
       return;
     }
 
+    const previousMonitor = selectedMonitor;
     setSelectedMonitor(monitorId);
-    await moveOverlayToMonitor(monitorId);
+    try {
+      // Move the visible main window first so the UI immediately reflects the selection.
+      await moveMainToMonitor(monitorId);
+      await moveOverlayToMonitor(monitorId);
+    } catch (error) {
+      setSelectedMonitor(previousMonitor);
+      const message = error instanceof Error ? error.message : 'Unable to move windows to selected display';
+      showToast(message, 'error');
+    }
   };
   const handleTabChange = (tab: SettingsTab) => {
     setActiveTab(tab);
@@ -487,8 +500,8 @@ export function SettingsView() {
             {shouldShowDisplaySetting ? (
               <div className="setting-row setting-row-display">
                 <div className="setting-copy">
-                  <span className="setting-title">Display</span>
-                  <span className="setting-subtitle">Where the overlay opens by default.</span>
+                  <span className="setting-title">App Display</span>
+                  <span className="setting-subtitle">Where Glance opens (app + prompter).</span>
                 </div>
                 <div className="display-picker" ref={displayMenuRef}>
                   <button
@@ -497,7 +510,9 @@ export function SettingsView() {
                     className="display-picker-button"
                     aria-haspopup="menu"
                     aria-expanded={isDisplayMenuOpen}
-                    onClick={() => setIsDisplayMenuOpen((previous) => !previous)}
+                    onClick={() => {
+                      setIsDisplayMenuOpen((previous) => !previous);
+                    }}
                   >
                     <span>{selectedMonitorLabel}</span>
                     <span className="display-picker-chevron" aria-hidden="true">
@@ -508,7 +523,7 @@ export function SettingsView() {
                   </button>
 
                   {isDisplayMenuOpen ? (
-                    <div className="display-picker-menu" role="menu" aria-label="Display options">
+                    <div className="display-picker-menu" role="menu" aria-label="App display options">
                       <button
                         type="button"
                         role="menuitemradio"

@@ -1,13 +1,14 @@
 use crate::sessions;
 use crate::AppState;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 use tauri::{
-    AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition, PhysicalSize, Position,
-    Size, State,
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition,
+    PhysicalSize, Position, Size, State,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
@@ -93,7 +94,7 @@ pub fn apply_bindings(
 
         let shortcut = Shortcut::from_str(&binding.accelerator)
             .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
-        
+
         manager.register(shortcut.clone()).map_err(|error| {
             format!(
                 "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
@@ -107,18 +108,20 @@ pub fn apply_bindings(
 
     // Overlay-scoped fallback shortcuts: keep core controls responsive even
     // when focus is transiently lost after native drag operations.
-    let mut register_optional_shortcuts =
-        |accelerators: &[&str], action: ShortcutAction| {
-            for accelerator in accelerators {
-                let Ok(shortcut) = Shortcut::from_str(accelerator) else {
-                    continue;
-                };
-                if manager.register(shortcut.clone()).is_ok() {
-                    action_map.insert(normalize_shortcut_text(&shortcut.to_string()), action.clone());
-                    break;
-                }
+    let mut register_optional_shortcuts = |accelerators: &[&str], action: ShortcutAction| {
+        for accelerator in accelerators {
+            let Ok(shortcut) = Shortcut::from_str(accelerator) else {
+                continue;
+            };
+            if manager.register(shortcut.clone()).is_ok() {
+                action_map.insert(
+                    normalize_shortcut_text(&shortcut.to_string()),
+                    action.clone(),
+                );
+                break;
             }
-        };
+        }
+    };
 
     register_optional_shortcuts(
         &["Escape", "Esc"],
@@ -231,9 +234,7 @@ pub fn show_overlay_window(
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
 
-    let monitors = app
-        .available_monitors()
-        .map_err(|error| error.to_string())?;
+    let monitors = collect_monitor_descriptors(&app)?;
     if monitors.is_empty() {
         return Err(String::from("No monitors available"));
     }
@@ -247,16 +248,14 @@ pub fn show_overlay_window(
     let center_x = main_position.x + (main_size.width as i32 / 2);
     let center_y = main_position.y + (main_size.height as i32 / 2);
 
-    let primary_monitor = app.primary_monitor().map_err(|error| error.to_string())?;
-    let target_monitor = monitors
-        .iter()
-        .find(|monitor| monitor_contains_point(monitor, center_x, center_y))
-        .cloned()
-        .or(primary_monitor)
-        .or_else(|| monitors.first().cloned())
+    let target_monitor = request
+        .saved_monitor_name
+        .as_deref()
+        .and_then(|saved| find_monitor_by_id_or_label(&monitors, saved))
+        .or_else(|| resolve_monitor_for_point_or_primary(&monitors, center_x, center_y))
         .ok_or_else(|| String::from("Unable to resolve target monitor"))?;
 
-    let target_monitor_id = monitor_key(&target_monitor);
+    let target_monitor_id = target_monitor.id.clone();
     let mut used_saved_bounds = false;
 
     // Guard against accidental fullscreen/maximized state which blocks normal dragging.
@@ -277,9 +276,10 @@ pub fn show_overlay_window(
         ))))
         .map_err(|error| error.to_string())?;
 
-    let saved_monitor_matches = request.saved_monitor_name.as_deref().is_some_and(|saved| {
-        saved == target_monitor_id.as_str() || saved == monitor_label(&target_monitor).as_str()
-    });
+    let saved_monitor_matches = request
+        .saved_monitor_name
+        .as_deref()
+        .is_some_and(|saved| monitor_matches_identifier(&target_monitor, saved));
     if saved_monitor_matches {
         if let Some(saved_bounds) = request.saved_bounds.as_ref() {
             if is_bounds_inside_monitor(saved_bounds, &target_monitor) {
@@ -299,14 +299,11 @@ pub fn show_overlay_window(
             ));
         let width = current_size.width.max(OVERLAY_MIN_WIDTH) as i32;
         let height = current_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
-        let monitor_position = target_monitor.position();
-        let monitor_size = target_monitor.size();
-
-        let raw_x = monitor_position.x + ((monitor_size.width as i32 - width) / 2);
+        let raw_x = target_monitor.position.x + ((target_monitor.size.width as i32 - width) / 2);
         let raw_y = if request.prefer_top_center {
-            monitor_position.y
+            target_monitor.position.y
         } else {
-            monitor_position.y + ((monitor_size.height as i32 - height) / 2)
+            target_monitor.position.y + ((target_monitor.size.height as i32 - height) / 2)
         };
 
         let (clamped_x, clamped_y) = clamp_to_monitor(raw_x, raw_y, width, height, &target_monitor);
@@ -354,10 +351,20 @@ pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn show_main_window(app: AppHandle) -> Result<(), String> {
+pub fn show_main_window(saved_monitor_name: Option<String>, app: AppHandle) -> Result<(), String> {
     let main_window = app
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
+
+    let monitors = collect_monitor_descriptors(&app)?;
+    if let Some(saved_monitor_name) = saved_monitor_name {
+        if let Some(target_monitor) =
+            find_monitor_by_id_or_label(&monitors, saved_monitor_name.as_str())
+        {
+            normalize_main_window_state(&main_window)?;
+            move_main_window_to_monitor(&main_window, &target_monitor)?;
+        }
+    }
 
     main_window.show().map_err(|error| error.to_string())?;
     main_window.set_focus().map_err(|error| error.to_string())?;
@@ -381,7 +388,9 @@ pub fn start_overlay_drag(app: AppHandle, state: State<'_, AppState>) -> Result<
         overlay.unmaximize().map_err(|error| error.to_string())?;
     }
 
-    overlay.start_dragging().map_err(|error| error.to_string())?;
+    overlay
+        .start_dragging()
+        .map_err(|error| error.to_string())?;
 
     recover_overlay_focus_inner(&app, &state)
 }
@@ -404,7 +413,7 @@ pub fn register_shortcuts(
 
     // Register to validate conflicts and activate shortcuts.
     apply_bindings(&app, &bindings, &state)?;
-    
+
     // If overlay is not focused, unregister to avoid shortcut bleed in other apps.
     if let Some(overlay) = app.get_webview_window("overlay") {
         if !overlay.is_focused().unwrap_or(false) {
@@ -436,31 +445,20 @@ pub fn set_overlay_always_on_top(enabled: bool, app: AppHandle) -> Result<(), St
 
 #[tauri::command]
 pub fn list_monitors(app: AppHandle) -> Result<Vec<MonitorInfo>, String> {
-    let primary_key = app
-        .primary_monitor()
-        .map_err(|error| error.to_string())?
-        .as_ref()
-        .map(monitor_key);
+    let monitors = collect_monitor_descriptors(&app)?;
 
-    let monitors = app
-        .available_monitors()
-        .map_err(|error| error.to_string())?
+    let monitors = monitors
         .into_iter()
         .map(|monitor| {
-            let id = monitor_key(&monitor);
-            let name = monitor_label(&monitor);
-            let monitor_size = monitor.size();
-            let monitor_position = monitor.position();
-            let size = format!("{}x{}", monitor_size.width, monitor_size.height);
-            let origin = format!("{},{}", monitor_position.x, monitor_position.y);
-            let primary = primary_key.as_ref().is_some_and(|key| key == &id);
+            let size = format!("{}x{}", monitor.size.width, monitor.size.height);
+            let origin = format!("{},{}", monitor.position.x, monitor.position.y);
 
             MonitorInfo {
-                id,
-                name,
+                id: monitor.id,
+                name: monitor.name,
                 size,
                 origin,
-                primary,
+                primary: monitor.primary,
             }
         })
         .collect::<Vec<_>>();
@@ -475,15 +473,8 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
         .ok_or_else(|| String::from("Overlay window is not available"))?;
     let was_visible = overlay.is_visible().map_err(|error| error.to_string())?;
 
-    let monitor = app
-        .available_monitors()
-        .map_err(|error| error.to_string())?
-        .into_iter()
-        .find(|item| {
-            let key = monitor_key(item);
-            let label = monitor_label(item);
-            key.as_str() == monitor_name.as_str() || label.as_str() == monitor_name.as_str()
-        })
+    let monitors = collect_monitor_descriptors(&app)?;
+    let monitor = find_monitor_by_id_or_label(&monitors, monitor_name.as_str())
         .ok_or_else(|| String::from("Selected monitor was not found"))?;
 
     let overlay_size = overlay
@@ -495,11 +486,7 @@ pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(
         ));
     let width = overlay_size.width.max(OVERLAY_MIN_WIDTH) as i32;
     let height = overlay_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
-    let monitor_position = monitor.position();
-    let monitor_size = monitor.size();
-    let centered_x = monitor_position.x + ((monitor_size.width as i32 - width) / 2);
-    let top_y = monitor_position.y;
-    let (x, y) = clamp_to_monitor(centered_x, top_y, width, height, &monitor);
+    let (x, y) = top_center_position_for_monitor(&monitor, width, height);
 
     overlay
         .set_size(Size::Physical(PhysicalSize::new(
@@ -523,9 +510,7 @@ pub fn snap_overlay_to_top_center(app: AppHandle) -> Result<SnapOverlayResult, S
         .get_webview_window("overlay")
         .ok_or_else(|| String::from("Overlay window is not available"))?;
 
-    let monitors = app
-        .available_monitors()
-        .map_err(|error| error.to_string())?;
+    let monitors = collect_monitor_descriptors(&app)?;
     if monitors.is_empty() {
         return Err(String::from("No monitors available"));
     }
@@ -543,22 +528,12 @@ pub fn snap_overlay_to_top_center(app: AppHandle) -> Result<SnapOverlayResult, S
 
     let center_x = overlay_position.x + (overlay_size.width as i32 / 2);
     let center_y = overlay_position.y + (overlay_size.height as i32 / 2);
-    let primary_monitor = app.primary_monitor().map_err(|error| error.to_string())?;
-    let target_monitor = monitors
-        .iter()
-        .find(|monitor| monitor_contains_point(monitor, center_x, center_y))
-        .cloned()
-        .or(primary_monitor)
-        .or_else(|| monitors.first().cloned())
+    let target_monitor = resolve_monitor_for_point_or_primary(&monitors, center_x, center_y)
         .ok_or_else(|| String::from("Unable to resolve target monitor"))?;
 
     let width = overlay_size.width.max(OVERLAY_MIN_WIDTH) as i32;
     let height = overlay_size.height.max(OVERLAY_MIN_HEIGHT) as i32;
-    let monitor_position = target_monitor.position();
-    let monitor_size = target_monitor.size();
-    let centered_x = monitor_position.x + ((monitor_size.width as i32 - width) / 2);
-    let top_y = monitor_position.y;
-    let (x, y) = clamp_to_monitor(centered_x, top_y, width, height, &target_monitor);
+    let (x, y) = top_center_position_for_monitor(&target_monitor, width, height);
 
     overlay
         .set_position(Position::Physical(PhysicalPosition::new(x, y)))
@@ -567,8 +542,22 @@ pub fn snap_overlay_to_top_center(app: AppHandle) -> Result<SnapOverlayResult, S
     Ok(SnapOverlayResult {
         x,
         y,
-        monitor_name: monitor_key(&target_monitor),
+        monitor_name: target_monitor.id,
     })
+}
+
+#[tauri::command]
+pub fn move_main_to_monitor(monitor_name: String, app: AppHandle) -> Result<(), String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| String::from("Main window is not available"))?;
+
+    let monitors = collect_monitor_descriptors(&app)?;
+    let monitor = find_monitor_by_id_or_label(&monitors, monitor_name.as_str())
+        .ok_or_else(|| String::from("Selected monitor was not found"))?;
+
+    normalize_main_window_state(&main_window)?;
+    move_main_window_to_monitor(&main_window, &monitor)
 }
 
 #[tauri::command]
@@ -600,7 +589,7 @@ pub fn export_diagnostics(app: AppHandle, path: String) -> Result<String, String
 
     let file = fs::File::create(&archive_path).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
-    
+
     // In zip >= 0.6, FileOptions or SimpleFileOptions is used. Try SimpleFileOptions first.
     let options = zip::write::SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
@@ -614,10 +603,11 @@ pub fn export_diagnostics(app: AppHandle, path: String) -> Result<String, String
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     if name.starts_with("glance.log") {
                         let mut f = fs::File::open(&path).map_err(|e| e.to_string())?;
-                        
+
                         // Append .txt so users can click and open the log natively on Mac/Win
                         let zip_name = format!("{}.txt", name);
-                        zip.start_file(&zip_name, options.clone()).map_err(|e| e.to_string())?;
+                        zip.start_file(&zip_name, options.clone())
+                            .map_err(|e| e.to_string())?;
                         std::io::copy(&mut f, &mut zip).map_err(|e| e.to_string())?;
                     }
                 }
@@ -672,26 +662,281 @@ fn monitor_label(monitor: &Monitor) -> String {
         .unwrap_or_else(|| String::from("Unnamed Monitor"))
 }
 
+#[derive(Debug, Clone)]
+struct MonitorDescriptor {
+    id: String,
+    name: String,
+    position: PhysicalPosition<i32>,
+    size: PhysicalSize<u32>,
+    scale_factor: f64,
+    primary: bool,
+}
+
 fn monitor_key(monitor: &Monitor) -> String {
     let label = monitor_label(monitor);
     let position = monitor.position();
     let size = monitor.size();
+    let scale = monitor.scale_factor();
     format!(
-        "{}|{}:{}|{}x{}",
-        label, position.x, position.y, size.width, size.height
+        "{}|{}:{}|{}x{}|sf:{:.4}",
+        label, position.x, position.y, size.width, size.height, scale
     )
 }
 
-fn monitor_contains_point(monitor: &Monitor, x: i32, y: i32) -> bool {
-    let position = monitor.position();
-    let size = monitor.size();
-    let max_x = position.x + size.width as i32;
-    let max_y = position.y + size.height as i32;
-
-    x >= position.x && x < max_x && y >= position.y && y < max_y
+fn monitor_geometry_key(position: PhysicalPosition<i32>, size: PhysicalSize<u32>) -> String {
+    format!(
+        "{}:{}|{}x{}",
+        position.x, position.y, size.width, size.height
+    )
 }
 
-fn is_bounds_inside_monitor(bounds: &OverlayBounds, monitor: &Monitor) -> bool {
+fn collect_tauri_monitors(app: &AppHandle) -> Result<Vec<Monitor>, String> {
+    let mut all_monitors = app
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+
+    if let Some(main) = app.get_webview_window("main") {
+        if let Ok(monitors) = main.available_monitors() {
+            all_monitors.extend(monitors);
+        }
+        if let Ok(Some(monitor)) = main.current_monitor() {
+            all_monitors.push(monitor);
+        }
+    }
+
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        if let Ok(monitors) = overlay.available_monitors() {
+            all_monitors.extend(monitors);
+        }
+        if let Ok(Some(monitor)) = overlay.current_monitor() {
+            all_monitors.push(monitor);
+        }
+    }
+
+    if let Some(primary) = app.primary_monitor().map_err(|error| error.to_string())? {
+        all_monitors.push(primary);
+    }
+
+    let mut deduped = HashMap::<String, Monitor>::new();
+    for monitor in all_monitors {
+        let key = monitor_geometry_key(*monitor.position(), *monitor.size());
+        deduped.entry(key).or_insert(monitor);
+    }
+
+    let mut monitors = deduped.into_values().collect::<Vec<_>>();
+    monitors.sort_by_key(|monitor| {
+        let position = monitor.position();
+        (position.x, position.y)
+    });
+    Ok(monitors)
+}
+
+#[cfg(target_os = "macos")]
+#[repr(C)]
+struct CgPoint {
+    x: f64,
+    y: f64,
+}
+
+#[cfg(target_os = "macos")]
+#[repr(C)]
+struct CgSize {
+    width: f64,
+    height: f64,
+}
+
+#[cfg(target_os = "macos")]
+#[repr(C)]
+struct CgRect {
+    origin: CgPoint,
+    size: CgSize,
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "ApplicationServices", kind = "framework")]
+unsafe extern "C" {
+    fn CGGetActiveDisplayList(
+        max_displays: u32,
+        active_displays: *mut u32,
+        display_count: *mut u32,
+    ) -> i32;
+    fn CGMainDisplayID() -> u32;
+    fn CGDisplayBounds(display: u32) -> CgRect;
+    fn CGDisplayIsBuiltin(display: u32) -> u32;
+}
+
+fn monitor_matches_identifier(monitor: &MonitorDescriptor, target: &str) -> bool {
+    if monitor.id == target || monitor.name == target {
+        return true;
+    }
+
+    let Some((x, y, width, height)) = parse_monitor_geometry_from_key(target) else {
+        return false;
+    };
+
+    monitor.position.x == x
+        && monitor.position.y == y
+        && monitor.size.width == width
+        && monitor.size.height == height
+}
+
+fn parse_monitor_geometry_from_key(value: &str) -> Option<(i32, i32, u32, u32)> {
+    let mut parts = value.split('|');
+    let _label = parts.next()?;
+    let position_part = parts.next()?;
+    let size_part = parts.next()?;
+    let (x, y) = position_part.split_once(':')?;
+    let (width, height) = size_part.split_once('x')?;
+
+    Some((
+        x.parse().ok()?,
+        y.parse().ok()?,
+        width.parse().ok()?,
+        height.parse().ok()?,
+    ))
+}
+
+fn collect_monitor_descriptors(app: &AppHandle) -> Result<Vec<MonitorDescriptor>, String> {
+    let tauri_monitors = collect_tauri_monitors(app)?;
+    let primary_key = app
+        .primary_monitor()
+        .map_err(|error| error.to_string())?
+        .as_ref()
+        .map(monitor_key);
+
+    let mut descriptors = tauri_monitors
+        .into_iter()
+        .map(|monitor| {
+            let id = monitor_key(&monitor);
+            let name = monitor_label(&monitor);
+            let position = *monitor.position();
+            let size = *monitor.size();
+            let primary = primary_key.as_ref().is_some_and(|key| key == &id);
+            MonitorDescriptor {
+                id,
+                name,
+                position,
+                size,
+                scale_factor: monitor.scale_factor(),
+                primary,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    #[cfg(target_os = "macos")]
+    if let Ok(fallback_monitors) = collect_macos_monitor_descriptors() {
+        // CoreGraphics uses a different source than Tauri and can report display geometry in
+        // a coordinate space that does not match Tauri's values exactly. Merging both sources
+        // may create duplicate pseudo-monitors. Use fallback only when Tauri under-reports.
+        if descriptors.len() <= 1 && fallback_monitors.len() > descriptors.len() {
+            descriptors = fallback_monitors;
+        }
+    }
+
+    let mut unique = HashMap::<String, MonitorDescriptor>::new();
+    for monitor in descriptors {
+        let key = monitor_geometry_key(monitor.position, monitor.size);
+        unique
+            .entry(key)
+            .and_modify(|existing| {
+                existing.primary = existing.primary || monitor.primary;
+                if existing.name == "Unnamed Monitor"
+                    || existing.name.starts_with("Monitor #")
+                    || existing.name.starts_with("Display ")
+                {
+                    existing.name = monitor.name.clone();
+                }
+                if existing.id.starts_with("macos-display:")
+                    && !monitor.id.starts_with("macos-display:")
+                {
+                    existing.id = monitor.id.clone();
+                }
+                if existing.scale_factor <= 0.0 {
+                    existing.scale_factor = monitor.scale_factor;
+                }
+            })
+            .or_insert(monitor);
+    }
+
+    let mut monitors = unique.into_values().collect::<Vec<_>>();
+    monitors.sort_by_key(|monitor| (monitor.position.x, monitor.position.y));
+    Ok(monitors)
+}
+
+#[cfg(target_os = "macos")]
+fn collect_macos_monitor_descriptors() -> Result<Vec<MonitorDescriptor>, String> {
+    const SUCCESS: i32 = 0;
+    let mut monitor_count = 0_u32;
+    let count_error =
+        unsafe { CGGetActiveDisplayList(0, std::ptr::null_mut(), &mut monitor_count) };
+    if count_error != SUCCESS {
+        return Err(format!(
+            "CGGetActiveDisplayList(count) failed with code {count_error}"
+        ));
+    }
+
+    if monitor_count == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut display_ids = vec![0_u32; monitor_count as usize];
+    let list_error = unsafe {
+        CGGetActiveDisplayList(monitor_count, display_ids.as_mut_ptr(), &mut monitor_count)
+    };
+    if list_error != SUCCESS {
+        return Err(format!(
+            "CGGetActiveDisplayList(list) failed with code {list_error}"
+        ));
+    }
+    display_ids.truncate(monitor_count as usize);
+
+    let main_display_id = unsafe { CGMainDisplayID() };
+    let monitors = display_ids
+        .into_iter()
+        .map(|display_id| {
+            let bounds = unsafe { CGDisplayBounds(display_id) };
+            let builtin = unsafe { CGDisplayIsBuiltin(display_id) != 0 };
+            let x = bounds.origin.x.round() as i32;
+            let y = bounds.origin.y.round() as i32;
+            let width = bounds.size.width.round().max(1.0) as u32;
+            let height = bounds.size.height.round().max(1.0) as u32;
+
+            MonitorDescriptor {
+                id: format!("macos-display:{display_id}"),
+                name: if builtin {
+                    String::from("Built-in Display")
+                } else {
+                    format!("Display {display_id}")
+                },
+                position: PhysicalPosition::new(x, y),
+                size: PhysicalSize::new(width, height),
+                scale_factor: 1.0,
+                primary: display_id == main_display_id,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    Ok(monitors)
+}
+
+fn find_monitor_by_id_or_label(
+    monitors: &[MonitorDescriptor],
+    target: &str,
+) -> Option<MonitorDescriptor> {
+    monitors
+        .iter()
+        .find(|monitor| monitor_matches_identifier(monitor, target))
+        .cloned()
+}
+
+fn monitor_contains_point(monitor: &MonitorDescriptor, x: i32, y: i32) -> bool {
+    let max_x = monitor.position.x + monitor.size.width as i32;
+    let max_y = monitor.position.y + monitor.size.height as i32;
+
+    x >= monitor.position.x && x < max_x && y >= monitor.position.y && y < max_y
+}
+
+fn is_bounds_inside_monitor(bounds: &OverlayBounds, monitor: &MonitorDescriptor) -> bool {
     if bounds.width <= 0.0 || bounds.height <= 0.0 {
         return false;
     }
@@ -700,23 +945,99 @@ fn is_bounds_inside_monitor(bounds: &OverlayBounds, monitor: &Monitor) -> bool {
     let y = bounds.y.round() as i32;
     let width = bounds.width.round() as i32;
     let height = bounds.height.round() as i32;
-    let position = monitor.position();
-    let size = monitor.size();
     let right = x + width;
     let bottom = y + height;
-    let monitor_right = position.x + size.width as i32;
-    let monitor_bottom = position.y + size.height as i32;
+    let monitor_right = monitor.position.x + monitor.size.width as i32;
+    let monitor_bottom = monitor.position.y + monitor.size.height as i32;
 
-    x >= position.x && y >= position.y && right <= monitor_right && bottom <= monitor_bottom
+    x >= monitor.position.x
+        && y >= monitor.position.y
+        && right <= monitor_right
+        && bottom <= monitor_bottom
 }
 
-fn clamp_to_monitor(x: i32, y: i32, width: i32, height: i32, monitor: &Monitor) -> (i32, i32) {
-    let position = monitor.position();
-    let size = monitor.size();
-    let max_x = position.x + (size.width as i32 - width).max(0);
-    let max_y = position.y + (size.height as i32 - height).max(0);
+fn clamp_to_monitor(
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    monitor: &MonitorDescriptor,
+) -> (i32, i32) {
+    let max_x = monitor.position.x + (monitor.size.width as i32 - width).max(0);
+    let max_y = monitor.position.y + (monitor.size.height as i32 - height).max(0);
 
-    (x.clamp(position.x, max_x), y.clamp(position.y, max_y))
+    (
+        x.clamp(monitor.position.x, max_x),
+        y.clamp(monitor.position.y, max_y),
+    )
+}
+
+fn top_center_position_for_monitor(
+    monitor: &MonitorDescriptor,
+    width: i32,
+    height: i32,
+) -> (i32, i32) {
+    let centered_x = monitor.position.x + ((monitor.size.width as i32 - width) / 2);
+    let top_y = monitor.position.y;
+    clamp_to_monitor(centered_x, top_y, width, height, monitor)
+}
+
+fn move_main_window_to_monitor(
+    main_window: &tauri::WebviewWindow,
+    monitor: &MonitorDescriptor,
+) -> Result<(), String> {
+    let current_size = main_window
+        .outer_size()
+        .map_err(|error| error.to_string())?;
+    let width = current_size.width as i32;
+    let height = current_size.height as i32;
+
+    let scale = monitor.scale_factor.max(0.0001);
+    let monitor_logical_x = monitor.position.x as f64;
+    let monitor_logical_y = monitor.position.y as f64;
+    let monitor_logical_width = monitor.size.width as f64 / scale;
+    let window_logical_width = current_size.width as f64 / scale;
+    let logical_x = monitor_logical_x + ((monitor_logical_width - window_logical_width) / 2.0);
+    let logical_y = monitor_logical_y;
+
+    main_window
+        .set_position(Position::Logical(LogicalPosition::new(
+            logical_x.round(),
+            logical_y.round(),
+        )))
+        .map_err(|error| error.to_string())?;
+
+    std::thread::sleep(Duration::from_millis(50));
+    let moved_inside_target = main_window
+        .outer_position()
+        .map(|position| {
+            let center_x = position.x + (current_size.width as i32 / 2);
+            let center_y = position.y + (current_size.height as i32 / 2);
+            monitor_contains_point(monitor, center_x, center_y)
+        })
+        .unwrap_or(false);
+
+    if moved_inside_target {
+        return Ok(());
+    }
+
+    let (x, y) = top_center_position_for_monitor(monitor, width, height);
+    main_window
+        .set_position(Position::Physical(PhysicalPosition::new(x, y)))
+        .map_err(|error| error.to_string())
+}
+
+fn resolve_monitor_for_point_or_primary(
+    monitors: &[MonitorDescriptor],
+    x: i32,
+    y: i32,
+) -> Option<MonitorDescriptor> {
+    monitors
+        .iter()
+        .find(|monitor| monitor_contains_point(monitor, x, y))
+        .cloned()
+        .or_else(|| monitors.iter().find(|monitor| monitor.primary).cloned())
+        .or_else(|| monitors.first().cloned())
 }
 
 fn apply_overlay_bounds(
@@ -735,6 +1056,28 @@ fn apply_overlay_bounds(
             bounds.y.round() as i32,
         )))
         .map_err(|error| error.to_string())
+}
+
+fn normalize_main_window_state(main_window: &tauri::WebviewWindow) -> Result<(), String> {
+    if main_window
+        .is_fullscreen()
+        .map_err(|error| error.to_string())?
+    {
+        main_window
+            .set_fullscreen(false)
+            .map_err(|error| error.to_string())?;
+    }
+
+    if main_window
+        .is_maximized()
+        .map_err(|error| error.to_string())?
+    {
+        main_window
+            .unmaximize()
+            .map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
 }
 
 fn recover_overlay_focus_inner(app: &AppHandle, state: &AppState) -> Result<(), String> {
@@ -780,12 +1123,33 @@ fn normalize_shortcut_text(value: &str) -> String {
 fn is_os_reserved_shortcut(accelerator: &str) -> bool {
     let normalized = normalize_shortcut_text(accelerator);
     let reserved = [
-        "cmdorctrl+c", "cmdorctrl+v", "cmdorctrl+x", "cmdorctrl+z", "cmdorctrl+q", "cmdorctrl+w", "cmdorctrl+tab",
-        "cmd+c", "cmd+v", "cmd+x", "cmd+z", "cmd+q", "cmd+w", "cmd+tab",
-        "ctrl+c", "ctrl+v", "ctrl+x", "ctrl+z", "ctrl+q", "ctrl+w", "ctrl+tab",
-        "alt+tab", "super+tab"
+        "cmdorctrl+c",
+        "cmdorctrl+v",
+        "cmdorctrl+x",
+        "cmdorctrl+z",
+        "cmdorctrl+q",
+        "cmdorctrl+w",
+        "cmdorctrl+tab",
+        "cmd+c",
+        "cmd+v",
+        "cmd+x",
+        "cmd+z",
+        "cmd+q",
+        "cmd+w",
+        "cmd+tab",
+        "ctrl+c",
+        "ctrl+v",
+        "ctrl+x",
+        "ctrl+z",
+        "ctrl+q",
+        "ctrl+w",
+        "ctrl+tab",
+        "alt+tab",
+        "super+tab",
     ];
-    reserved.iter().any(|&r| normalize_shortcut_text(r) == normalized)
+    reserved
+        .iter()
+        .any(|&r| normalize_shortcut_text(r) == normalized)
 }
 
 fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
@@ -895,4 +1259,203 @@ fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
             accelerator: String::from("CmdOrCtrl+9"),
         },
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_monitor(
+        id: &str,
+        name: &str,
+        x: i32,
+        y: i32,
+        width: u32,
+        height: u32,
+        primary: bool,
+    ) -> MonitorDescriptor {
+        MonitorDescriptor {
+            id: id.to_string(),
+            name: name.to_string(),
+            position: PhysicalPosition::new(x, y),
+            size: PhysicalSize::new(width, height),
+            primary,
+        }
+    }
+
+    #[test]
+    fn test_binding_to_shortcut_action_maps_supported_actions() {
+        let toggle = binding_to_shortcut_action("toggle-play").unwrap();
+        assert_eq!(toggle.action, "toggle-play");
+        assert_eq!(toggle.index, None);
+        assert_eq!(toggle.delta, None);
+
+        let jump = binding_to_shortcut_action("jump-9").unwrap();
+        assert_eq!(jump.action, "jump-section");
+        assert_eq!(jump.index, Some(8));
+        assert_eq!(jump.delta, None);
+
+        let speed_up = binding_to_shortcut_action("speed-up").unwrap();
+        assert_eq!(speed_up.action, "speed-change");
+        assert_eq!(speed_up.delta, Some(1));
+    }
+
+    #[test]
+    fn test_binding_to_shortcut_action_rejects_unsupported_jump_values() {
+        let jump_zero = binding_to_shortcut_action("jump-0");
+        assert!(jump_zero.is_err());
+
+        let jump_ten = binding_to_shortcut_action("jump-10");
+        assert!(jump_ten.is_err());
+    }
+
+    #[test]
+    fn test_reserved_shortcut_detection_is_robust() {
+        assert!(is_os_reserved_shortcut("CmdOrCtrl+C"));
+        assert!(is_os_reserved_shortcut(" cmd + tab "));
+        assert!(is_os_reserved_shortcut("CTRL+W"));
+        assert!(!is_os_reserved_shortcut("CmdOrCtrl+1"));
+    }
+
+    #[test]
+    fn test_shortcut_text_normalization() {
+        assert_eq!(normalize_shortcut_text(" Cmd + Shift + S "), "cmd+shift+s");
+        assert_eq!(normalize_shortcut_text("Ctrl+Tab"), "ctrl+tab");
+    }
+
+    #[test]
+    fn test_parse_monitor_geometry_from_key() {
+        assert_eq!(
+            parse_monitor_geometry_from_key("Display A|10:20|1920x1080|sf:2.0000"),
+            Some((10, 20, 1920, 1080))
+        );
+        assert_eq!(parse_monitor_geometry_from_key("bad-key"), None);
+        assert_eq!(
+            parse_monitor_geometry_from_key("Display A|x:y|1920x1080|sf:1.0000"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_monitor_matches_identifier_by_id_name_and_geometry() {
+        let monitor = make_monitor(
+            "Display A|0:0|1920x1080|sf:2.0000",
+            "Display A",
+            0,
+            0,
+            1920,
+            1080,
+            true,
+        );
+
+        assert!(monitor_matches_identifier(
+            &monitor,
+            "Display A|0:0|1920x1080|sf:2.0000"
+        ));
+        assert!(monitor_matches_identifier(&monitor, "Display A"));
+        assert!(monitor_matches_identifier(
+            &monitor,
+            "Legacy Label|0:0|1920x1080|sf:1.0000"
+        ));
+        assert!(!monitor_matches_identifier(
+            &monitor,
+            "Display A|10:10|1920x1080|sf:2.0000"
+        ));
+    }
+
+    #[test]
+    fn test_find_monitor_by_id_or_label_happy_and_fallback_cases() {
+        let monitors = vec![
+            make_monitor("id-a", "Display A", 0, 0, 1920, 1080, true),
+            make_monitor("id-b", "Display B", 1920, 0, 1920, 1080, false),
+        ];
+
+        let by_name = find_monitor_by_id_or_label(&monitors, "Display B").unwrap();
+        assert_eq!(by_name.id, "id-b");
+
+        let by_geometry =
+            find_monitor_by_id_or_label(&monitors, "Anything|1920:0|1920x1080|sf:1.0000").unwrap();
+        assert_eq!(by_geometry.id, "id-b");
+
+        assert!(find_monitor_by_id_or_label(&monitors, "Missing").is_none());
+    }
+
+    #[test]
+    fn test_monitor_contains_point_boundary_behavior() {
+        let monitor = make_monitor("id-a", "Display A", 100, 200, 300, 400, true);
+
+        assert!(monitor_contains_point(&monitor, 100, 200));
+        assert!(monitor_contains_point(&monitor, 399, 599));
+        assert!(!monitor_contains_point(&monitor, 400, 599));
+        assert!(!monitor_contains_point(&monitor, 399, 600));
+    }
+
+    #[test]
+    fn test_is_bounds_inside_monitor_checks_edges_and_non_positive_sizes() {
+        let monitor = make_monitor("id-a", "Display A", 0, 0, 1000, 800, true);
+        let inside = OverlayBounds {
+            x: 10.0,
+            y: 20.0,
+            width: 400.0,
+            height: 300.0,
+        };
+        let outside = OverlayBounds {
+            x: 700.0,
+            y: 550.0,
+            width: 400.0,
+            height: 300.0,
+        };
+        let invalid = OverlayBounds {
+            x: 10.0,
+            y: 10.0,
+            width: 0.0,
+            height: 300.0,
+        };
+
+        assert!(is_bounds_inside_monitor(&inside, &monitor));
+        assert!(!is_bounds_inside_monitor(&outside, &monitor));
+        assert!(!is_bounds_inside_monitor(&invalid, &monitor));
+    }
+
+    #[test]
+    fn test_clamp_to_monitor_limits_coordinates_to_visible_area() {
+        let monitor = make_monitor("id-a", "Display A", 0, 0, 1920, 1080, true);
+        assert_eq!(clamp_to_monitor(-100, -200, 1200, 600, &monitor), (0, 0));
+        assert_eq!(clamp_to_monitor(2000, 900, 1200, 600, &monitor), (720, 480));
+    }
+
+    #[test]
+    fn test_position_helpers_compute_top_center_and_main_window_positions() {
+        let monitor = make_monitor("id-a", "Display A", 100, 200, 1920, 1080, true);
+        assert_eq!(
+            top_center_position_for_monitor(&monitor, 1000, 400),
+            (560, 200)
+        );
+        assert_eq!(
+            main_window_position_for_monitor(&monitor, 1200, 900),
+            (460, 200)
+        );
+    }
+
+    #[test]
+    fn test_resolve_monitor_for_point_or_primary_branches() {
+        let monitors = vec![
+            make_monitor("id-a", "Display A", 0, 0, 1920, 1080, false),
+            make_monitor("id-b", "Display B", 1920, 0, 1920, 1080, true),
+        ];
+
+        let by_point = resolve_monitor_for_point_or_primary(&monitors, 10, 10).unwrap();
+        assert_eq!(by_point.id, "id-a");
+
+        let by_primary = resolve_monitor_for_point_or_primary(&monitors, 5000, 5000).unwrap();
+        assert_eq!(by_primary.id, "id-b");
+
+        let fallback_first = resolve_monitor_for_point_or_primary(
+            &[make_monitor("id-only", "Only", 0, 0, 800, 600, false)],
+            9999,
+            9999,
+        )
+        .unwrap();
+        assert_eq!(fallback_first.id, "id-only");
+    }
 }

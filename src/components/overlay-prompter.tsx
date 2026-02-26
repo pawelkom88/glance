@@ -53,6 +53,7 @@ interface MonitorSnapshot {
   readonly size: { width: number; height: number };
   readonly position: { x: number; y: number };
   readonly name?: string | null;
+  readonly scaleFactor?: number;
 }
 
 function isMacPlatform(): boolean {
@@ -111,7 +112,10 @@ function calculateSnapTarget(
 
 function monitorIdFromSnapshot(monitor: MonitorSnapshot): string {
   const label = monitor.name ?? 'Unnamed Monitor';
-  return `${label}|${monitor.position.x}:${monitor.position.y}|${monitor.size.width}x${monitor.size.height}`;
+  const scale = typeof monitor.scaleFactor === 'number' && Number.isFinite(monitor.scaleFactor)
+    ? monitor.scaleFactor
+    : 1;
+  return `${label}|${monitor.position.x}:${monitor.position.y}|${monitor.size.width}x${monitor.size.height}|sf:${scale.toFixed(4)}`;
 }
 
 function logSnapDebug(message: string, payload?: Record<string, unknown>): void {
