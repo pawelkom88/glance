@@ -134,6 +134,8 @@
 
   --shadow-lg: 0 32px 80px rgba(8, 12, 22, 0.52);
   --shadow-sm: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  --selection-blue: #007AFF;
+  --selection-bg-wash: rgba(0, 122, 255, 0.05);
   font-optical-sizing: auto;
   color-scheme: light;
 }
@@ -1109,6 +1111,231 @@ select {
   opacity: 0;
   transform: translateY(-4px) scale(0.988);
   pointer-events: none;
+}
+
+/* === Selection Mode === */
+
+.selection-mode-container {
+  overflow: hidden;
+}
+
+.select-all-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: height 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease, margin 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  margin-bottom: 0;
+}
+
+.select-all-row.is-visible {
+  height: 44px;
+  opacity: 1;
+  margin-bottom: 12px;
+}
+
+.selection-checkbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface-control-neutral-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  flex-shrink: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.selection-checkbox.is-checked {
+  background-color: var(--selection-blue);
+  border-color: var(--selection-blue);
+}
+
+.selection-checkbox.is-partial {
+  background-color: transparent;
+  border-color: var(--selection-blue);
+}
+
+.selection-checkbox.is-partial::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background-color: var(--selection-blue);
+}
+
+.selection-checkbox-inner {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 150ms ease, transform 150ms cubic-bezier(0.2, 2, 0.4, 1);
+}
+
+.selection-checkbox.is-checked .selection-checkbox-inner {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.select-all-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--selection-blue);
+  cursor: pointer;
+}
+
+/* Session Card in Selection Mode */
+
+.session-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+}
+
+.session-card.is-selected {
+  border-color: var(--selection-blue);
+  background-color: var(--selection-bg-wash);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1);
+}
+
+.card-checkbox-wrapper {
+  width: 0;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease, transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.is-selection-mode .card-checkbox-wrapper {
+  width: 36px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.session-card-end-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease;
+}
+
+.is-selection-mode .session-card-end-content {
+  transform: translateX(40px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Bottom Action Bar */
+
+.bottom-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  /* Full width */
+  right: 0;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  transform: translateY(100%);
+  transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 1000;
+  /* Above sidebar */
+}
+
+.bottom-action-bar.is-visible {
+  transform: translateY(0);
+}
+
+.selection-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.selection-count.is-visible {
+  opacity: 1;
+}
+
+.bulk-delete-button {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 200ms ease, transform 200ms cubic-bezier(0.2, 2, 0.4, 1), background-color 150ms ease;
+  pointer-events: none;
+}
+
+.bulk-delete-button.is-visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.bulk-delete-button:hover {
+  background-color: #E0352A;
+}
+
+.bulk-delete-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+
+/* Animations */
+
+@keyframes pulse-card {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.97);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-active {
+  animation: pulse-card 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Staggered deletion exit */
+.session-card.bulk-exiting {
+  opacity: 0;
+  transform: scale(0.9) translateY(10px);
+  transition: opacity 240ms ease, transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @supports (view-transition-name: none) {
