@@ -2466,14 +2466,16 @@
 
       <div class="btn-group reveal">
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-primary dl-mac-btn">
+          <a href="https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_aarch64.dmg"
+            class="btn btn-primary dl-mac-btn">
             <span class="btn-text">Get Glance</span>
             <span class="btn-subtext dl-mac-subtext">Detecting...</span>
           </a>
           <div class="cta-caption dl-mac-caption">Checking version...</div>
         </div>
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-secondary dl-win-btn">
+          <a href="https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_x64-setup.exe"
+            class="btn btn-secondary dl-win-btn">
             <span class="btn-text">Download for Windows</span>
             <span class="btn-subtext dl-win-subtext">v0.1.1 · 64-bit</span>
           </a>
@@ -2840,11 +2842,13 @@
 
       <div class="dl-footer-group reveal">
         <div class="dl-btn-row">
-          <a href="#" class="btn-mac dl-mac-btn">
+          <a href="https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_aarch64.dmg"
+            class="btn-mac dl-mac-btn">
             <span class="btn-title">Get Glance for Mac</span>
             <span class="btn-sub dl-mac-subtext">v0.1.1 · Apple Silicon</span>
           </a>
-          <a href="#" class="btn-win dl-win-btn">
+          <a href="https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_x64-setup.exe"
+            class="btn-win dl-win-btn">
             <span class="btn-title">Download for Windows</span>
             <span class="btn-sub dl-win-subtext">v0.1.1 · 64-bit</span>
           </a>
@@ -3044,14 +3048,16 @@
       <h2 class="headline">Ready to look <br>more confident?</h2>
       <div class="btn-group">
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-primary dl-mac-btn">
+          <a href="https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_aarch64.dmg"
+            class="btn btn-primary dl-mac-btn">
             <span class="btn-text">Get Glance</span>
             <span class="btn-subtext dl-mac-subtext">Detecting...</span>
           </a>
           <div class="cta-caption dl-mac-caption">Checking version...</div>
         </div>
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-secondary dl-win-btn">
+          <a href="https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_x64-setup.exe"
+            class="btn btn-secondary dl-win-btn">
             <span class="btn-text">Download for Windows</span>
             <span class="btn-subtext dl-win-subtext">v0.1.1 · 64-bit</span>
           </a>
@@ -3308,8 +3314,11 @@
 
     // Release & Architecture Logic
     document.addEventListener("DOMContentLoaded", async () => {
-      let currentRelease = null;
       let isAppleSilicon = false;
+      const RELEASE_VERSION = 'v0.2.0';
+      const WINDOWS_URL = 'https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_x64-setup.exe';
+      const MAC_ARM_URL = 'https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_aarch64.dmg';
+      const MAC_INTEL_URL = 'https://github.com/pawelkom88/glance/releases/download/untagged-6155bbf4c03778acb423/Glance_0.2.0_x64.dmg';
 
       // 1. Detect Architecture
       try {
@@ -3323,43 +3332,22 @@
         }
       } catch (e) { }
 
-      // 2. Fetch Release
-      try {
-        const res = await fetch("https://api.github.com/repos/pawelkom88/glance/releases/latest");
-        if (res.ok) {
-          currentRelease = await res.json();
-          updateDownloadLinks();
-        }
-      } catch (e) { }
+      updateDownloadLinks();
 
       function updateDownloadLinks() {
-        if (!currentRelease) return;
-
-        const assets = currentRelease.assets;
-        const win = assets.find(a => a.name.endsWith('.exe'));
-        const macArm = assets.find(a => a.name.toLowerCase().includes('aarch64.dmg'));
-        const macIntel = assets.find(a => a.name.toLowerCase().includes('x64.dmg'));
-
-        const version = currentRelease.tag_name || 'v0.1.1';
-
-        // Update Windows
-        if (win) {
-          document.querySelectorAll('.dl-win-btn').forEach(b => b.href = win.browser_download_url);
-          document.querySelectorAll('.dl-win-subtext').forEach(el => el.innerHTML = `${version} · 64-bit`);
-        }
+        document.querySelectorAll('.dl-win-btn').forEach(b => b.href = WINDOWS_URL);
+        document.querySelectorAll('.dl-win-subtext').forEach(el => el.innerHTML = `v0.1.1 · 64-bit`);
 
         // Update Mac based on detection
-        const primaryMacAsset = isAppleSilicon ? macArm : macIntel;
+        const primaryMacUrl = isAppleSilicon ? MAC_ARM_URL : MAC_INTEL_URL;
         const archLabel = isAppleSilicon ? "Apple Silicon" : "Intel chip";
 
-        if (primaryMacAsset) {
-          document.querySelectorAll('.dl-mac-btn').forEach(b => {
-            b.href = primaryMacAsset.browser_download_url;
-          });
-          document.querySelectorAll('.dl-mac-subtext').forEach(el => {
-            el.innerHTML = `${version} · ${archLabel}`;
-          });
-        }
+        document.querySelectorAll('.dl-mac-btn').forEach(b => {
+          b.href = primaryMacUrl;
+        });
+        document.querySelectorAll('.dl-mac-subtext').forEach(el => {
+          el.innerHTML = `${RELEASE_VERSION} · ${archLabel}`;
+        });
 
         document.querySelectorAll('.dl-mac-caption').forEach(el => {
           const isWhiteTheme = el.style.color.includes('rgba(255,255,255');
