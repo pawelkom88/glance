@@ -243,6 +243,8 @@ fn main() {
             commands::delete_folder,
             commands::move_sessions_to_folder,
             commands::delete_session,
+            commands::open_sessions_folder,
+            commands::restore_from_backup,
             commands::export_session_markdown,
             commands::load_session,
             commands::save_session,

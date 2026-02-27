@@ -386,6 +386,14 @@ export async function deleteSession(id: string): Promise<void> {
   await invoke('delete_session', { id });
 }
 
+export async function openSessionsFolder(): Promise<void> {
+  await invoke('open_sessions_folder');
+}
+
+export async function restoreFromBackup(path: string): Promise<void> {
+  await invoke('restore_from_backup', { path });
+}
+
 export async function loadSession(id: string): Promise<SessionData> {
   return invoke<SessionData>('load_session', { id });
 }

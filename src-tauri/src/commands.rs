@@ -312,6 +312,20 @@ pub fn delete_session(id: String, state: State<'_, AppState>) -> Result<(), Stri
 }
 
 #[tauri::command]
+pub fn open_sessions_folder(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    use tauri_plugin_shell::ShellExt;
+    app.shell()
+        .open(state.sessions_root.to_string_lossy().to_string(), None)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn restore_from_backup(path: String) -> Result<(), String> {
+    use std::path::Path;
+    sessions::restore_from_backup(Path::new(&path))
+}
+
+#[tauri::command]
 pub fn export_session_markdown(id: String, state: State<'_, AppState>) -> Result<String, String> {
     sessions::export_session_markdown(&state.sessions_root, id)
 }
@@ -380,7 +394,7 @@ fn show_overlay_window_inner(
         .map_err(|error| error.to_string())?;
 
     let _ = overlay.hide();
-    centre_window_on_monitor(&overlay, &target_monitor)?;
+    top_center_window_on_monitor(&overlay, &target_monitor)?;
 
     overlay.show().map_err(|error| error.to_string())?;
     overlay.set_focus().map_err(|error| error.to_string())?;
@@ -1576,13 +1590,6 @@ fn position_window_on_monitor(
     let _ = window.set_focus();
 
     Ok((rounded_x as i32, rounded_y as i32))
-}
-
-fn centre_window_on_monitor(
-    window: &tauri::WebviewWindow,
-    monitor: &Monitor,
-) -> Result<(i32, i32), String> {
-    position_window_on_monitor(window, monitor, false)
 }
 
 fn top_center_window_on_monitor(

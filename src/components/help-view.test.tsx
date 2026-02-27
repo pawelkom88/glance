@@ -6,10 +6,34 @@ vi.mock('@tauri-apps/plugin-shell', () => ({
   open: vi.fn()
 }));
 
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn()
+}));
+
+vi.mock('../lib/tauri', async (importOriginal) => {
+  const actual = await importOriginal<typeof tauriBridge>();
+  return {
+    ...actual,
+    openSessionsFolder: vi.fn(),
+    restoreFromBackup: vi.fn(),
+    listSessions: vi.fn().mockResolvedValue([]),
+    listFolders: vi.fn().mockResolvedValue([]),
+    loadSession: vi.fn().mockResolvedValue({ id: '1', markdown: '', meta: {} })
+  };
+});
+
 import { open as openUrl } from '@tauri-apps/plugin-shell';
+import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+import * as tauriBridge from '../lib/tauri';
+import { useAppStore } from '../store/use-app-store';
 import { HelpView } from './help-view';
 
-const openMock = openUrl as unknown as ReturnType<typeof vi.fn>;
+const openUrlMock = openUrl as unknown as ReturnType<typeof vi.fn>;
+const openFileDialogMock = openFileDialog as unknown as ReturnType<typeof vi.fn>;
+const tauriMock = tauriBridge as unknown as {
+  openSessionsFolder: ReturnType<typeof vi.fn>;
+  restoreFromBackup: ReturnType<typeof vi.fn>;
+};
 
 function setPlatform(value: string): void {
   Object.defineProperty(window.navigator, 'platform', {
@@ -41,6 +65,34 @@ describe('HelpView behavior', () => {
 
     await user.click(screen.getByRole('link', { name: /Buy me a coffee/i }));
 
-    expect(openMock).toHaveBeenCalledWith('https://buymeacoffee.com/ordo');
+    expect(openUrlMock).toHaveBeenCalledWith('https://buymeacoffee.com/ordo');
+  });
+
+  it('triggers backup restoration flow', async () => {
+    const user = userEvent.setup();
+    openFileDialogMock.mockResolvedValue('/path/to/backup.bak');
+    tauriMock.restoreFromBackup.mockResolvedValue(undefined);
+
+    render(<HelpView />);
+
+    await user.click(screen.getByRole('button', { name: /Restore Session/i }));
+
+    expect(openFileDialogMock).toHaveBeenCalled();
+    expect(tauriMock.restoreFromBackup).toHaveBeenCalledWith('/path/to/backup.bak');
+
+    expect(useAppStore.getState().toastMessage).toEqual({
+      message: 'Session restored successfully',
+      variant: 'success'
+    });
+  });
+
+  it('opens storage folder via tauri bridge', async () => {
+    const user = userEvent.setup();
+    render(<HelpView />);
+
+    const openButton = screen.getByRole('button', { name: /Show in Finder|Open Local Folder/i });
+    await user.click(openButton);
+
+    expect(tauriMock.openSessionsFolder).toHaveBeenCalled();
   });
 });

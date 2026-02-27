@@ -1,4 +1,7 @@
-import { open } from '@tauri-apps/plugin-shell';
+import { open as openUrl } from '@tauri-apps/plugin-shell';
+import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+import { openSessionsFolder, restoreFromBackup } from '../lib/tauri';
+import { useAppStore } from '../store/use-app-store';
 
 function modifierKeyLabel(): string {
   if (typeof navigator === 'undefined') {
@@ -11,9 +14,33 @@ function modifierKeyLabel(): string {
 export function HelpView() {
   const modifier = modifierKeyLabel();
 
+  const showToast = useAppStore((state) => state.showToast);
+  const loadInitialState = useAppStore((state) => state.loadInitialState);
+
   const handleDonationClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    await open('https://buymeacoffee.com/ordo');
+    await openUrl('https://buymeacoffee.com/ordo');
+  };
+
+  const handleRestore = async () => {
+    try {
+      const selected = await openFileDialog({
+        title: 'Select Backup to Restore',
+        multiple: false,
+        filters: [{ name: 'Backup File', extensions: ['bak', '1', '2', '3', '4', '5'] }]
+      });
+
+      if (!selected || Array.isArray(selected)) {
+        return;
+      }
+
+      await restoreFromBackup(selected);
+      await loadInitialState();
+      showToast('Session restored successfully', 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to restore backup';
+      showToast(message, 'error');
+    }
   };
 
   return (
@@ -139,6 +166,57 @@ export function HelpView() {
           </svg>
           Buy me a coffee
         </a>
+      </div>
+
+      {/* Local Storage section */}
+      <div>
+        <div className="setting-group-label">Local Storage</div>
+        <div className="help-storage-card" aria-label="Local storage information">
+          <div className="storage-card-section recovery-section">
+            <div className="storage-icon-circle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 4v6h6" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+            </div>
+            <div className="storage-section-content">
+              <div className="storage-section-title">Session Recovery</div>
+              <p className="storage-section-description">
+                Restore a previous version of your script from one of our automatic backups.
+              </p>
+              <button
+                type="button"
+                className="btn-restore-backup"
+                onClick={() => void handleRestore()}
+              >
+                Restore Session
+              </button>
+            </div>
+          </div>
+
+          <div className="storage-card-divider" />
+
+          <div className="storage-card-section advanced-section">
+            <div className="storage-icon-circle secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div className="storage-section-content">
+              <div className="storage-section-title secondary">Manual Storage</div>
+              <p className="storage-section-description">
+                Access your raw data files directly {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'in Finder' : 'on disk'}.
+              </p>
+              <button
+                type="button"
+                className="btn-open-folder"
+                onClick={() => void openSessionsFolder()}
+              >
+                {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'Show in Finder' : 'Open Local Folder'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

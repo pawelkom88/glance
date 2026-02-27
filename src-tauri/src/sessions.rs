@@ -89,6 +89,24 @@ pub fn ensure_storage(session_root: &Path) -> Result<(), String> {
     if !index_path.exists() {
         write_index(session_root, &[])?;
     }
+
+    let readme_path = session_root.join("README_BACKUPS.txt");
+    if !readme_path.exists() {
+        let content = "Glance Backup & Storage Guide\n\
+                       ============================\n\n\
+                       This folder contains your Glance sessions and backups.\n\n\
+                       - Each subfolder (e.g. '123456-My-Script') is a session.\n\
+                       - 'content.md' is your current script.\n\
+                       - '.bak.1' through '.bak.5' are automatic prior versions.\n\n\
+                       TO RESTORE A BACKUP:\n\
+                       1. Close Glance.\n\
+                       2. In a session folder, rename 'content.md' to 'content-broken.md'.\n\
+                       3. Rename your preferred backup file (e.g. 'content.md.bak.1') to 'content.md'.\n\
+                       4. Re-open Glance.\n\n\
+                       Note: Keep these files local. Do not move or rename the ID prefixes\n\
+                       in folder names, as Glance uses them to track your library.";
+        let _ = fs::write(readme_path, content);
+    }
     let folders_path = session_root.join(FOLDERS_FILE);
     if !folders_path.exists() {
         write_folders(session_root, &[])?;
@@ -375,6 +393,28 @@ fn rotate_backups(session_dir: &Path, base_name: &str) -> Result<(), String> {
     if current_file.exists() {
         let _ = fs::rename(&current_file, &first_backup);
     }
+
+    Ok(())
+}
+
+pub fn restore_from_backup(backup_path: &Path) -> Result<(), String> {
+    if !backup_path.exists() {
+        return Err(String::from("Backup file does not exist"));
+    }
+
+    let session_dir = backup_path
+        .parent()
+        .ok_or_else(|| String::from("Invalid backup path"))?;
+    let content_path = session_dir.join(CONTENT_FILE);
+
+    // Create a safety backup of the current version if it exists
+    if content_path.exists() {
+        let safety_path = session_dir.join(format!("{}.restored_at_{}", CONTENT_FILE, Utc::now().timestamp()));
+        fs::copy(&content_path, safety_path).map_err(|e| e.to_string())?;
+    }
+
+    // Copy the backup to the content file
+    fs::copy(backup_path, content_path).map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -875,5 +915,34 @@ mod tests {
 
         fs::remove_file(session_dir.join(CONTENT_FILE)).unwrap();
         assert!(export_session_markdown(root, created.id).is_err());
+    }
+
+    #[test]
+    fn test_restore_from_backup_logic() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        // 1. Setup a session with some content
+        let summary = create_session(root, "Restore Test".to_string()).unwrap();
+        let session_dir = root.join(&summary.id);
+        
+        // 2. Create a manual backup file
+        let backup_path = session_dir.join("content.md.bak.1");
+        fs::write(&backup_path, "Backup Content").unwrap();
+        
+        // 3. Perform restoration
+        restore_from_backup(&backup_path).unwrap();
+        
+        // 4. Verify content.md is now "Backup Content"
+        let restored_content = fs::read_to_string(session_dir.join(CONTENT_FILE)).unwrap();
+        assert_eq!(restored_content, "Backup Content");
+        
+        // 5. Verify a safety backup was created (look for any file starting with content.md.restored_at_)
+        let entries = fs::read_dir(&session_dir).unwrap();
+        let safety_backup_exists = entries
+            .filter_map(|e| e.ok())
+            .any(|e| e.file_name().to_string_lossy().starts_with("content.md.restored_at_"));
+        
+        assert!(safety_backup_exists, "Safety backup should have been created before destructive restore");
     }
 }
