@@ -24,6 +24,9 @@
     "global-shortcut:default",
     "shell:default",
     "core:window:allow-set-position",
-    "core:window:allow-set-size"
+    "core:window:allow-set-size",
+    "core:window:allow-set-min-size",
+    "core:window:allow-inner-size",
+    "core:window:allow-scale-factor"
   ]
 }

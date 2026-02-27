@@ -44,7 +44,7 @@ fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String
         .resizable(true)
         .skip_taskbar(true)
         .inner_size(1120.0, 400.0)
-        .min_inner_size(500.0, 400.0)
+        .min_inner_size(500.0, 200.0)
         .build()
         .map_err(|error: tauri::Error| error.to_string())?;
 

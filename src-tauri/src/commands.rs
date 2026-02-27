@@ -13,7 +13,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 const OVERLAY_MIN_WIDTH: u32 = 500;
-const OVERLAY_MIN_HEIGHT: u32 = 400;
+const OVERLAY_MIN_HEIGHT: u32 = 200;
 const OVERLAY_DEFAULT_WIDTH: u32 = 1120;
 const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
 const MAIN_WINDOW_MOVE_SETTLE_MS: u64 = 50;

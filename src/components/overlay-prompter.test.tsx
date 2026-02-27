@@ -20,7 +20,11 @@ const windowMocks = vi.hoisted(() => ({
   onMoved: vi.fn(),
   onResized: vi.fn(),
   isFocused: vi.fn(),
-  currentMonitor: vi.fn()
+  currentMonitor: vi.fn(),
+  setMinSize: vi.fn(),
+  setSize: vi.fn(),
+  scaleFactor: vi.fn(),
+  innerSize: vi.fn()
 }));
 
 let focusChangedListener: ((event: { payload: boolean }) => void) | null = null;
@@ -29,14 +33,21 @@ vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
     outerPosition: vi.fn().mockResolvedValue({ x: 0, y: 0 }),
     outerSize: vi.fn().mockResolvedValue({ width: 1120, height: 400 }),
+    innerSize: windowMocks.innerSize,
     currentMonitor: windowMocks.currentMonitor,
     setPosition: vi.fn().mockResolvedValue(undefined),
     setFocus: vi.fn().mockResolvedValue(undefined),
     isFocused: windowMocks.isFocused,
     onMoved: windowMocks.onMoved,
     onResized: windowMocks.onResized,
-    onFocusChanged: windowMocks.onFocusChanged
-  })
+    onFocusChanged: windowMocks.onFocusChanged,
+    setMinSize: windowMocks.setMinSize,
+    setSize: windowMocks.setSize,
+    scaleFactor: windowMocks.scaleFactor
+  }),
+  LogicalSize: class {
+    constructor(public width: number, public height: number) { }
+  }
 }));
 
 vi.mock('../lib/tauri', () => ({
@@ -115,6 +126,11 @@ beforeEach(() => {
     monitorName: 'display-a'
   });
   tauriMocks.startOverlayDrag.mockResolvedValue(undefined);
+
+  windowMocks.setMinSize.mockResolvedValue(undefined);
+  windowMocks.setSize.mockResolvedValue(undefined);
+  windowMocks.scaleFactor.mockResolvedValue(1);
+  windowMocks.innerSize.mockResolvedValue({ width: 1120, height: 400 });
 });
 
 describe('OverlayPrompter behavior', () => {
@@ -363,4 +379,32 @@ describe('OverlayPrompter behavior', () => {
     );
     expect(hintCalls).toHaveLength(1);
   });
+
+  it('enforces dynamic height constraints when toggling controls', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    windowMocks.scaleFactor.mockResolvedValue(2); // 2x Retina
+    windowMocks.innerSize.mockResolvedValue({ width: 1000, height: 400 }); // 200 logical
+
+    useAppStore.setState({ isControlsCollapsed: true });
+    const user = userEvent.setup();
+    render(<OverlayPrompter />);
+
+    // Initial check (collapsed)
+    await waitFor(() => {
+      expect(windowMocks.setMinSize).toHaveBeenCalledWith(expect.objectContaining({ height: 200 }));
+    });
+
+    // Toggle to expanded
+    const toggleButton = screen.getByRole('button', { name: 'Toggle controls' });
+    await user.click(toggleButton);
+
+    // Verify constraints updated and window resized proactively
+    await waitFor(() => {
+      // Should set min height to 400
+      expect(windowMocks.setMinSize).toHaveBeenCalledWith(expect.objectContaining({ height: 400 }));
+      // Should proactively resize to 400 logical since it was at 400 physical (200 logical)
+      expect(windowMocks.setSize).toHaveBeenCalledWith(expect.objectContaining({ height: 400 }));
+    });
+  });
+
 });

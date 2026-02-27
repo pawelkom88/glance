@@ -8,7 +8,7 @@ import {
   useRef,
   useState
 } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
   closeOverlayWindow,
@@ -598,24 +598,79 @@ export function OverlayPrompter() {
     }
   }, [isSnapButtonVisible, shouldRenderSnap]);
 
+  const updateWindowConstraints = useCallback(async () => {
+    if (!isTauriRuntime()) return;
+
+    const appWindow = getCurrentWindow();
+    const minHeight = isControlsCollapsed ? 200 : 400;
+
+    try {
+      await appWindow.setMinSize(new LogicalSize(500, minHeight));
+
+      if (!isControlsCollapsed) {
+        const [currentSize, scaleFactor] = await Promise.all([
+          appWindow.innerSize(),
+          appWindow.scaleFactor()
+        ]);
+
+        const logicalHeight = currentSize.height / scaleFactor;
+        // If controls are being expanded but window is too short, expand it to 400px
+        if (logicalHeight < 400) {
+          const logicalWidth = currentSize.width / scaleFactor;
+          await appWindow.setSize(new LogicalSize(logicalWidth, 400));
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to update window constraints:', error);
+    }
+  }, [isControlsCollapsed]);
+
+  useEffect(() => {
+    void updateWindowConstraints();
+  }, [updateWindowConstraints]);
+
   const handleSnapToCentre = useCallback(async () => {
     if (isSnapping) return;
 
     setIsSnapping(true);
     try {
       await snapOverlayToTopCenter();
+      await updateWindowConstraints();
       await refreshWindowPlacement();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to snap overlay to centre';
       showToast(message, 'error');
     } finally {
       setIsSnapping(false);
+      void updateWindowConstraints();
       void refreshWindowPlacement();
     }
   }, [isSnapping, refreshWindowPlacement, showToast]);
 
-  const toggleControls = useCallback(() => {
-    setIsControlsCollapsed(!isControlsCollapsed);
+  const toggleControls = useCallback(async () => {
+    const nextCollapsed = !isControlsCollapsed;
+
+    if (!nextCollapsed && isTauriRuntime()) {
+      const appWindow = getCurrentWindow();
+      try {
+        const [currentSize, scaleFactor] = await Promise.all([
+          appWindow.innerSize(),
+          appWindow.scaleFactor()
+        ]);
+
+        const logicalHeight = currentSize.height / scaleFactor;
+
+        if (logicalHeight < 400) {
+          const logicalWidth = currentSize.width / scaleFactor;
+          // Proactively grow window before expanding controls
+          await appWindow.setSize(new LogicalSize(logicalWidth, 400));
+        }
+      } catch (error) {
+        console.warn('Failed proactive expansion:', error);
+      }
+    }
+
+    setIsControlsCollapsed(nextCollapsed);
   }, [isControlsCollapsed, setIsControlsCollapsed]);
 
 
