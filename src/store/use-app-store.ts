@@ -51,6 +51,8 @@ interface AppStoreState {
   readonly showReadingRuler: boolean;
   readonly themeMode: ThemeMode;
   readonly resolvedTheme: ResolvedTheme;
+  readonly dimLevel: number;
+  readonly isControlsCollapsed: boolean;
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
   readonly initialized: boolean;
@@ -66,7 +68,7 @@ interface AppStoreState {
   readonly deleteSessionById: (id: string, notify?: boolean) => Promise<void>;
   readonly importMarkdown: (name: string, markdown: string, notify?: boolean) => Promise<void>;
   readonly exportSessionById: (id: string, targetPath: string, notify?: boolean) => Promise<string | null>;
-  readonly openSession: (id: string) => Promise<void>;
+  readonly openSession: (id: string, preserveSettings?: boolean) => Promise<void>;
   readonly setMarkdown: (nextMarkdown: string) => void;
   readonly persistActiveSession: () => Promise<boolean>;
   readonly setPlaybackState: (value: PlaybackState) => void;
@@ -76,6 +78,8 @@ interface AppStoreState {
   readonly changeScrollSpeedBy: (delta: number) => void;
   readonly setOverlayFontScale: (value: number) => void;
   readonly setShowReadingRuler: (value: boolean) => void;
+  readonly setDimLevel: (value: number) => void;
+  readonly setIsControlsCollapsed: (value: boolean) => void;
   readonly setThemeMode: (mode: ThemeMode) => void;
   readonly hydrateThemeFromStorage: () => void;
   readonly syncSystemTheme: () => void;
@@ -155,36 +159,56 @@ function writeLocalOnboardingState(completed: boolean): void {
   window.localStorage.setItem('glance-onboarding-completed', completed ? 'true' : 'false');
 }
 
-function readLocalScrollState() {
-  const saved = window.localStorage.getItem('glance-scroll-state');
+function readOverlayPersistentState() {
+  const saved = window.localStorage.getItem('glance-overlay-state-v1');
   if (!saved) {
-    return { position: 0, speed: 42, playbackState: 'paused' as PlaybackState };
+    return {
+      position: 0,
+      speed: 42,
+      running: false,
+      fontScale: 1,
+      showReadingRuler: true,
+      dimLevel: 1,
+      isControlsCollapsed: false
+    };
   }
 
   try {
-    const parsed = JSON.parse(saved) as { position: number; speed: number; running: boolean };
+    const parsed = JSON.parse(saved);
     return {
       position: Number.isFinite(parsed.position) ? parsed.position : 0,
       speed: Number.isFinite(parsed.speed) ? parsed.speed : 42,
-      playbackState: parsed.running ? ('running' as PlaybackState) : ('paused' as PlaybackState)
+      running: Boolean(parsed.running),
+      fontScale: Number.isFinite(parsed.fontScale) ? parsed.fontScale : 1,
+      showReadingRuler: typeof parsed.showReadingRuler === 'boolean' ? parsed.showReadingRuler : true,
+      dimLevel: Number.isFinite(parsed.dimLevel) ? parsed.dimLevel : 1,
+      isControlsCollapsed: typeof parsed.isControlsCollapsed === 'boolean' ? parsed.isControlsCollapsed : false
     };
   } catch {
-    return { position: 0, speed: 42, playbackState: 'paused' as PlaybackState };
+    return {
+      position: 0,
+      speed: 42,
+      running: false,
+      fontScale: 1,
+      showReadingRuler: true,
+      dimLevel: 1,
+      isControlsCollapsed: false
+    };
   }
 }
 
-function writeLocalScrollState(input: {
+function writeOverlayPersistentState(input: {
   position: number;
   speed: number;
-  playbackState: PlaybackState;
+  running: boolean;
+  fontScale: number;
+  showReadingRuler: boolean;
+  dimLevel: number;
+  isControlsCollapsed: boolean;
 }): void {
   window.localStorage.setItem(
-    'glance-scroll-state',
-    JSON.stringify({
-      position: input.position,
-      speed: input.speed,
-      running: input.playbackState === 'running'
-    })
+    'glance-overlay-state-v1',
+    JSON.stringify(input)
   );
 }
 
@@ -223,27 +247,38 @@ function normalizeFontScale(value: number | undefined): number {
   return Math.max(0.85, Math.min(1.4, Number(value.toFixed(2))));
 }
 
-function storeScrollState(state: Pick<AppStoreState, 'scrollPosition' | 'scrollSpeed' | 'playbackState'>): void {
+function persistOverlayState(state: AppStoreState): void {
   if (typeof window === 'undefined') {
     return;
   }
 
-  writeLocalScrollState({
+  writeOverlayPersistentState({
     position: state.scrollPosition,
     speed: state.scrollSpeed,
-    playbackState: state.playbackState
+    running: state.playbackState === 'running',
+    fontScale: state.overlayFontScale,
+    showReadingRuler: state.showReadingRuler,
+    dimLevel: state.dimLevel,
+    isControlsCollapsed: state.isControlsCollapsed
   });
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => {
-  const storedScrollState = typeof window === 'undefined'
-    ? { position: 0, speed: 42, playbackState: 'paused' as PlaybackState }
-    : readLocalScrollState();
+  const storedOverlayState = typeof window === 'undefined'
+    ? {
+      position: 0,
+      speed: 42,
+      running: false,
+      fontScale: 1,
+      showReadingRuler: true,
+      dimLevel: 1,
+      isControlsCollapsed: false
+    }
+    : readOverlayPersistentState();
 
   const initialParsed = parseMarkdown('# Intro\n\n- Start here');
   const initialThemeMode = readThemeMode();
   const initialResolvedTheme = resolveTheme(initialThemeMode);
-  const initialShowReadingRuler = readShowReadingRuler();
 
   return {
     sessions: [],
@@ -253,11 +288,13 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     activeSessionMeta: null,
     markdown: '# Intro\n\n- Start here',
     parseWarnings: initialParsed.warnings,
-    playbackState: storedScrollState.playbackState,
-    scrollPosition: storedScrollState.position,
-    scrollSpeed: storedScrollState.speed,
-    overlayFontScale: 1,
-    showReadingRuler: initialShowReadingRuler,
+    playbackState: 'paused',
+    scrollPosition: storedOverlayState.position,
+    scrollSpeed: storedOverlayState.speed,
+    overlayFontScale: storedOverlayState.fontScale,
+    showReadingRuler: storedOverlayState.showReadingRuler,
+    dimLevel: storedOverlayState.dimLevel,
+    isControlsCollapsed: storedOverlayState.isControlsCollapsed,
     themeMode: initialThemeMode,
     resolvedTheme: initialResolvedTheme,
     shortcutWarning: null,
@@ -489,10 +526,21 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
     },
 
-    openSession: async (id: string) => {
+    openSession: async (id: string, preserveSettings = false) => {
       try {
         const loaded = await loadSession(id);
         const parsed = parseMarkdown(loaded.markdown);
+
+        if (preserveSettings) {
+          set({
+            activeSessionId: loaded.id,
+            activeSessionTitle: loaded.meta.title,
+            activeSessionMeta: loaded.meta,
+            markdown: loaded.markdown,
+            parseWarnings: parsed.warnings
+          });
+          return;
+        }
 
         set({
           activeSessionId: loaded.id,
@@ -542,7 +590,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     setPlaybackState: (value: PlaybackState) => {
       set((state) => {
         const next = { playbackState: value };
-        storeScrollState({ ...state, ...next });
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
         return next;
       });
     },
@@ -551,7 +600,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       set((state) => {
         const nextPlaybackState: PlaybackState = state.playbackState === 'running' ? 'paused' : 'running';
         const next = { playbackState: nextPlaybackState };
-        storeScrollState({ ...state, ...next });
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
         return next;
       });
     },
@@ -559,7 +609,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     setScrollPosition: (value: number) => {
       set((state) => {
         const next = { scrollPosition: Math.max(0, value) };
-        storeScrollState({ ...state, ...next });
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
         return next;
       });
     },
@@ -569,7 +620,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
       set((state) => {
         const next = { scrollSpeed: normalized };
-        storeScrollState({ ...state, ...next });
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
         return next;
       });
     },
@@ -585,7 +637,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const normalized = normalizeFontScale(value);
       set((state) => {
         const currentMeta = state.activeSessionMeta;
-        return {
+        const next = {
           overlayFontScale: normalized,
           activeSessionMeta: currentMeta
             ? {
@@ -597,6 +649,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             }
             : currentMeta
         };
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
+        return next;
       });
     },
 
@@ -604,7 +659,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       writeShowReadingRuler(value);
       set((state) => {
         const currentMeta = state.activeSessionMeta;
-        return {
+        const next = {
           showReadingRuler: value,
           activeSessionMeta: currentMeta
             ? {
@@ -617,6 +672,27 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             }
             : currentMeta
         };
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
+        return next;
+      });
+    },
+
+    setDimLevel: (value: number) => {
+      set((state) => {
+        const next = { dimLevel: value };
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
+        return next;
+      });
+    },
+
+    setIsControlsCollapsed: (value: boolean) => {
+      set((state) => {
+        const next = { isControlsCollapsed: value };
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
+        return next;
       });
     },
 

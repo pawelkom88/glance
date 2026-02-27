@@ -323,6 +323,10 @@ export function OverlayPrompter() {
   const scrollSpeed = useAppStore((state) => state.scrollSpeed);
   const overlayFontScale = useAppStore((state) => state.overlayFontScale);
   const showReadingRuler = useAppStore((state) => state.showReadingRuler);
+  const dimLevel = useAppStore((state) => state.dimLevel);
+  const isControlsCollapsed = useAppStore((state) => state.isControlsCollapsed);
+  const setDimLevel = useAppStore((state) => state.setDimLevel);
+  const setIsControlsCollapsed = useAppStore((state) => state.setIsControlsCollapsed);
   const openSession = useAppStore((state) => state.openSession);
   const togglePlayback = useAppStore((state) => state.togglePlayback);
   const setPlaybackState = useAppStore((state) => state.setPlaybackState);
@@ -381,7 +385,6 @@ export function OverlayPrompter() {
   const [timerTargetSeconds, setTimerTargetSeconds] = useState<number>(() => readTimerPrefs().targetSeconds);
   const [timerElapsedMs, setTimerElapsedMs] = useState<number>(0);
   const [isResizing, setIsResizing] = useState(false);
-  const [dimLevel, setDimLevel] = useState(1);
   const [overlaySize, setOverlaySize] = useState(() => ({
     width: Math.round(window.innerWidth),
     height: Math.round(window.innerHeight)
@@ -393,15 +396,14 @@ export function OverlayPrompter() {
     width: 260,
     visible: false
   });
-  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
 
   useEffect(() => {
-    // Start from top each time the overlay route mounts.
+    // We keep it paused on mount (reopen), but we DO NOT reset scroll position
+    // to allow resuming exactly where the user left off.
     setPlaybackState('paused');
-    setScrollPosition(0);
     setTimerElapsedMs(0);
     timerTickStartRef.current = null;
-  }, [setPlaybackState, setScrollPosition]);
+  }, [setPlaybackState]);
 
   const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
   const lineStride = scaledLineHeight + overlayLineGapPx;
@@ -613,8 +615,8 @@ export function OverlayPrompter() {
   }, [isSnapping, refreshWindowPlacement, showToast]);
 
   const toggleControls = useCallback(() => {
-    setIsControlsCollapsed((prev) => !prev);
-  }, []);
+    setIsControlsCollapsed(!isControlsCollapsed);
+  }, [isControlsCollapsed, setIsControlsCollapsed]);
 
 
   const renderTopActions = () => (
@@ -1269,7 +1271,7 @@ export function OverlayPrompter() {
         return;
       }
 
-      void openSession(preferredSessionId);
+      void openSession(preferredSessionId, true);
     };
 
     syncActiveSession();
