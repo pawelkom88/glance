@@ -17,9 +17,10 @@ vi.mock('./components/library-view', () => ({
 }));
 
 vi.mock('./components/editor-view', () => ({
-  EditorView: ({ onExportMarkdown }: { onExportMarkdown: () => void }) => (
+  EditorView: ({ onCreateSession, onExportMarkdown }: { onCreateSession: () => void; onExportMarkdown: () => void }) => (
     <div>
       <div>Editor Mock</div>
+      <button type="button" onClick={onCreateSession}>Trigger New Session</button>
       <button type="button" onClick={onExportMarkdown}>Trigger Export</button>
     </div>
   )
@@ -201,6 +202,26 @@ describe('App shell behavior', () => {
       message: 'Open a session before exporting',
       variant: 'warning'
     });
+  });
+
+  it('routes editor new session action to sessions flow before creating', async () => {
+    const user = userEvent.setup();
+    const createSessionWithNameSpy = vi.fn();
+    useAppStore.setState({ createSessionWithName: createSessionWithNameSpy });
+
+    render(<App />);
+
+    await user.click(screen.getByTitle('Scripts'));
+    await waitFor(() => {
+      expect(screen.queryByText('Editor Mock')).not.toBeNull();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Trigger New Session' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Library Mock')).not.toBeNull();
+    });
+    expect(createSessionWithNameSpy).not.toHaveBeenCalled();
   });
 
   it('moves main window to saved monitor preference on startup', async () => {

@@ -1,23 +1,38 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, DragEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { loadSession } from '../lib/tauri';
 import type { SessionFolder, SessionSummary, ToastVariant } from '../types';
 
 const UNFILED_FOLDER_ID = '__unfiled__';
+const TOUCH_CONTEXT_MENU_DELAY_MS = 450;
+const POINTER_DRAG_START_THRESHOLD_PX = 6;
+const DND_DEBUG_ENABLED = false;
+const DND_DEBUG_PREFIX = '[DND_DEBUG]';
 
 type SortMode = 'updated-desc' | 'updated-asc' | 'name-asc' | 'name-desc' | 'word-desc' | 'word-asc';
 type FolderFilter = 'all' | 'none' | string;
 
+const SORT_OPTIONS: ReadonlyArray<{ readonly value: SortMode; readonly label: string }> = [
+  { value: 'updated-desc', label: 'Date Modified (Newest)' },
+  { value: 'updated-asc', label: 'Date Modified (Oldest)' },
+  { value: 'name-asc', label: 'Name (A-Z)' },
+  { value: 'name-desc', label: 'Name (Z-A)' },
+  { value: 'word-desc', label: 'Word Count (High-Low)' },
+  { value: 'word-asc', label: 'Word Count (Low-High)' }
+];
+
 interface LibraryViewProps {
   readonly sessions: readonly SessionSummary[];
   readonly folders: readonly SessionFolder[];
+  readonly createSessionRequestToken?: number;
   readonly activeSessionId: string | null;
   readonly onOpen: (id: string) => void;
-  readonly onCreate: (name: string) => void;
+  readonly onCreate: (name: string, folderId: string | null) => void;
   readonly onDelete: (id: string, notify?: boolean) => void;
   readonly onCreateFolder: (name: string) => void;
   readonly onRenameFolder: (id: string, name: string) => void;
   readonly onDeleteFolder: (id: string) => void;
-  readonly onMoveSessions: (sessionIds: readonly string[], folderId: string | null) => void;
+  readonly onMoveSessions: (sessionIds: readonly string[], folderId: string | null) => Promise<number>;
   readonly onImport: () => void;
   readonly showToast: (message: string, variant?: ToastVariant) => void;
 }
@@ -27,6 +42,43 @@ interface SessionGroup {
   readonly label: string;
   readonly isBuiltIn: boolean;
   readonly sessions: readonly SessionSummary[];
+}
+
+interface DragState {
+  readonly status: 'idle' | 'dragging';
+  readonly sessionId: string | null;
+  readonly sessionTitle: string;
+  readonly sourceGroupId: string | null;
+  readonly cardHeight: number;
+}
+
+interface MoveMenuState {
+  readonly sessionId: string;
+  readonly sessionTitle: string;
+  readonly sourceGroupId: string;
+  readonly x: number;
+  readonly y: number;
+}
+
+interface ActiveDragPayload {
+  readonly sessionId: string;
+  readonly sessionTitle: string;
+  readonly sourceGroupId: string;
+  readonly cardHeight: number;
+}
+
+interface PointerDragCandidate {
+  readonly pointerId: number;
+  readonly sessionId: string;
+  readonly sessionTitle: string;
+  readonly sourceGroupId: string;
+  readonly originX: number;
+  readonly originY: number;
+  readonly cardHeight: number;
+  readonly sourceElement: HTMLElement;
+  readonly pointerOffsetX: number;
+  readonly pointerOffsetY: number;
+  readonly started: boolean;
 }
 
 function defaultSessionName(): string {
@@ -91,6 +143,14 @@ function FilterIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M4 6h16M7 12h10M10 18h4" />
+    </svg>
+  );
+}
+
+function FilterCheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="m4 10.5 3.3 3.4L16 5.8" />
     </svg>
   );
 }
@@ -218,10 +278,36 @@ function previewForContent(markdown: string, query: string): string | null {
   return `${prefix}${snippet}${suffix}`;
 }
 
+function folderIdFromGroupId(groupId: string): string | null {
+  return groupId === UNFILED_FOLDER_ID ? null : groupId;
+}
+
+function createDragPreview(card: HTMLElement): HTMLDivElement {
+  const preview = card.cloneNode(true) as HTMLDivElement;
+  const rect = card.getBoundingClientRect();
+  const computed = window.getComputedStyle(card);
+  preview.style.width = `${rect.width}px`;
+  preview.style.height = `${rect.height}px`;
+  preview.style.pointerEvents = 'none';
+  preview.style.margin = '0';
+  preview.style.position = 'fixed';
+  preview.style.top = '-9999px';
+  preview.style.left = '-9999px';
+  preview.style.boxSizing = 'border-box';
+  preview.style.borderRadius = computed.borderRadius;
+  preview.style.opacity = '0.85';
+  preview.style.transform = 'scale(1.02)';
+  preview.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.18)';
+  preview.style.transition = 'none';
+  document.body.appendChild(preview);
+  return preview;
+}
+
 export function LibraryView(props: LibraryViewProps) {
   const {
     sessions,
     folders,
+    createSessionRequestToken = 0,
     activeSessionId,
     onOpen,
     onCreate,
@@ -242,6 +328,8 @@ export function LibraryView(props: LibraryViewProps) {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showBulkMoveDialog, setShowBulkMoveDialog] = useState(false);
   const [bulkMoveFolderId, setBulkMoveFolderId] = useState<string>('none');
+  const [showNewSessionFolderDialog, setShowNewSessionFolderDialog] = useState(false);
+  const [newSessionFolderId, setNewSessionFolderId] = useState<string>('none');
 
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -258,10 +346,49 @@ export function LibraryView(props: LibraryViewProps) {
   const [folderDeleteCandidateId, setFolderDeleteCandidateId] = useState<string | null>(null);
 
   const [sessionContentMap, setSessionContentMap] = useState<Record<string, string>>({});
+  const [dragState, setDragState] = useState<DragState>({
+    status: 'idle',
+    sessionId: null,
+    sessionTitle: '',
+    sourceGroupId: null,
+    cardHeight: 0
+  });
+  const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
+  const [recentlyMovedSessionId, setRecentlyMovedSessionId] = useState<string | null>(null);
+  const [collapsingPlaceholder, setCollapsingPlaceholder] = useState<{ readonly groupId: string; readonly height: number } | null>(null);
+  const [moveMenu, setMoveMenu] = useState<MoveMenuState | null>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const listControlsRef = useRef<HTMLDivElement | null>(null);
   const sessionComposerInputRef = useRef<HTMLInputElement | null>(null);
+  const folderComposerInputRef = useRef<HTMLInputElement | null>(null);
+  const lastCreateSessionRequestTokenRef = useRef(0);
+  const dragPreviewRef = useRef<HTMLElement | null>(null);
+  const touchPressTimerRef = useRef<number | null>(null);
+  const touchOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressNextCardClickRef = useRef(false);
+  const activeDragRef = useRef<ActiveDragPayload | null>(null);
+  const pointerDragCandidateRef = useRef<PointerDragCandidate | null>(null);
+  const pointerDragHoverGroupIdRef = useRef<string | null>(null);
+  const dragTargetDepthByGroupRef = useRef<Record<string, number>>({});
+  const lastDragOverDecisionRef = useRef<string | null>(null);
+  const dragMetricsRef = useRef({
+    folderDragEnter: 0,
+    folderDragOver: 0,
+    folderDragLeave: 0,
+    folderDrop: 0,
+    windowDragEnter: 0,
+    windowDragOver: 0,
+    windowDragLeave: 0,
+    windowDrop: 0
+  });
+  const dragStartTimestampRef = useRef<number | null>(null);
+  const dragNoEventTimerRef = useRef<number | null>(null);
+  const hasMultipleSessions = sessions.length > 1;
+  const hasCustomFolders = folders.length > 0;
+  const canMoveSessions = hasCustomFolders;
+  const canDragSessions = canMoveSessions && !isSelectionMode && !isTouchDevice;
 
   const deleteCandidate = sessions.find((session) => session.id === deleteCandidateId) ?? null;
   const folderRenameCandidate = folders.find((folder) => folder.id === folderRenameCandidateId) ?? null;
@@ -331,7 +458,7 @@ export function LibraryView(props: LibraryViewProps) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
+      if (hasMultipleSessions && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
         event.preventDefault();
         setShowSearch(true);
         window.setTimeout(() => {
@@ -350,7 +477,28 @@ export function LibraryView(props: LibraryViewProps) {
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true });
     };
-  }, [searchQuery.length, showSearch]);
+  }, [hasMultipleSessions, searchQuery.length, showSearch]);
+
+  useEffect(() => {
+    if (hasMultipleSessions) {
+      return;
+    }
+
+    setShowSearch(false);
+    setSearchQuery('');
+    setShowListControls(false);
+    setFolderFilter('all');
+    setShowRecentlyEditedOnly(false);
+  }, [hasMultipleSessions]);
+
+  useEffect(() => {
+    if (canMoveSessions) {
+      return;
+    }
+
+    setShowBulkMoveDialog(false);
+    setBulkMoveFolderId('none');
+  }, [canMoveSessions]);
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
@@ -367,6 +515,17 @@ export function LibraryView(props: LibraryViewProps) {
   }, [showListControls]);
 
   useEffect(() => {
+    if (!showNewSessionFolderDialog || newSessionFolderId === 'none') {
+      return;
+    }
+
+    const folderExists = folders.some((folder) => folder.id === newSessionFolderId);
+    if (!folderExists) {
+      setNewSessionFolderId(folders[0]?.id ?? 'none');
+    }
+  }, [folders, newSessionFolderId, showNewSessionFolderDialog]);
+
+  useEffect(() => {
     if (!isCreatingSession) {
       return;
     }
@@ -380,6 +539,194 @@ export function LibraryView(props: LibraryViewProps) {
       window.clearTimeout(timer);
     };
   }, [isCreatingSession]);
+
+  useEffect(() => {
+    if (!showFolderComposer) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      folderComposerInputRef.current?.focus();
+      folderComposerInputRef.current?.select();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [showFolderComposer]);
+
+  useEffect(() => {
+    if (createSessionRequestToken <= lastCreateSessionRequestTokenRef.current) {
+      return;
+    }
+
+    lastCreateSessionRequestTokenRef.current = createSessionRequestToken;
+
+    if (hasCustomFolders) {
+      setNewSessionFolderId(folders[0]?.id ?? 'none');
+      setShowNewSessionFolderDialog(true);
+      return;
+    }
+
+    startTransition(() => {
+      setNewSessionFolderId('none');
+      setDraftSessionName(defaultSessionName());
+      setIsCreatingSession(true);
+    });
+  }, [createSessionRequestToken, folders, hasCustomFolders]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') {
+      const hasTouchPoints = typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 0;
+      setIsTouchDevice(hasTouchPoints);
+      return;
+    }
+
+    const media = window.matchMedia('(pointer: coarse)');
+    const syncTouch = () => {
+      const hasTouchPoints = typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 0;
+      setIsTouchDevice(media.matches || hasTouchPoints);
+    };
+
+    syncTouch();
+    media.addEventListener('change', syncTouch);
+    return () => {
+      media.removeEventListener('change', syncTouch);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (dragState.status !== 'dragging') {
+      document.body.classList.remove('is-session-dragging');
+      return;
+    }
+
+    document.body.classList.add('is-session-dragging');
+    return () => {
+      document.body.classList.remove('is-session-dragging');
+    };
+  }, [dragState.status]);
+
+  useEffect(() => {
+    if (!collapsingPlaceholder) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCollapsingPlaceholder(null);
+    }, 260);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [collapsingPlaceholder]);
+
+  useEffect(() => {
+    if (!recentlyMovedSessionId) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setRecentlyMovedSessionId(null);
+    }, 260);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [recentlyMovedSessionId]);
+
+  useEffect(() => {
+    if (!moveMenu) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('.session-move-context-menu') || target?.closest('.session-move-menu-trigger')) {
+        return;
+      }
+      setMoveMenu(null);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMoveMenu(null);
+      }
+    };
+
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [moveMenu]);
+
+  useEffect(() => {
+    return () => {
+      activeDragRef.current = null;
+      pointerDragCandidateRef.current = null;
+      pointerDragHoverGroupIdRef.current = null;
+      if (dragPreviewRef.current) {
+        dragPreviewRef.current.remove();
+        dragPreviewRef.current = null;
+      }
+      if (touchPressTimerRef.current !== null) {
+        window.clearTimeout(touchPressTimerRef.current);
+      }
+      if (dragNoEventTimerRef.current !== null) {
+        window.clearTimeout(dragNoEventTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!DND_DEBUG_ENABLED) {
+      return;
+    }
+
+    const logWindowEvent = (eventName: 'dragenter' | 'dragover' | 'dragleave' | 'drop') => (event: Event) => {
+      const dragEvent = event as DragEvent;
+      if (eventName === 'dragenter') {
+        dragMetricsRef.current.windowDragEnter += 1;
+      } else if (eventName === 'dragover') {
+        dragMetricsRef.current.windowDragOver += 1;
+      } else if (eventName === 'dragleave') {
+        dragMetricsRef.current.windowDragLeave += 1;
+      } else if (eventName === 'drop') {
+        dragMetricsRef.current.windowDrop += 1;
+      }
+
+      if (eventName === 'dragover' && dragMetricsRef.current.windowDragOver % 12 !== 1) {
+        return;
+      }
+
+      debugDnd(`window:${eventName}`, {
+        target: describeNode(dragEvent.target),
+        currentTarget: describeNode(dragEvent.currentTarget),
+        defaultPrevented: dragEvent.defaultPrevented,
+        dataTransferTypes: readDataTransferTypes(dragEvent),
+        metrics: { ...dragMetricsRef.current }
+      });
+    };
+
+    const onWindowDragEnter = logWindowEvent('dragenter');
+    const onWindowDragOver = logWindowEvent('dragover');
+    const onWindowDragLeave = logWindowEvent('dragleave');
+    const onWindowDrop = logWindowEvent('drop');
+
+    window.addEventListener('dragenter', onWindowDragEnter, true);
+    window.addEventListener('dragover', onWindowDragOver, true);
+    window.addEventListener('dragleave', onWindowDragLeave, true);
+    window.addEventListener('drop', onWindowDrop, true);
+
+    return () => {
+      window.removeEventListener('dragenter', onWindowDragEnter, true);
+      window.removeEventListener('dragover', onWindowDragOver, true);
+      window.removeEventListener('dragleave', onWindowDragLeave, true);
+      window.removeEventListener('drop', onWindowDrop, true);
+    };
+  }, []);
 
   const wordCountBySessionId = useMemo(() => {
     const result: Record<string, number> = {};
@@ -457,6 +804,35 @@ export function LibraryView(props: LibraryViewProps) {
   }, [folderFilter, searchQuery, sessionContentMap, sessions, showRecentlyEditedOnly, sortMode, wordCountBySessionId]);
 
   const visibleSessionIds = useMemo(() => visibleSessions.map((session) => session.id), [visibleSessions]);
+  const selectedSortLabel = useMemo(
+    () => SORT_OPTIONS.find((option) => option.value === sortMode)?.label ?? SORT_OPTIONS[0].label,
+    [sortMode]
+  );
+  const selectedFolderLabel = useMemo(() => {
+    if (folderFilter === 'all') {
+      return 'All folders';
+    }
+
+    if (folderFilter === 'none') {
+      return 'Unfiled';
+    }
+
+    return folders.find((folder) => folder.id === folderFilter)?.name ?? 'All folders';
+  }, [folderFilter, folders]);
+  const selectedBulkMoveFolderLabel = useMemo(() => {
+    if (bulkMoveFolderId === 'none') {
+      return 'Unfiled';
+    }
+
+    return folders.find((folder) => folder.id === bulkMoveFolderId)?.name ?? 'Unfiled';
+  }, [bulkMoveFolderId, folders]);
+  const selectedNewSessionFolderLabel = useMemo(() => {
+    if (newSessionFolderId === 'none') {
+      return 'Unfiled';
+    }
+
+    return folders.find((folder) => folder.id === newSessionFolderId)?.name ?? 'Unfiled';
+  }, [folders, newSessionFolderId]);
 
   const groupedSessions = useMemo(() => {
     const byFolder = new Map<string, SessionSummary[]>();
@@ -531,15 +907,145 @@ export function LibraryView(props: LibraryViewProps) {
     setSelectedSessionIds(new Set());
   };
 
+  const clearTouchPressTimer = () => {
+    if (touchPressTimerRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(touchPressTimerRef.current);
+    touchPressTimerRef.current = null;
+  };
+
+  const clearDragPreview = () => {
+    if (dragPreviewRef.current) {
+      dragPreviewRef.current.remove();
+      dragPreviewRef.current = null;
+    }
+  };
+
+  const updateDragPreviewPosition = (pointerX: number, pointerY: number, offsetX: number, offsetY: number) => {
+    if (!dragPreviewRef.current) {
+      return;
+    }
+
+    dragPreviewRef.current.style.left = `${Math.round(pointerX - offsetX)}px`;
+    dragPreviewRef.current.style.top = `${Math.round(pointerY - offsetY)}px`;
+  };
+
+  const resetDragTargetDepth = () => {
+    dragTargetDepthByGroupRef.current = {};
+  };
+
+  const describeNode = (target: EventTarget | null | undefined): string => {
+    if (!target || !(target instanceof Element)) {
+      return String(target);
+    }
+
+    const idPart = target.id ? `#${target.id}` : '';
+    const classValue = typeof target.className === 'string'
+      ? target.className.trim().split(/\s+/).filter(Boolean).join('.')
+      : '';
+    const classPart = classValue ? `.${classValue}` : '';
+    return `${target.tagName.toLowerCase()}${idPart}${classPart}`;
+  };
+
+  const readDataTransferTypes = (event: DragEvent<HTMLElement>): readonly string[] => {
+    try {
+      return Array.from(event.dataTransfer?.types ?? []);
+    } catch {
+      return [];
+    }
+  };
+
+  const debugDnd = (eventName: string, payload: Record<string, unknown>) => {
+    if (!DND_DEBUG_ENABLED) {
+      return;
+    }
+    console.log(`${DND_DEBUG_PREFIX} ${eventName}`, payload);
+  };
+
+  const summarizeDragPayload = (payload: ActiveDragPayload | null) => {
+    if (!payload) {
+      return null;
+    }
+    return {
+      sessionId: payload.sessionId,
+      sessionTitle: payload.sessionTitle,
+      sourceGroupId: payload.sourceGroupId,
+      cardHeight: payload.cardHeight
+    };
+  };
+
+  const folderLabelForGroupId = (groupId: string) => {
+    if (groupId === UNFILED_FOLDER_ID) {
+      return 'Unfiled';
+    }
+    return folders.find((folder) => folder.id === groupId)?.name ?? 'folder';
+  };
+
+  const openMoveMenuForSession = (
+    input: { readonly sessionId: string; readonly sessionTitle: string; readonly sourceGroupId: string },
+    origin: { readonly x: number; readonly y: number }
+  ) => {
+    setMoveMenu({
+      sessionId: input.sessionId,
+      sessionTitle: input.sessionTitle,
+      sourceGroupId: input.sourceGroupId,
+      x: origin.x,
+      y: origin.y
+    });
+  };
+
+  const moveSessionWithFeedback = async (input: {
+    readonly sessionId: string;
+    readonly sessionTitle: string;
+    readonly sourceGroupId: string;
+    readonly destinationGroupId: string;
+    readonly sourceCardHeight: number;
+  }) => {
+    if (input.sourceGroupId === input.destinationGroupId) {
+      return false;
+    }
+
+    const movedCount = await onMoveSessions([input.sessionId], folderIdFromGroupId(input.destinationGroupId));
+    if (movedCount > 0) {
+      showToast(`"${input.sessionTitle}" moved to ${folderLabelForGroupId(input.destinationGroupId)}`, 'success');
+      setRecentlyMovedSessionId(input.sessionId);
+      setCollapsingPlaceholder({
+        groupId: input.sourceGroupId,
+        height: input.sourceCardHeight
+      });
+      return true;
+    }
+
+    showToast("Couldn't move session. Try again.", 'error');
+    return false;
+  };
+
+  const startCreateSessionFlow = () => {
+    if (hasCustomFolders) {
+      setNewSessionFolderId(folders[0]?.id ?? 'none');
+      setShowNewSessionFolderDialog(true);
+      return;
+    }
+
+    startTransition(() => {
+      setNewSessionFolderId('none');
+      setDraftSessionName(defaultSessionName());
+      setIsCreatingSession(true);
+    });
+  };
+
   const createFromDraft = () => {
     const name = draftSessionName.trim();
     if (!name) {
       return;
     }
 
-    onCreate(name);
+    onCreate(name, newSessionFolderId === 'none' ? null : newSessionFolderId);
     setDraftSessionName(defaultSessionName());
     setIsCreatingSession(false);
+    setNewSessionFolderId('none');
   };
 
   const createFolderFromDraft = () => {
@@ -564,15 +1070,23 @@ export function LibraryView(props: LibraryViewProps) {
     setIsSelectionMode(false);
   };
 
-  const handleBulkMove = () => {
+  const handleBulkMove = async () => {
+    if (!canMoveSessions) {
+      return;
+    }
+
     const idsToMove = Array.from(selectedSessionIds);
     const targetFolderId = bulkMoveFolderId === 'none' ? null : bulkMoveFolderId;
 
-    onMoveSessions(idsToMove, targetFolderId);
+    const movedCount = await onMoveSessions(idsToMove, targetFolderId);
     const targetLabel = targetFolderId
       ? folders.find((folder) => folder.id === targetFolderId)?.name ?? 'folder'
       : 'Unfiled';
-    showToast(`Moved ${idsToMove.length} sessions to ${targetLabel}`, 'success');
+    if (movedCount > 0) {
+      showToast(`Moved ${idsToMove.length} sessions to ${targetLabel}`, 'success');
+    } else {
+      showToast("Couldn't move selected sessions. Try again.", 'error');
+    }
 
     setShowBulkMoveDialog(false);
     setSelectedSessionIds(new Set());
@@ -590,6 +1104,597 @@ export function LibraryView(props: LibraryViewProps) {
       return next;
     });
   };
+
+  const isDragging = dragState.status === 'dragging' && dragState.sessionId !== null && dragState.sourceGroupId !== null;
+
+  const readDraggedSessionId = (event: DragEvent<HTMLElement>): string | null => {
+    const formats = ['application/x-glance-session-id', 'text/plain'];
+    for (const format of formats) {
+      try {
+        const value = event.dataTransfer.getData(format);
+        if (value) {
+          debugDnd('readDraggedSessionId:hit', { format, value });
+          return value;
+        }
+      } catch {
+        debugDnd('readDraggedSessionId:error', { format, error: 'read failed' });
+        // Ignore browser-specific read restrictions and continue fallback checks.
+      }
+    }
+    debugDnd('readDraggedSessionId:miss', {
+      availableTypes: readDataTransferTypes(event)
+    });
+    return null;
+  };
+
+  const getKnownActiveDrag = (): ActiveDragPayload | null => {
+    if (activeDragRef.current) {
+      return activeDragRef.current;
+    }
+
+    if (!isDragging || !dragState.sessionId || !dragState.sourceGroupId) {
+      return null;
+    }
+
+    return {
+      sessionId: dragState.sessionId,
+      sessionTitle: dragState.sessionTitle,
+      sourceGroupId: dragState.sourceGroupId,
+      cardHeight: dragState.cardHeight
+    };
+  };
+
+  const resolveDragPayloadFromEvent = (event: DragEvent<HTMLElement>): ActiveDragPayload | null => {
+    const draggedSessionId = readDraggedSessionId(event);
+    if (!draggedSessionId) {
+      return null;
+    }
+
+    const session = sessions.find((entry) => entry.id === draggedSessionId);
+    if (!session) {
+      return null;
+    }
+
+    return {
+      sessionId: session.id,
+      sessionTitle: session.title,
+      sourceGroupId: session.folderId ?? UNFILED_FOLDER_ID,
+      cardHeight: 84
+    };
+  };
+
+  const getDropRejectionReason = (
+    groupId: string,
+    dragPayload: ActiveDragPayload | null = getKnownActiveDrag()
+  ): string | null => {
+    if (!canDragSessions) {
+      return `drag-disabled(canDragSessions=${canDragSessions}, isSelectionMode=${isSelectionMode}, isTouchDevice=${isTouchDevice}, folderCount=${folders.length})`;
+    }
+    if (dragPayload === null) {
+      return 'missing-drag-payload';
+    }
+    if (dragPayload.sourceGroupId === groupId) {
+      return `same-source-group(${groupId})`;
+    }
+    return null;
+  };
+
+  const isValidDropTarget = (groupId: string, dragPayload: ActiveDragPayload | null = getKnownActiveDrag()) => (
+    getDropRejectionReason(groupId, dragPayload) === null
+  );
+
+  const getMenuOptionsForGroup = (sourceGroupId: string) => {
+    const options: Array<{ readonly id: string; readonly label: string }> = [
+      { id: UNFILED_FOLDER_ID, label: 'Unfiled' },
+      ...folders.map((folder) => ({ id: folder.id, label: folder.name }))
+    ];
+    return options.filter((option) => option.id !== sourceGroupId);
+  };
+
+  const handleCardDragStart = (
+    event: DragEvent<HTMLElement>,
+    input: { readonly sessionId: string; readonly sessionTitle: string; readonly sourceGroupId: string }
+  ) => {
+    if (!canDragSessions) {
+      debugDnd('dragstart:reject', {
+        input,
+        reason: getDropRejectionReason(input.sourceGroupId, null),
+        isSelectionMode,
+        isTouchDevice,
+        folderCount: folders.length
+      });
+      event.preventDefault();
+      return;
+    }
+
+    const card = event.currentTarget;
+    const preview = createDragPreview(card);
+    dragPreviewRef.current = preview;
+
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/x-glance-session-id', input.sessionId);
+    event.dataTransfer.setData('text/plain', input.sessionId);
+    event.dataTransfer.setDragImage(preview, 24, 18);
+
+    const rect = card.getBoundingClientRect();
+    activeDragRef.current = {
+      sessionId: input.sessionId,
+      sessionTitle: input.sessionTitle,
+      sourceGroupId: input.sourceGroupId,
+      cardHeight: rect.height
+    };
+    setDragState({
+      status: 'dragging',
+      sessionId: input.sessionId,
+      sessionTitle: input.sessionTitle,
+      sourceGroupId: input.sourceGroupId,
+      cardHeight: rect.height
+    });
+    dragMetricsRef.current = {
+      folderDragEnter: 0,
+      folderDragOver: 0,
+      folderDragLeave: 0,
+      folderDrop: 0,
+      windowDragEnter: 0,
+      windowDragOver: 0,
+      windowDragLeave: 0,
+      windowDrop: 0
+    };
+    dragStartTimestampRef.current = Date.now();
+    if (dragNoEventTimerRef.current !== null) {
+      window.clearTimeout(dragNoEventTimerRef.current);
+    }
+    dragNoEventTimerRef.current = window.setTimeout(() => {
+      const metrics = dragMetricsRef.current;
+      if (metrics.folderDragEnter === 0 && metrics.folderDragOver === 0) {
+        debugDnd('drag:warning-no-folder-events', {
+          elapsedMs: dragStartTimestampRef.current ? Date.now() - dragStartTimestampRef.current : null,
+          metrics
+        });
+      }
+    }, 700);
+    lastDragOverDecisionRef.current = null;
+    resetDragTargetDepth();
+    setDropTargetGroupId(null);
+    debugDnd('dragstart:accept', {
+      input,
+      payload: summarizeDragPayload(activeDragRef.current),
+      dataTransferTypes: readDataTransferTypes(event),
+      target: describeNode(event.target),
+      currentTarget: describeNode(event.currentTarget)
+    });
+  };
+
+  const handleFolderDragOver = (event: DragEvent<HTMLElement>, groupId: string) => {
+    event.stopPropagation();
+    dragMetricsRef.current.folderDragOver += 1;
+    const dragPayload = getKnownActiveDrag() ?? resolveDragPayloadFromEvent(event);
+    const rejectionReason = getDropRejectionReason(groupId, dragPayload);
+    if (rejectionReason) {
+      const decisionKey = `dragover:reject:${groupId}:${rejectionReason}`;
+      if (lastDragOverDecisionRef.current !== decisionKey) {
+        lastDragOverDecisionRef.current = decisionKey;
+        debugDnd('dragover:reject', {
+          groupId,
+          reason: rejectionReason,
+          payload: summarizeDragPayload(dragPayload),
+          activeDrag: summarizeDragPayload(activeDragRef.current),
+          dataTransferTypes: readDataTransferTypes(event),
+          target: describeNode(event.target),
+          currentTarget: describeNode(event.currentTarget)
+        });
+      }
+      return;
+    }
+
+    if (dragPayload && !activeDragRef.current) {
+      activeDragRef.current = dragPayload;
+    }
+    if (!dragTargetDepthByGroupRef.current[groupId]) {
+      dragTargetDepthByGroupRef.current[groupId] = 1;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    if (dropTargetGroupId !== groupId) {
+      setDropTargetGroupId(groupId);
+    }
+    const decisionKey = `dragover:accept:${groupId}:${dragPayload?.sessionId ?? 'unknown'}`;
+    if (lastDragOverDecisionRef.current !== decisionKey) {
+      lastDragOverDecisionRef.current = decisionKey;
+      debugDnd('dragover:accept', {
+        groupId,
+        payload: summarizeDragPayload(dragPayload),
+        dropTargetGroupIdBeforeUpdate: dropTargetGroupId,
+        dataTransferTypes: readDataTransferTypes(event),
+        target: describeNode(event.target),
+        currentTarget: describeNode(event.currentTarget)
+      });
+    }
+  };
+
+  const handleFolderDragEnter = (event: DragEvent<HTMLElement>, groupId: string) => {
+    event.stopPropagation();
+    dragMetricsRef.current.folderDragEnter += 1;
+    const dragPayload = getKnownActiveDrag() ?? resolveDragPayloadFromEvent(event);
+    const rejectionReason = getDropRejectionReason(groupId, dragPayload);
+    if (rejectionReason) {
+      debugDnd('dragenter:reject', {
+        groupId,
+        reason: rejectionReason,
+        payload: summarizeDragPayload(dragPayload),
+        activeDrag: summarizeDragPayload(activeDragRef.current),
+        dataTransferTypes: readDataTransferTypes(event),
+        target: describeNode(event.target),
+        currentTarget: describeNode(event.currentTarget)
+      });
+      return;
+    }
+    if (dragPayload && !activeDragRef.current) {
+      activeDragRef.current = dragPayload;
+    }
+    dragTargetDepthByGroupRef.current[groupId] = (dragTargetDepthByGroupRef.current[groupId] ?? 0) + 1;
+    event.preventDefault();
+    if (dropTargetGroupId !== groupId) {
+      setDropTargetGroupId(groupId);
+    }
+    debugDnd('dragenter:accept', {
+      groupId,
+      depth: dragTargetDepthByGroupRef.current[groupId],
+      payload: summarizeDragPayload(dragPayload),
+      dropTargetGroupIdBeforeUpdate: dropTargetGroupId,
+      dataTransferTypes: readDataTransferTypes(event),
+      target: describeNode(event.target),
+      currentTarget: describeNode(event.currentTarget)
+    });
+  };
+
+  const handleFolderDragLeave = (event: DragEvent<HTMLElement>, groupId: string) => {
+    event.stopPropagation();
+    dragMetricsRef.current.folderDragLeave += 1;
+    const currentDepth = dragTargetDepthByGroupRef.current[groupId] ?? 0;
+    if (currentDepth <= 1) {
+      delete dragTargetDepthByGroupRef.current[groupId];
+      if (dropTargetGroupId === groupId) {
+        setDropTargetGroupId(null);
+      }
+      debugDnd('dragleave:clear-target', {
+        groupId,
+        previousDepth: currentDepth,
+        dropTargetGroupIdBeforeUpdate: dropTargetGroupId,
+        relatedTarget: describeNode(event.relatedTarget),
+        target: describeNode(event.target),
+        currentTarget: describeNode(event.currentTarget)
+      });
+      return;
+    }
+    dragTargetDepthByGroupRef.current[groupId] = currentDepth - 1;
+    debugDnd('dragleave:decrement-depth', {
+      groupId,
+      previousDepth: currentDepth,
+      nextDepth: dragTargetDepthByGroupRef.current[groupId],
+      relatedTarget: describeNode(event.relatedTarget),
+      target: describeNode(event.target),
+      currentTarget: describeNode(event.currentTarget)
+    });
+  };
+
+  const handleFolderDrop = async (event: DragEvent<HTMLElement>, destinationGroupId: string) => {
+    event.stopPropagation();
+    dragMetricsRef.current.folderDrop += 1;
+    if (event.defaultPrevented) {
+      debugDnd('drop:skip-already-handled', {
+        destinationGroupId,
+        target: describeNode(event.target),
+        currentTarget: describeNode(event.currentTarget)
+      });
+      return;
+    }
+    const activeDrag = getKnownActiveDrag() ?? resolveDragPayloadFromEvent(event);
+    const rejectionReason = getDropRejectionReason(destinationGroupId, activeDrag);
+    if (rejectionReason || !activeDrag) {
+      debugDnd('drop:reject', {
+        destinationGroupId,
+        reason: rejectionReason ?? 'missing-active-drag',
+        payload: summarizeDragPayload(activeDrag),
+        activeDrag: summarizeDragPayload(activeDragRef.current),
+        dataTransferTypes: readDataTransferTypes(event),
+        target: describeNode(event.target),
+        currentTarget: describeNode(event.currentTarget)
+      });
+      return;
+    }
+
+    event.preventDefault();
+    debugDnd('drop:accept', {
+      destinationGroupId,
+      payload: summarizeDragPayload(activeDrag),
+      dataTransferTypes: readDataTransferTypes(event),
+      target: describeNode(event.target),
+      currentTarget: describeNode(event.currentTarget)
+    });
+    resetDragTargetDepth();
+    setDropTargetGroupId(null);
+
+    const moved = await moveSessionWithFeedback({
+      sessionId: activeDrag.sessionId,
+      sessionTitle: activeDrag.sessionTitle,
+      sourceGroupId: activeDrag.sourceGroupId,
+      destinationGroupId,
+      sourceCardHeight: activeDrag.cardHeight
+    });
+    debugDnd(moved ? 'drop:move-success' : 'drop:move-failed', {
+      destinationGroupId,
+      payload: summarizeDragPayload(activeDrag)
+    });
+  };
+
+  const resetDragInteractionState = () => {
+    pointerDragCandidateRef.current = null;
+    pointerDragHoverGroupIdRef.current = null;
+    activeDragRef.current = null;
+    lastDragOverDecisionRef.current = null;
+    resetDragTargetDepth();
+    setDropTargetGroupId(null);
+    setDragState({
+      status: 'idle',
+      sessionId: null,
+      sessionTitle: '',
+      sourceGroupId: null,
+      cardHeight: 0
+    });
+    clearDragPreview();
+  };
+
+  const handleCardDragEnd = () => {
+    if (dragNoEventTimerRef.current !== null) {
+      window.clearTimeout(dragNoEventTimerRef.current);
+      dragNoEventTimerRef.current = null;
+    }
+    debugDnd('dragend', {
+      activeDrag: summarizeDragPayload(activeDragRef.current),
+      dragState,
+      dropTargetGroupId,
+      elapsedMs: dragStartTimestampRef.current ? Date.now() - dragStartTimestampRef.current : null,
+      metrics: { ...dragMetricsRef.current }
+    });
+    dragStartTimestampRef.current = null;
+    resetDragInteractionState();
+  };
+
+  const beginPointerDrag = (candidate: PointerDragCandidate) => {
+    const payload: ActiveDragPayload = {
+      sessionId: candidate.sessionId,
+      sessionTitle: candidate.sessionTitle,
+      sourceGroupId: candidate.sourceGroupId,
+      cardHeight: candidate.cardHeight
+    };
+
+    activeDragRef.current = payload;
+    const preview = createDragPreview(candidate.sourceElement);
+    preview.style.opacity = '0.96';
+    preview.style.zIndex = '1200';
+    dragPreviewRef.current = preview;
+    updateDragPreviewPosition(candidate.originX, candidate.originY, candidate.pointerOffsetX, candidate.pointerOffsetY);
+    setDragState({
+      status: 'dragging',
+      sessionId: payload.sessionId,
+      sessionTitle: payload.sessionTitle,
+      sourceGroupId: payload.sourceGroupId,
+      cardHeight: payload.cardHeight
+    });
+    setDropTargetGroupId(null);
+    pointerDragHoverGroupIdRef.current = null;
+    debugDnd('pointerdrag:start', {
+      payload,
+      pointerId: candidate.pointerId
+    });
+  };
+
+  const handlePointerDragStart = (
+    event: ReactPointerEvent<HTMLElement>,
+    input: { readonly sessionId: string; readonly sessionTitle: string; readonly sourceGroupId: string }
+  ) => {
+    if (!canDragSessions || event.pointerType !== 'mouse' || event.button !== 0) {
+      return;
+    }
+
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, a, input, select, textarea, [role="menuitem"], [data-overlay-no-drag="true"]')) {
+      return;
+    }
+
+    const sourceRect = event.currentTarget.getBoundingClientRect();
+    pointerDragCandidateRef.current = {
+      pointerId: event.pointerId,
+      sessionId: input.sessionId,
+      sessionTitle: input.sessionTitle,
+      sourceGroupId: input.sourceGroupId,
+      originX: event.clientX,
+      originY: event.clientY,
+      cardHeight: sourceRect.height,
+      sourceElement: event.currentTarget,
+      pointerOffsetX: event.clientX - sourceRect.left,
+      pointerOffsetY: event.clientY - sourceRect.top,
+      started: false
+    };
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore pointer capture errors and continue.
+    }
+
+    debugDnd('pointerdrag:candidate', {
+      pointerId: event.pointerId,
+      input,
+      origin: { x: event.clientX, y: event.clientY }
+    });
+  };
+
+  const handlePointerDragMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const candidate = pointerDragCandidateRef.current;
+    if (!candidate || candidate.pointerId !== event.pointerId || event.pointerType !== 'mouse') {
+      return;
+    }
+
+    if (!candidate.started) {
+      const dx = Math.abs(event.clientX - candidate.originX);
+      const dy = Math.abs(event.clientY - candidate.originY);
+      if (dx < POINTER_DRAG_START_THRESHOLD_PX && dy < POINTER_DRAG_START_THRESHOLD_PX) {
+        return;
+      }
+      pointerDragCandidateRef.current = {
+        ...candidate,
+        started: true
+      };
+      beginPointerDrag({
+        ...candidate,
+        started: true
+      });
+      suppressNextCardClickRef.current = true;
+      window.setTimeout(() => {
+        suppressNextCardClickRef.current = false;
+      }, 120);
+    }
+
+    event.preventDefault();
+    updateDragPreviewPosition(event.clientX, event.clientY, candidate.pointerOffsetX, candidate.pointerOffsetY);
+    const activeDrag = activeDragRef.current;
+    if (!activeDrag) {
+      return;
+    }
+
+    const hovered = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null;
+    const groupElement = hovered?.closest<HTMLElement>('.session-folder-group');
+    const nextGroupId = groupElement?.dataset.groupId ?? null;
+
+    if (
+      nextGroupId
+      && isValidDropTarget(nextGroupId, activeDrag)
+    ) {
+      if (dropTargetGroupId !== nextGroupId) {
+        setDropTargetGroupId(nextGroupId);
+      }
+      if (pointerDragHoverGroupIdRef.current !== nextGroupId) {
+        pointerDragHoverGroupIdRef.current = nextGroupId;
+        debugDnd('pointerdrag:hover-valid-target', {
+          groupId: nextGroupId,
+          hovered: describeNode(hovered)
+        });
+      }
+      return;
+    }
+
+    if (dropTargetGroupId !== null) {
+      setDropTargetGroupId(null);
+    }
+    if (pointerDragHoverGroupIdRef.current !== null) {
+      pointerDragHoverGroupIdRef.current = null;
+      debugDnd('pointerdrag:hover-invalid-target', {
+        reason: nextGroupId ? getDropRejectionReason(nextGroupId, activeDrag) : 'no-folder-hit',
+        hovered: describeNode(hovered)
+      });
+    }
+  };
+
+  const handlePointerDragEnd = (event: ReactPointerEvent<HTMLElement>, canceled: boolean) => {
+    const candidate = pointerDragCandidateRef.current;
+    if (!candidate || candidate.pointerId !== event.pointerId || event.pointerType !== 'mouse') {
+      return;
+    }
+
+    try {
+      if (candidate.sourceElement.hasPointerCapture(event.pointerId)) {
+        candidate.sourceElement.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+      // Ignore pointer capture errors and continue.
+    }
+
+    const activeDrag = activeDragRef.current;
+    const destinationGroupId = dropTargetGroupId;
+    const shouldMove = !canceled
+      && candidate.started
+      && activeDrag !== null
+      && destinationGroupId !== null
+      && isValidDropTarget(destinationGroupId, activeDrag);
+
+    debugDnd('pointerdrag:end', {
+      canceled,
+      started: candidate.started,
+      destinationGroupId,
+      payload: summarizeDragPayload(activeDrag),
+      shouldMove
+    });
+
+    if (!shouldMove || !activeDrag || !destinationGroupId) {
+      resetDragInteractionState();
+      return;
+    }
+
+    void (async () => {
+      const moved = await moveSessionWithFeedback({
+        sessionId: activeDrag.sessionId,
+        sessionTitle: activeDrag.sessionTitle,
+        sourceGroupId: activeDrag.sourceGroupId,
+        destinationGroupId,
+        sourceCardHeight: activeDrag.cardHeight
+      });
+      debugDnd(moved ? 'pointerdrag:move-success' : 'pointerdrag:move-failed', {
+        destinationGroupId,
+        payload: summarizeDragPayload(activeDrag)
+      });
+      resetDragInteractionState();
+    })();
+  };
+
+  const getFolderDropHandlers = (groupId: string) => ({
+    onDragOver: (event: DragEvent<HTMLElement>) => handleFolderDragOver(event, groupId),
+    onDragEnter: (event: DragEvent<HTMLElement>) => handleFolderDragEnter(event, groupId),
+    onDragLeave: (event: DragEvent<HTMLElement>) => handleFolderDragLeave(event, groupId),
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      void handleFolderDrop(event, groupId);
+    }
+  });
+
+  const handleTouchPressStart = (
+    event: ReactPointerEvent<HTMLElement>,
+    input: { readonly sessionId: string; readonly sessionTitle: string; readonly sourceGroupId: string }
+  ) => {
+    if (!isTouchDevice || !canMoveSessions || isSelectionMode || event.pointerType !== 'touch') {
+      return;
+    }
+
+    clearTouchPressTimer();
+    touchOriginRef.current = { x: event.clientX, y: event.clientY };
+    touchPressTimerRef.current = window.setTimeout(() => {
+      suppressNextCardClickRef.current = true;
+      window.setTimeout(() => {
+        suppressNextCardClickRef.current = false;
+      }, 700);
+      openMoveMenuForSession(input, { x: event.clientX, y: event.clientY });
+      touchPressTimerRef.current = null;
+    }, TOUCH_CONTEXT_MENU_DELAY_MS);
+  };
+
+  const handleTouchPressMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!isTouchDevice || event.pointerType !== 'touch' || !touchOriginRef.current) {
+      return;
+    }
+
+    const dx = Math.abs(event.clientX - touchOriginRef.current.x);
+    const dy = Math.abs(event.clientY - touchOriginRef.current.y);
+    if (dx > 10 || dy > 10) {
+      clearTouchPressTimer();
+    }
+  };
+
+  const handleTouchPressEnd = () => {
+    touchOriginRef.current = null;
+    clearTouchPressTimer();
+  };
+
+  const moveMenuOptions = moveMenu ? getMenuOptionsForGroup(moveMenu.sourceGroupId) : [];
 
   return (
     <section className="panel library-panel sessions-pane">
@@ -615,105 +1720,124 @@ export function LibraryView(props: LibraryViewProps) {
                 onClick={() => {
                   if (isCreatingSession) {
                     setIsCreatingSession(false);
+                    setNewSessionFolderId('none');
                     return;
                   }
-
-                  startTransition(() => {
-                    setDraftSessionName(defaultSessionName());
-                    setIsCreatingSession(true);
-                  });
+                  startCreateSessionFlow();
                 }}
               >
                 <span>+ New Session</span>
               </button>
 
-              <button
-                type="button"
-                className="sessions-inline-icon-button"
-                aria-label="Search sessions"
-                onClick={() => {
-                  setShowSearch((previous) => !previous);
-                  window.setTimeout(() => {
-                    searchInputRef.current?.focus();
-                    searchInputRef.current?.select();
-                  }, 0);
-                }}
-              >
-                <SearchIcon />
-              </button>
+              {hasMultipleSessions ? (
+                <>
+                  <button
+                    type="button"
+                    className={`sessions-inline-icon-button ${showSearch ? 'is-active' : ''}`}
+                    aria-label="Search sessions"
+                    aria-pressed={showSearch}
+                    onClick={() => {
+                      setShowSearch((previous) => !previous);
+                      window.setTimeout(() => {
+                        searchInputRef.current?.focus();
+                        searchInputRef.current?.select();
+                      }, 0);
+                    }}
+                  >
+                    <SearchIcon />
+                  </button>
 
-              <div className="sessions-list-controls-wrap" ref={listControlsRef}>
-                <button
-                  type="button"
-                  className="sessions-inline-icon-button"
-                  aria-label="Sort and filter sessions"
-                  aria-expanded={showListControls}
-                  onClick={() => setShowListControls((previous) => !previous)}
-                >
-                  <FilterIcon />
-                </button>
-
-                {showListControls ? (
-                  <div className="sessions-list-controls-popover" role="dialog" aria-label="Session list controls">
-                    <label className="sessions-control-label" htmlFor="sessions-sort-select">Sort</label>
-                    <select
-                      id="sessions-sort-select"
-                      value={sortMode}
-                      onChange={(event) => setSortMode(event.target.value as SortMode)}
-                    >
-                      <option value="updated-desc">Date Modified (Newest)</option>
-                      <option value="updated-asc">Date Modified (Oldest)</option>
-                      <option value="name-asc">Name (A-Z)</option>
-                      <option value="name-desc">Name (Z-A)</option>
-                      <option value="word-desc">Word Count (High-Low)</option>
-                      <option value="word-asc">Word Count (Low-High)</option>
-                    </select>
-
-                    <label className="sessions-control-label" htmlFor="sessions-folder-filter">Folder</label>
-                    <select
-                      id="sessions-folder-filter"
-                      value={folderFilter}
-                      onChange={(event) => setFolderFilter(event.target.value)}
-                    >
-                      <option value="all">All folders</option>
-                      <option value="none">Unfiled</option>
-                      {folders.map((folder) => (
-                        <option key={folder.id} value={folder.id}>{folder.name}</option>
-                      ))}
-                    </select>
-
-                    <label className="sessions-checkbox-row" htmlFor="sessions-recent-only">
-                      <input
-                        id="sessions-recent-only"
-                        type="checkbox"
-                        checked={showRecentlyEditedOnly}
-                        onChange={(event) => setShowRecentlyEditedOnly(event.target.checked)}
-                      />
-                      <span>Show only recently edited (7 days)</span>
-                    </label>
-
+                  <div className="sessions-list-controls-wrap" ref={listControlsRef}>
                     <button
                       type="button"
-                      className="sessions-new-folder-inline"
-                      onClick={() => {
-                        setShowFolderComposer(true);
-                        setShowListControls(false);
-                      }}
+                      className={`sessions-inline-icon-button ${showListControls ? 'is-active' : ''}`}
+                      aria-label="Sort and filter sessions"
+                      aria-pressed={showListControls}
+                      aria-expanded={showListControls}
+                      onClick={() => setShowListControls((previous) => !previous)}
                     >
-                      + New Folder
+                      <FilterIcon />
                     </button>
-                  </div>
-                ) : null}
-              </div>
 
-              {sessions.length > 1 ? (
-                <button
-                  type="button"
-                  className="sessions-select-mode-button tertiary-button"
-                  onClick={() => setIsSelectionMode(true)}
-                >
-                  Select
-                </button>
+                    {showListControls ? (
+                      <div className="sessions-list-controls-popover" role="dialog" aria-label="Session list controls">
+                        <section className="sessions-control-section">
+                          <h3 className="sessions-control-label">Sort</h3>
+                          <div className="sessions-control-display-row">
+                            <span className="sessions-control-value">{selectedSortLabel}</span>
+                            <span className="sessions-control-check" aria-hidden="true">
+                              <FilterCheckIcon />
+                            </span>
+                            <select
+                              id="sessions-sort-select"
+                              className="sessions-control-native-select"
+                              aria-label="Sort sessions"
+                              value={sortMode}
+                              onChange={(event) => setSortMode(event.target.value as SortMode)}
+                            >
+                              {SORT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </section>
+
+                        <section className="sessions-control-section">
+                          <h3 className="sessions-control-label">Folder</h3>
+                          <div className="sessions-control-display-row">
+                            <span className="sessions-control-value">{selectedFolderLabel}</span>
+                            <span className="sessions-control-check" aria-hidden="true">
+                              <FilterCheckIcon />
+                            </span>
+                            <select
+                              id="sessions-folder-filter"
+                              className="sessions-control-native-select"
+                              aria-label="Filter folders"
+                              value={folderFilter}
+                              onChange={(event) => setFolderFilter(event.target.value)}
+                            >
+                              <option value="all">All folders</option>
+                              <option value="none">Unfiled</option>
+                              {folders.map((folder) => (
+                                <option key={folder.id} value={folder.id}>{folder.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </section>
+
+                        <label className="sessions-toggle-row" htmlFor="sessions-recent-only">
+                          <span className="sessions-toggle-label">Recently edited only <br />(7 days)</span>
+                          <input
+                            id="sessions-recent-only"
+                            className="sessions-toggle-switch"
+                            type="checkbox"
+                            checked={showRecentlyEditedOnly}
+                            onChange={(event) => setShowRecentlyEditedOnly(event.target.checked)}
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          className="sessions-new-folder-inline"
+                          onClick={() => {
+                            setShowFolderComposer(true);
+                            setShowListControls(false);
+                          }}
+                        >
+                          + New Folder
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="sessions-select-mode-button tertiary-button"
+                    onClick={() => setIsSelectionMode(true)}
+                  >
+                    Select
+                  </button>
+                </>
               ) : null}
             </>
           ) : (
@@ -731,7 +1855,7 @@ export function LibraryView(props: LibraryViewProps) {
         </div>
       </header>
 
-      {showSearch ? (
+      {hasMultipleSessions && showSearch ? (
         <div className="sessions-search-row">
           <label className="sr-only" htmlFor="sessions-search-field">Search sessions</label>
           <input
@@ -777,8 +1901,79 @@ export function LibraryView(props: LibraryViewProps) {
         </span>
       </div>
 
+      {showNewSessionFolderDialog ? (
+        <div
+          className="confirm-backdrop"
+          onClick={() => {
+            setShowNewSessionFolderDialog(false);
+            setNewSessionFolderId('none');
+          }}
+        >
+          <div
+            className="confirm-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="New session folder selection"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3>Where should this session live?</h3>
+            <p>Choose a folder before naming your session.</p>
+            <label className="move-sheet-label" htmlFor="new-session-folder-select">Folder</label>
+            <div className="move-sheet-select-wrap">
+              <div className="move-sheet-select-display">
+                <span className="move-sheet-select-value">{selectedNewSessionFolderLabel}</span>
+                <span className="move-sheet-select-chevron" aria-hidden="true" />
+                <select
+                  id="new-session-folder-select"
+                  className="move-sheet-select-native"
+                  aria-label="Session folder"
+                  value={newSessionFolderId}
+                  onChange={(event) => setNewSessionFolderId(event.target.value)}
+                >
+                  <option value="none">Unfiled</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>{folder.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={() => {
+                  setShowNewSessionFolderDialog(false);
+                  setNewSessionFolderId('none');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  setShowNewSessionFolderDialog(false);
+                  startTransition(() => {
+                    setDraftSessionName(defaultSessionName());
+                    setIsCreatingSession(true);
+                  });
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isCreatingSession ? (
-        <div className="modal-overlay" onClick={() => setIsCreatingSession(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setIsCreatingSession(false);
+            setNewSessionFolderId('none');
+          }}
+        >
           <form
             className="modal-sheet"
             onClick={(event) => event.stopPropagation()}
@@ -803,7 +1998,14 @@ export function LibraryView(props: LibraryViewProps) {
               {draftSessionName.length} / 60
             </div>
             <div className="modal-actions">
-              <button type="button" className="modal-btn-cancel" onClick={() => setIsCreatingSession(false)}>
+              <button
+                type="button"
+                className="modal-btn-cancel"
+                onClick={() => {
+                  setIsCreatingSession(false);
+                  setNewSessionFolderId('none');
+                }}
+              >
                 Cancel
               </button>
               <button type="submit" className="modal-btn-create" disabled={draftSessionName.trim().length === 0}>
@@ -827,6 +2029,7 @@ export function LibraryView(props: LibraryViewProps) {
             <div className="modal-title">New Folder</div>
             <div className="modal-subtitle">Organize your sessions in a folder.</div>
             <input
+              ref={folderComposerInputRef}
               type="text"
               className="modal-input"
               value={draftFolderName}
@@ -887,16 +2090,29 @@ export function LibraryView(props: LibraryViewProps) {
         {groupedSessions.map((group) => {
           const isCollapsed = collapsedFolderIds.has(group.id);
           const groupIsRealFolder = !group.isBuiltIn;
+          const showDropTarget = dropTargetGroupId === group.id && isValidDropTarget(group.id);
+          const folderDropHandlers = getFolderDropHandlers(group.id);
 
           return (
-            <section key={group.id} className="session-folder-group" aria-label={`${group.label} folder`}>
-              <div className="session-folder-header">
+            <section
+              key={group.id}
+              className={`session-folder-group ${showDropTarget ? 'is-drop-target' : ''}`}
+              data-group-id={group.id}
+              aria-label={`${group.label} folder`}
+              aria-dropeffect={isValidDropTarget(group.id) ? 'move' : undefined}
+              {...folderDropHandlers}
+            >
+              <div
+                className={`session-folder-header ${showDropTarget ? 'is-drop-target' : ''}`}
+                {...folderDropHandlers}
+              >
                 <button
                   type="button"
                   className="session-folder-toggle"
                   onClick={() => toggleGroupCollapsed(group.id)}
                   aria-expanded={!isCollapsed}
                   aria-controls={`folder-group-${group.id}`}
+                  {...folderDropHandlers}
                 >
                   <span className="session-folder-chevron" aria-hidden="true">
                     <ChevronIcon expanded={!isCollapsed} />
@@ -906,6 +2122,9 @@ export function LibraryView(props: LibraryViewProps) {
                   </span>
                   <span className="session-folder-label">{group.label}</span>
                   <span className="session-folder-count">{group.sessions.length}</span>
+                  {showDropTarget ? (
+                    <span className="session-folder-drop-hint" aria-hidden="true">Drop here</span>
+                  ) : null}
                 </button>
 
                 {groupIsRealFolder ? (
@@ -932,18 +2151,76 @@ export function LibraryView(props: LibraryViewProps) {
               </div>
 
               {!isCollapsed ? (
-                <div id={`folder-group-${group.id}`} className="session-folder-content">
+                <div
+                  id={`folder-group-${group.id}`}
+                  className="session-folder-content"
+                  {...folderDropHandlers}
+                >
+                  {collapsingPlaceholder && collapsingPlaceholder.groupId === group.id ? (
+                    <div
+                      className="session-card-drag-collapse"
+                      style={{ '--session-drag-collapse-height': `${Math.max(56, collapsingPlaceholder.height)}px` } as CSSProperties}
+                      aria-hidden="true"
+                    />
+                  ) : null}
                   {group.sessions.length > 0 ? group.sessions.map((session) => {
                     const wordCount = wordCountBySessionId[session.id] ?? 0;
                     const snippet = previewForContent(sessionContentMap[session.id] ?? '', searchQuery);
+                    const selected = selectedSessionIds.has(session.id);
+                    const isDragOrigin = isDragging && dragState.sessionId === session.id;
 
                     return (
                       <article
                         key={session.id}
-                        className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${selectedSessionIds.has(session.id) ? 'is-selected' : ''}`}
+                        className={`session-card session-card-selectable ${activeSessionId === session.id ? 'active' : ''} ${selected ? 'is-selected' : ''} ${canDragSessions ? 'is-draggable' : ''} ${isDragOrigin ? 'is-drag-origin' : ''} ${recentlyMovedSessionId === session.id ? 'is-drop-arrival' : ''}`}
                         role="button"
                         tabIndex={0}
+                        draggable={false}
+                        aria-grabbed={canDragSessions ? isDragOrigin : undefined}
+                        onPointerDown={(event) => {
+                          const payload = {
+                            sessionId: session.id,
+                            sessionTitle: session.title,
+                            sourceGroupId: group.id
+                          };
+                          handleTouchPressStart(event, payload);
+                          handlePointerDragStart(event, payload);
+                        }}
+                        onPointerMove={(event) => {
+                          handleTouchPressMove(event);
+                          handlePointerDragMove(event);
+                        }}
+                        onPointerUp={(event) => {
+                          handleTouchPressEnd();
+                          handlePointerDragEnd(event, false);
+                        }}
+                        onPointerCancel={(event) => {
+                          handleTouchPressEnd();
+                          handlePointerDragEnd(event, true);
+                        }}
+                        onPointerLeave={handleTouchPressEnd}
+                        onContextMenu={(event) => {
+                          if (!canMoveSessions || isSelectionMode) {
+                            return;
+                          }
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openMoveMenuForSession(
+                            {
+                              sessionId: session.id,
+                              sessionTitle: session.title,
+                              sourceGroupId: group.id
+                            },
+                            { x: event.clientX, y: event.clientY }
+                          );
+                        }}
                         onClick={(event) => {
+                          if (suppressNextCardClickRef.current) {
+                            suppressNextCardClickRef.current = false;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return;
+                          }
                           if (isSelectionMode) {
                             event.stopPropagation();
                             toggleSelection(session.id);
@@ -952,6 +2229,27 @@ export function LibraryView(props: LibraryViewProps) {
                           onOpen(session.id);
                         }}
                         onKeyDown={(event) => {
+                          if (
+                            canMoveSessions
+                            && !isSelectionMode
+                            && (
+                              event.key === 'ContextMenu'
+                              || (event.shiftKey && event.key === 'F10')
+                            )
+                          ) {
+                            event.preventDefault();
+                            const rect = event.currentTarget.getBoundingClientRect();
+                            openMoveMenuForSession(
+                              {
+                                sessionId: session.id,
+                                sessionTitle: session.title,
+                                sourceGroupId: group.id
+                              },
+                              { x: rect.left + 10, y: rect.bottom + 8 }
+                            );
+                            return;
+                          }
+
                           if (event.key !== 'Enter' && event.key !== ' ') {
                             return;
                           }
@@ -963,15 +2261,18 @@ export function LibraryView(props: LibraryViewProps) {
                           onOpen(session.id);
                         }}
                       >
+                        {canDragSessions ? (
+                          <span className="session-drag-handle" aria-hidden="true">⋮⋮</span>
+                        ) : null}
                         <div className="card-checkbox-wrapper">
                           <div
-                            className={`selection-checkbox ${selectedSessionIds.has(session.id) ? 'is-checked' : ''}`}
+                            className={`selection-checkbox ${selected ? 'is-checked' : ''}`}
                             onClick={(event) => {
                               event.stopPropagation();
                               toggleSelection(session.id);
                             }}
                           >
-                            {selectedSessionIds.has(session.id) ? (
+                            {selected ? (
                               <div className="selection-checkbox-inner">
                                 <CheckIcon />
                               </div>
@@ -1034,6 +2335,40 @@ export function LibraryView(props: LibraryViewProps) {
           </div>
         ) : null}
       </div>
+
+      {moveMenu ? (
+        <div
+          className="session-move-context-menu"
+          role="menu"
+          aria-label={`Move ${moveMenu.sessionTitle} to folder`}
+          style={{ left: moveMenu.x, top: moveMenu.y }}
+        >
+          {moveMenuOptions.length > 0 ? moveMenuOptions.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="session-move-context-item"
+              role="menuitem"
+              onClick={() => {
+                void moveSessionWithFeedback({
+                  sessionId: moveMenu.sessionId,
+                  sessionTitle: moveMenu.sessionTitle,
+                  sourceGroupId: moveMenu.sourceGroupId,
+                  destinationGroupId: option.id,
+                  sourceCardHeight: dragState.status === 'dragging' ? dragState.cardHeight : 84
+                });
+                setMoveMenu(null);
+              }}
+            >
+              Move to {option.label}
+            </button>
+          )) : (
+            <div className="session-move-context-empty" role="status">
+              No destination folders
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {deleteCandidate ? (
         <div className="confirm-backdrop" onClick={() => setDeleteCandidateId(null)}>
@@ -1098,14 +2433,16 @@ export function LibraryView(props: LibraryViewProps) {
           {selectionCount} sessions selected
         </div>
         <div className="bulk-action-buttons">
-          <button
-            type="button"
-            className={`bulk-move-button ${selectionCount > 0 ? 'is-visible' : ''}`}
-            disabled={selectionCount === 0}
-            onClick={() => setShowBulkMoveDialog(true)}
-          >
-            Move {selectionCount}
-          </button>
+          {canMoveSessions ? (
+            <button
+              type="button"
+              className={`bulk-move-button ${selectionCount > 0 ? 'is-visible' : ''}`}
+              disabled={selectionCount === 0}
+              onClick={() => setShowBulkMoveDialog(true)}
+            >
+              Move {selectionCount}
+            </button>
+          ) : null}
           <button
             type="button"
             className={`bulk-delete-button ${selectionCount > 0 ? 'is-visible' : ''}`}
@@ -1135,22 +2472,29 @@ export function LibraryView(props: LibraryViewProps) {
         </div>
       ) : null}
 
-      {showBulkMoveDialog ? (
+      {canMoveSessions && showBulkMoveDialog ? (
         <div className="confirm-backdrop" onClick={() => setShowBulkMoveDialog(false)}>
           <div className="confirm-sheet" onClick={(event) => event.stopPropagation()}>
             <h3>Move {selectionCount} sessions</h3>
             <p>Select a destination folder.</p>
-            <label className="sessions-control-label" htmlFor="bulk-move-folder-select">Destination</label>
-            <select
-              id="bulk-move-folder-select"
-              value={bulkMoveFolderId}
-              onChange={(event) => setBulkMoveFolderId(event.target.value)}
-            >
-              <option value="none">Unfiled</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>{folder.name}</option>
-              ))}
-            </select>
+            <label className="move-sheet-label" htmlFor="bulk-move-folder-select">Destination</label>
+            <div className="move-sheet-select-wrap">
+              <div className="move-sheet-select-display">
+                <span className="move-sheet-select-value">{selectedBulkMoveFolderLabel}</span>
+                <span className="move-sheet-select-chevron" aria-hidden="true" />
+                <select
+                  id="bulk-move-folder-select"
+                  className="move-sheet-select-native"
+                  value={bulkMoveFolderId}
+                  onChange={(event) => setBulkMoveFolderId(event.target.value)}
+                >
+                  <option value="none">Unfiled</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>{folder.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="confirm-actions">
               <button type="button" className="cancel-button" onClick={() => setShowBulkMoveDialog(false)}>
                 Cancel

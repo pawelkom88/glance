@@ -61,7 +61,7 @@ interface AppStoreState {
   readonly renameFolderById: (id: string, name: string) => Promise<void>;
   readonly deleteFolderById: (id: string) => Promise<void>;
   readonly moveSessionsByIdsToFolder: (sessionIds: readonly string[], folderId: string | null) => Promise<number>;
-  readonly createSessionWithName: (name: string) => Promise<void>;
+  readonly createSessionWithName: (name: string, folderId?: string | null) => Promise<void>;
   readonly duplicateSessionById: (id: string) => Promise<void>;
   readonly deleteSessionById: (id: string, notify?: boolean) => Promise<void>;
   readonly importMarkdown: (name: string, markdown: string) => Promise<void>;
@@ -376,9 +376,12 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
     },
 
-    createSessionWithName: async (name: string) => {
+    createSessionWithName: async (name: string, folderId: string | null = null) => {
       try {
         const newSession = await createSession(name);
+        if (folderId !== null) {
+          await moveSessionsToFolder([newSession.id], folderId);
+        }
         const sessions = await listSessions();
         startTransition(() => {
           set({ sessions });

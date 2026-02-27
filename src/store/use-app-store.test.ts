@@ -156,6 +156,17 @@ describe('useAppStore session lifecycle behavior', () => {
     expect(state.toastMessage).toEqual({ message: 'Created "Demo"', variant: 'success' });
   });
 
+  it('creates a session in the selected folder when folder id is provided', async () => {
+    tauriMock.listSessions.mockResolvedValue([
+      { id: 'new-1', title: 'Demo', createdAt: '', updatedAt: '', lastOpenedAt: '', folderId: 'f-1' }
+    ]);
+
+    await useAppStore.getState().createSessionWithName('Demo', 'f-1');
+
+    expect(tauriMock.moveSessionsToFolder).toHaveBeenCalledWith(['new-1'], 'f-1');
+    expect(useAppStore.getState().activeSessionId).toBe('new-1');
+  });
+
   it('resets to draft state when deleting the final active session', async () => {
     const parsed = parseMarkdown('# Existing\n\nText');
     useAppStore.setState({

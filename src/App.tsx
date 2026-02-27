@@ -85,14 +85,6 @@ function toExportFilename(title: string): string {
   return `${normalized || 'session'}.md`;
 }
 
-function defaultSessionTitle(): string {
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0');
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const year = now.getFullYear();
-  return `Session ${day}/${month}/${year}`;
-}
-
 function BannerIcon({ variant }: { variant: ToastVariant }) {
   if (variant === 'success') {
     return (
@@ -141,6 +133,7 @@ export default function App() {
   const [mainWindowTransition, setMainWindowTransition] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
   const [isToastClosing, setIsToastClosing] = useState(false);
   const [editorAutosaveStatus, setEditorAutosaveStatus] = useState<'saving' | 'saved'>('saved');
+  const [createSessionRequestToken, setCreateSessionRequestToken] = useState(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const warningSignatureRef = useRef<string>('');
   const fadeInFrameRef = useRef<number | null>(null);
@@ -459,13 +452,14 @@ export default function App() {
         <LibraryView
           sessions={sessions}
           folders={folders}
+          createSessionRequestToken={createSessionRequestToken}
           activeSessionId={activeSessionId}
           onOpen={(id) => {
             switchTab('editor');
             void openSession(id);
           }}
-          onCreate={(name) => {
-            void createSessionWithName(name);
+          onCreate={(name, folderId) => {
+            void createSessionWithName(name, folderId);
             switchTab('editor');
           }}
           onDelete={(id, notify = true) => {
@@ -481,7 +475,7 @@ export default function App() {
             void deleteFolderById(id);
           }}
           onMoveSessions={(sessionIds, folderId) => {
-            void moveSessionsByIdsToFolder(sessionIds, folderId);
+            return moveSessionsByIdsToFolder(sessionIds, folderId);
           }}
           onImport={() => {
             importInputRef.current?.click();
@@ -503,7 +497,8 @@ export default function App() {
           hasActiveSession={Boolean(activeSessionId)}
           onChange={setMarkdown}
           onCreateSession={() => {
-            void createSessionWithName(defaultSessionTitle());
+            setCreateSessionRequestToken((previous) => previous + 1);
+            switchTab('library');
           }}
           onImportSession={() => {
             importInputRef.current?.click();
