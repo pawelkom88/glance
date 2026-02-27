@@ -546,8 +546,8 @@ export function OverlayPrompter() {
   const timerIsExpired = timerMode === 'count-down' && timerTargetMs > 0 && timerRemainingMs <= 0;
   const timerTargetMinutes = Math.floor(timerTargetSeconds / 60);
   const timerTargetRemainderSeconds = timerTargetSeconds % 60;
-  const showSectionTitlesInRail = overlaySize.width < 1200;
-  const isCompactTopBar = overlaySize.width < 1200;
+  const showSectionTitlesInRail = overlaySize.width <= 1200;
+  const isCompactTopBar = overlaySize.width <= 1200;
 
   const isSnapButtonVisible = useMemo(() => {
     if (!windowPosition || isSnapping) return false;
@@ -732,7 +732,109 @@ export function OverlayPrompter() {
     </>
   );
 
-  const renderPlaybackControls = (className = '') => (
+  const renderTimerControls = () => (
+    <div className="overlay-timer-row">
+      <div className="overlay-timer-cluster">
+        <button
+          ref={timerTriggerRef}
+          type="button"
+          className={`overlay-timer-chip ${isTimerMenuOpen ? 'is-active' : ''} ${timerIsExpired ? 'is-expired' : ''}`}
+          aria-label={`${timerMode === 'count-down' ? 'Remaining' : 'Elapsed'} timer ${formatTimerClock(timerDisplayMs)}`}
+          aria-haspopup="dialog"
+          aria-expanded={isTimerMenuOpen}
+          onClick={() => {
+            setIsJumpMenuOpen(false);
+            setIsFontMenuOpen(false);
+            setIsTimerMenuOpen((previous) => !previous);
+          }}
+          style={{
+            '--overlay-timer-progress': `${timerProgressPercent.toFixed(2)}%`
+          } as CSSProperties}
+        >
+          <span className="overlay-timer-label">
+            {timerMode === 'count-down' ? 'Remaining' : 'Elapsed'}
+          </span>
+          <span className="overlay-timer-value">{formatTimerClock(timerDisplayMs)}</span>
+        </button>
+        {isTimerMenuOpen ? (
+          <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label="Presentation timer controls">
+            <div className="overlay-timer-mode-group" role="radiogroup" aria-label="Timer mode">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={timerMode === 'count-up'}
+                className={`overlay-timer-mode-option ${timerMode === 'count-up' ? 'is-selected' : ''}`}
+                onClick={() => setTimerMode('count-up')}
+              >
+                Count Up
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={timerMode === 'count-down'}
+                className={`overlay-timer-mode-option ${timerMode === 'count-down' ? 'is-selected' : ''}`}
+                onClick={() => setTimerMode('count-down')}
+              >
+                Count Down
+              </button>
+            </div>
+
+            {timerMode === 'count-down' ? (
+              <div className="overlay-timer-target">
+                <label>
+                  <span>Minutes</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={399}
+                    value={timerTargetMinutes}
+                    onChange={(event) => {
+                      const minutes = Math.max(0, Math.min(399, Number(event.target.value) || 0));
+                      const next = (minutes * 60) + timerTargetRemainderSeconds;
+                      setTimerTargetSeconds(Math.max(5, Math.min(23_940, next)));
+                    }}
+                  />
+                </label>
+                <label>
+                  <span>Seconds</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={timerTargetRemainderSeconds}
+                    onChange={(event) => {
+                      const seconds = Math.max(0, Math.min(59, Number(event.target.value) || 0));
+                      const next = (timerTargetMinutes * 60) + seconds;
+                      setTimerTargetSeconds(Math.max(5, Math.min(23_940, next)));
+                    }}
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            <div className="overlay-timer-footer">
+              <button
+                type="button"
+                className="overlay-popover-link"
+                onClick={resetPresentationTimer}
+              >
+                Reset Timer
+              </button>
+              <button
+                type="button"
+                className="overlay-popover-link"
+                onClick={() => closeTimerMenu(true)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  const renderPlaybackControls = (className = '', showTimer = true) => (
     <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
         <div className="overlay-control-hint" aria-hidden="true">
@@ -782,109 +884,11 @@ export function OverlayPrompter() {
           <span className="overlay-control-keycap is-capsule">Space</span>
         </div>
       </div>
-      <div className="overlay-timer-row">
-        <div className="overlay-timer-cluster">
-          <button
-            ref={timerTriggerRef}
-            type="button"
-            className={`overlay-timer-chip ${isTimerMenuOpen ? 'is-active' : ''} ${timerIsExpired ? 'is-expired' : ''}`}
-            aria-label={`${timerMode === 'count-down' ? 'Remaining' : 'Elapsed'} timer ${formatTimerClock(timerDisplayMs)}`}
-            aria-haspopup="dialog"
-            aria-expanded={isTimerMenuOpen}
-            onClick={() => {
-              setIsJumpMenuOpen(false);
-              setIsFontMenuOpen(false);
-              setIsTimerMenuOpen((previous) => !previous);
-            }}
-            style={{
-              '--overlay-timer-progress': `${timerProgressPercent.toFixed(2)}%`
-            } as CSSProperties}
-          >
-            <span className="overlay-timer-label">
-              {timerMode === 'count-down' ? 'Remaining' : 'Elapsed'}
-            </span>
-            <span className="overlay-timer-value">{formatTimerClock(timerDisplayMs)}</span>
-          </button>
-          {isTimerMenuOpen ? (
-            <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label="Presentation timer controls">
-              <div className="overlay-timer-mode-group" role="radiogroup" aria-label="Timer mode">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={timerMode === 'count-up'}
-                  className={`overlay-timer-mode-option ${timerMode === 'count-up' ? 'is-selected' : ''}`}
-                  onClick={() => setTimerMode('count-up')}
-                >
-                  Count Up
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={timerMode === 'count-down'}
-                  className={`overlay-timer-mode-option ${timerMode === 'count-down' ? 'is-selected' : ''}`}
-                  onClick={() => setTimerMode('count-down')}
-                >
-                  Count Down
-                </button>
-              </div>
-
-              {timerMode === 'count-down' ? (
-                <div className="overlay-timer-target">
-                  <label>
-                    <span>Minutes</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={399}
-                      value={timerTargetMinutes}
-                      onChange={(event) => {
-                        const minutes = Math.max(0, Math.min(399, Number(event.target.value) || 0));
-                        const next = (minutes * 60) + timerTargetRemainderSeconds;
-                        setTimerTargetSeconds(Math.max(5, Math.min(23_940, next)));
-                      }}
-                    />
-                  </label>
-                  <label>
-                    <span>Seconds</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={59}
-                      value={timerTargetRemainderSeconds}
-                      onChange={(event) => {
-                        const seconds = Math.max(0, Math.min(59, Number(event.target.value) || 0));
-                        const next = (timerTargetMinutes * 60) + seconds;
-                        setTimerTargetSeconds(Math.max(5, Math.min(23_940, next)));
-                      }}
-                    />
-                  </label>
-                </div>
-              ) : null}
-
-              <div className="overlay-timer-footer">
-                <button
-                  type="button"
-                  className="overlay-popover-link"
-                  onClick={resetPresentationTimer}
-                >
-                  Reset Timer
-                </button>
-                <button
-                  type="button"
-                  className="overlay-popover-link"
-                  onClick={() => closeTimerMenu(true)}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      {showTimer ? renderTimerControls() : null}
     </footer>
   );
 
-  const renderSpeedControls = (className: string) => (
+  const renderSpeedControls = (className: string, showTimer = false) => (
     <footer className={className}>
       <div className="overlay-speed-inline">
         <span
@@ -941,6 +945,7 @@ export function OverlayPrompter() {
           <FastSpeedIcon />
         </span>
       </div>
+      {showTimer ? renderTimerControls() : null}
     </footer>
   );
 
@@ -2153,9 +2158,9 @@ export function OverlayPrompter() {
             </div>
 
             <div className="overlay-compact-control-bar">
-              {renderPlaybackControls()}
+              {renderPlaybackControls('', true)}
               <div className="overlay-compact-speed-row">
-                {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact')}
+                {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
               </div>
               <div className="overlay-compact-status-row">
                 <span className="overlay-compact-speed-display" aria-label="Current speed">
@@ -2211,10 +2216,10 @@ export function OverlayPrompter() {
             </div>
           </div>
         ) : null}
-        {!isCompactTopBar ? renderPlaybackControls('overlay-controls-desktop') : null}
+        {!isCompactTopBar ? renderPlaybackControls('overlay-controls-desktop', false) : null}
       </aside>
 
-      {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer') : null}
+      {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer', true) : null}
     </main>
   );
 }
