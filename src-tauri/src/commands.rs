@@ -313,9 +313,9 @@ pub fn delete_session(id: String, state: State<'_, AppState>) -> Result<(), Stri
 
 #[tauri::command]
 pub fn open_sessions_folder(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    use tauri_plugin_shell::ShellExt;
-    app.shell()
-        .open(state.sessions_root.to_string_lossy().to_string(), None)
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_path(state.sessions_root.to_string_lossy().to_string(), None::<&str>)
         .map_err(|error| error.to_string())
 }
 
@@ -1271,6 +1271,7 @@ fn collect_monitor_descriptors(app: &AppHandle) -> Result<Vec<MonitorDescriptor>
         .as_ref()
         .map(monitor_key);
 
+    #[allow(unused_mut)]
     let mut descriptors = tauri_monitors
         .into_iter()
         .map(|monitor| {
