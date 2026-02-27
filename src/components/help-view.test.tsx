@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,6 +25,7 @@ vi.mock('../lib/tauri', async (importOriginal) => {
 
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+import { defaultShortcutConfig, saveShortcutConfig } from '../lib/shortcuts';
 import * as tauriBridge from '../lib/tauri';
 import { useAppStore } from '../store/use-app-store';
 import { HelpView } from './help-view';
@@ -58,12 +59,32 @@ describe('HelpView behavior', () => {
   it('renders platform modifier labels for keyboard shortcuts', () => {
     setPlatform('Win32');
     const { unmount } = render(<HelpView />);
-    expect(screen.queryByText('Ctrl1')).not.toBeNull();
+    const jumpRowWindows = screen.getByText('Jump to section').closest('.help-shortcut-row');
+    expect(jumpRowWindows).not.toBeNull();
+    expect(within(jumpRowWindows as HTMLElement).queryAllByText('Ctrl').length).toBeGreaterThan(0);
+    expect(within(jumpRowWindows as HTMLElement).queryByText('1')).not.toBeNull();
 
     unmount();
     setPlatform('MacIntel');
     render(<HelpView />);
-    expect(screen.queryByText('⌘1')).not.toBeNull();
+    const jumpRowMac = screen.getByText('Jump to section').closest('.help-shortcut-row');
+    expect(jumpRowMac).not.toBeNull();
+    expect(within(jumpRowMac as HTMLElement).queryAllByText('⌘').length).toBeGreaterThan(0);
+    expect(within(jumpRowMac as HTMLElement).queryByText('1')).not.toBeNull();
+  });
+
+  it('renders current customized shortcuts instead of hardcoded defaults', () => {
+    const custom = defaultShortcutConfig();
+    custom['toggle-play'] = 'Shift+P';
+    saveShortcutConfig(custom);
+
+    render(<HelpView />);
+
+    const playPauseRow = screen.getByText('Play / Pause').closest('.help-shortcut-row');
+    expect(playPauseRow).not.toBeNull();
+    expect(within(playPauseRow as HTMLElement).queryByText('⇧')).not.toBeNull();
+    expect(within(playPauseRow as HTMLElement).queryByText('P')).not.toBeNull();
+    expect(within(playPauseRow as HTMLElement).queryByText('Space')).toBeNull();
   });
 
   it('opens donation link via shell integration', async () => {

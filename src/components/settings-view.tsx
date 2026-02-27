@@ -26,6 +26,7 @@ import {
 } from '../lib/shortcuts';
 import { useAppStore } from '../store/use-app-store';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
+import { ShortcutKeycaps } from './shortcut-keycaps';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
 const globalActions: readonly ShortcutActionId[] = ['toggle-overlay', 'snap-to-center'];
@@ -61,10 +62,6 @@ function singleMonitorDisplayMessage(): string {
     return 'Your primary display will be used.';
   }
   return 'Opening on your primary display.';
-}
-
-function platformModifier(): string {
-  return isMacPlatform() ? '⌘' : 'Ctrl+';
 }
 
 function normalizeShortcutKey(key: string, code: string): string | null {
@@ -185,10 +182,6 @@ export function SettingsView() {
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
     () => new Map(shortcutDefinitions.map((definition) => [definition.action, definition])),
-    []
-  );
-  const jumpPattern = useMemo(
-    () => (navigator.platform.includes('Mac') ? '⌘ + 1…9' : 'Ctrl + 1…9'),
     []
   );
   const activeMonitor = useMemo(
@@ -728,9 +721,7 @@ export function SettingsView() {
               {playbackActions.map((action) => renderShortcutInput(action))}
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Jump to Section</span>
-                <span className="shortcut-keycaps">
-                  <kbd>{jumpPattern}</kbd>
-                </span>
+                <ShortcutKeycaps shortcuts={['CmdOrCtrl+1', 'CmdOrCtrl+9']} alternativeSeparator="…" />
               </div>
               <div className="shortcut-navigation-actions">
                 <button
@@ -758,41 +749,23 @@ export function SettingsView() {
               {globalActions.map((action) => renderShortcutInput(action))}
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Close Prompter</span>
-                <span className="shortcut-keycaps">
-                  <kbd>Esc</kbd>
-                  <span className="shortcut-keycaps-separator">/</span>
-                  <kbd>{platformModifier()}W</kbd>
-                </span>
+                <ShortcutKeycaps shortcuts={['Esc', 'CmdOrCtrl+W']} />
               </div>
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Play / Pause</span>
-                <span className="shortcut-keycaps">
-                  <kbd>Space</kbd>
-                </span>
+                <ShortcutKeycaps shortcuts="Space" />
               </div>
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Restart Script</span>
-                <span className="shortcut-keycaps">
-                  <kbd>R</kbd>
-                </span>
+                <ShortcutKeycaps shortcuts="R" />
               </div>
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Font Size</span>
-                <span className="shortcut-keycaps">
-                  <kbd>{platformModifier()}+</kbd>
-                  <span className="shortcut-keycaps-separator">/</span>
-                  <kbd>{platformModifier()}−</kbd>
-                  <span className="shortcut-keycaps-separator">/</span>
-                  <kbd>{platformModifier()}0</kbd>
-                </span>
+                <ShortcutKeycaps shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus', 'CmdOrCtrl+0']} />
               </div>
               <div className="shortcut-static-row">
                 <span className="shortcut-action-label">Change Speed</span>
-                <span className="shortcut-keycaps">
-                  <kbd>↑</kbd>
-                  <span className="shortcut-keycaps-separator">/</span>
-                  <kbd>↓</kbd>
-                </span>
+                <ShortcutKeycaps shortcuts={['Up', 'Down']} />
               </div>
             </div>
           </div>

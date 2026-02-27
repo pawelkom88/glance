@@ -603,6 +603,12 @@ select {
   padding: 0 2px;
 }
 
+.help-group-note {
+  margin: 0 2px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* Shortcut card */
 
 .help-shortcut-card {
@@ -3464,6 +3470,13 @@ body.is-session-dragging * {
   justify-content: flex-end;
 }
 
+.shortcut-keycaps-chord,
+.shortcut-keycaps-keygroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .shortcut-keycaps-separator {
   color: var(--text-muted);
   font-size: 12px;
@@ -3478,7 +3491,7 @@ body.is-session-dragging * {
   border: 1px solid var(--line-soft);
   border-radius: 5px;
   padding: 3px 6px;
-  color: var(--text-body);
+  /* color: var(--text-body); */
   box-shadow: 0 1px 0 var(--line-soft);
 }
 

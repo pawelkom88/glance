@@ -1,15 +1,9 @@
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { open as openFileDialog, ask } from '@tauri-apps/plugin-dialog';
+import { loadShortcutConfig } from '../lib/shortcuts';
 import { openSessionsFolder, readTextFile } from '../lib/tauri';
 import { useAppStore } from '../store/use-app-store';
-
-function modifierKeyLabel(): string {
-  if (typeof navigator === 'undefined') {
-    return 'Ctrl';
-  }
-
-  return navigator.platform.includes('Mac') ? '⌘' : 'Ctrl';
-}
+import { ShortcutKeycaps } from './shortcut-keycaps';
 
 interface HelpViewProps {
   onRestoreSuccess?: () => void;
@@ -26,7 +20,15 @@ function toSuggestedSessionName(path: string): string {
 }
 
 export function HelpView({ onRestoreSuccess }: HelpViewProps) {
-  const modifier = modifierKeyLabel();
+  const modifier = typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl';
+  const shortcutConfig = loadShortcutConfig();
+  const playPauseShortcut = shortcutConfig['toggle-play'];
+  const restartShortcut = shortcutConfig['start-over'];
+  const jumpStartShortcut = shortcutConfig['jump-1'];
+  const jumpEndShortcut = shortcutConfig['jump-9'];
+  const speedUpShortcut = shortcutConfig['speed-up'];
+  const speedDownShortcut = shortcutConfig['speed-down'];
+  const snapShortcut = shortcutConfig['snap-to-center'];
 
   const showToast = useAppStore((state) => state.showToast);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
@@ -97,47 +99,36 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
 
       {/* Keyboard Shortcuts card */}
       <div>
-        <div className="setting-group-label">Keyboard Shortcuts</div>
+        <div className="setting-group-label">Keyboard Shortcuts (Current)</div>
+        <p className="help-group-note">Defaults can be restored in Settings &gt; Shortcuts.</p>
         <div className="help-shortcut-card" aria-label="Keyboard shortcuts">
           <div className="help-shortcut-row">
             <span className="hsr-action">Play / Pause</span>
-            <span className="hsr-keys"><kbd>Space</kbd></span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={playPauseShortcut} />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Restart</span>
-            <span className="hsr-keys"><kbd>R</kbd></span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={restartShortcut} />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Jump to section</span>
-            <span className="hsr-keys">
-              <kbd>{modifier}1</kbd>
-              <span className="ks">…</span>
-              <kbd>{modifier}9</kbd>
-            </span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={[jumpStartShortcut, jumpEndShortcut]} alternativeSeparator="…" />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Adjust speed</span>
-            <span className="hsr-keys">
-              <kbd>{modifier}↑</kbd>
-              <span className="ks">/</span>
-              <kbd>{modifier}↓</kbd>
-            </span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={[speedUpShortcut, speedDownShortcut]} />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Font size</span>
-            <span className="hsr-keys">
-              <kbd>{modifier}+</kbd>
-              <span className="ks">/</span>
-              <kbd>{modifier}−</kbd>
-            </span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={[`${modifier}+Plus`, `${modifier}+Minus`]} />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Snap to center</span>
-            <span className="hsr-keys"><kbd>{modifier}Shift+L</kbd></span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={snapShortcut} />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Close prompter</span>
-            <span className="hsr-keys"><kbd>Esc</kbd></span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={['Esc', `${modifier}+W`]} />
           </div>
         </div>
       </div>

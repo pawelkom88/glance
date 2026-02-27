@@ -25,6 +25,7 @@ import {
 import { loadShortcutConfig } from '../lib/shortcuts';
 import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
+import { ShortcutKeycaps } from './shortcut-keycaps';
 
 const baseLineHeight = 54;
 const overlayLineGapPx = 10;
@@ -66,48 +67,6 @@ interface MonitorSnapshot {
 
 function isMacPlatform(): boolean {
   return navigator.platform.includes('Mac');
-}
-
-function platformModifier(): string {
-  return isMacPlatform() ? '⌘' : 'Ctrl+';
-}
-
-function formatShortcutForHint(shortcut: string): string {
-  const value = shortcut.trim();
-  if (!value) {
-    return isMacPlatform() ? '⌘⇧K' : 'Ctrl+Shift+K';
-  }
-
-  if (!isMacPlatform()) {
-    return value.replace(/CmdOrCtrl/gi, 'Ctrl');
-  }
-
-  const segments = value.split('+').map((segment) => segment.trim()).filter(Boolean);
-  if (segments.length === 0) {
-    return '⌘⇧K';
-  }
-
-  const mapped = segments.map((segment) => {
-    const normalized = segment.toLowerCase();
-    if (normalized === 'cmd' || normalized === 'command' || normalized === 'cmdorctrl') {
-      return '⌘';
-    }
-    if (normalized === 'ctrl' || normalized === 'control') {
-      return '⌃';
-    }
-    if (normalized === 'alt' || normalized === 'option') {
-      return '⌥';
-    }
-    if (normalized === 'shift') {
-      return '⇧';
-    }
-    if (normalized === 'space') {
-      return 'Space';
-    }
-    return segment.length === 1 ? segment.toUpperCase() : segment;
-  });
-
-  return mapped.join('');
 }
 
 function isTauriRuntime(): boolean {
@@ -373,7 +332,7 @@ export function OverlayPrompter() {
   const sections = parsed.sections;
   const togglePrompterShortcutHint = useMemo(() => {
     const configured = loadShortcutConfig()['toggle-overlay'];
-    return formatShortcutForHint(configured);
+    return configured.trim() || 'CmdOrCtrl+Shift+K';
   }, []);
 
   const engineRef = useRef<ScrollEngine | null>(null);
@@ -838,7 +797,7 @@ export function OverlayPrompter() {
     <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
         <div className="overlay-control-hint" aria-hidden="true">
-          <span className="overlay-control-keycap">R</span>
+          <ShortcutKeycaps shortcuts="R" keycapClassName="overlay-control-keycap" />
         </div>
 
         <button
@@ -881,7 +840,7 @@ export function OverlayPrompter() {
         </div>
 
         <div className="overlay-control-hint" aria-hidden="true">
-          <span className="overlay-control-keycap is-capsule">Space</span>
+          <ShortcutKeycaps shortcuts="Space" keycapClassName="overlay-control-keycap is-capsule" />
         </div>
       </div>
       {showTimer ? renderTimerControls() : null}
@@ -1912,7 +1871,7 @@ export function OverlayPrompter() {
       </div>
       {!isOverlayFocused ? (
         <div className="overlay-unfocused-hint" aria-live="polite">
-          Press <kbd>{togglePrompterShortcutHint}</kbd> to toggle prompter
+          Press <ShortcutKeycaps shortcuts={togglePrompterShortcutHint} /> to toggle prompter
         </div>
       ) : null}
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
@@ -1976,9 +1935,7 @@ export function OverlayPrompter() {
             </div>
             <div className="overlay-font-footer">
               <span>{Math.round(overlayFontScale * 100)}%</span>
-              <span className="overlay-font-shortcuts">
-                {platformModifier()}+/− · {platformModifier()}0
-              </span>
+              <ShortcutKeycaps className="overlay-font-shortcuts" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus', 'CmdOrCtrl+0']} alternativeSeparator="·" />
               <button
                 type="button"
                 className="overlay-popover-link"
@@ -2012,7 +1969,7 @@ export function OverlayPrompter() {
               >
                 <span className="overlay-jump-title">{section.title}</span>
                 {index < 9 ? (
-                  <span className="overlay-jump-keycap">{platformModifier()}{index + 1}</span>
+                  <ShortcutKeycaps shortcuts={`CmdOrCtrl+${index + 1}`} keycapClassName="overlay-jump-keycap" />
                 ) : null}
               </button>
             ))}
@@ -2158,9 +2115,7 @@ export function OverlayPrompter() {
                   </div>
                   <div className="overlay-font-footer">
                     <span>{Math.round(overlayFontScale * 100)}%</span>
-                    <span className="overlay-font-shortcuts">
-                      {platformModifier()}+/− · {platformModifier()}0
-                    </span>
+                    <ShortcutKeycaps className="overlay-font-shortcuts" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus', 'CmdOrCtrl+0']} alternativeSeparator="·" />
                     <button
                       type="button"
                       className="overlay-popover-link"
