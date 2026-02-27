@@ -253,6 +253,72 @@ describe('LibraryView behavior', () => {
     });
   });
 
+  it('dismisses app modals on Escape', async () => {
+    const user = userEvent.setup();
+    renderLibrary({ folders: multipleFolders });
+
+    await user.click(screen.getByRole('button', { name: /\+ New Session/i }));
+    expect(screen.getByRole('dialog', { name: 'New session folder selection' })).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'New session folder selection' })).toBeNull();
+    });
+
+    await user.click(screen.getByRole('button', { name: /\+ New Session/i }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByLabelText('Session name')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Session name')).toBeNull();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Create new folder' }));
+    expect(await screen.findByLabelText('Folder name')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Folder name')).toBeNull();
+    });
+
+    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    await user.click(within(unfiledGroup).getByRole('button', { name: 'Rename' }));
+    expect(await screen.findByLabelText('Rename folder')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Rename folder')).toBeNull();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Delete Alpha' }));
+    expect(await screen.findByRole('dialog', { name: 'Delete session confirmation' })).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Delete session confirmation' })).toBeNull();
+    });
+
+    await user.click(within(unfiledGroup).getByRole('button', { name: 'Delete' }));
+    expect(await screen.findByRole('button', { name: 'Delete Folder' })).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Delete Folder' })).toBeNull();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Select' }));
+    await user.click(screen.getByText('Select All'));
+
+    await user.click(screen.getByRole('button', { name: /Delete 2/i }));
+    expect(await screen.findByText('Delete 2 sessions ?')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByText('Delete 2 sessions ?')).toBeNull();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Move 2/i }));
+    expect(await screen.findByRole('button', { name: 'Move' })).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Move' })).toBeNull();
+    });
+  });
+
   it('removes new folder action from filter popover and keeps dedicated folder button', async () => {
     const user = userEvent.setup();
     renderLibrary();
@@ -485,6 +551,103 @@ describe('LibraryView behavior', () => {
     const moveSpy = props.onMoveSessions as unknown as ReturnType<typeof vi.fn>;
     await waitFor(() => {
       expect(moveSpy).toHaveBeenCalledWith(['a'], 'f-2');
+    });
+  });
+
+  it('auto-collapses a folder when move leaves it empty', async () => {
+    const user = userEvent.setup();
+    const moveSpy = vi.fn(async () => 1);
+    const startSessions = [
+      { ...sessions[0], folderId: null },
+      { ...sessions[1], folderId: 'f-1' }
+    ];
+
+    const baseProps: React.ComponentProps<typeof LibraryView> = {
+      sessions: startSessions,
+      folders: multipleFolders,
+      activeSessionId: 'a',
+      onOpen: vi.fn(),
+      onCreate: vi.fn(),
+      onDelete: vi.fn(),
+      onCreateFolder: vi.fn(),
+      onRenameFolder: vi.fn(),
+      onDeleteFolder: vi.fn(),
+      onMoveSessions: moveSpy,
+      onImport: vi.fn(),
+      showToast: vi.fn()
+    };
+
+    const { rerender } = render(<LibraryView {...baseProps} />);
+
+    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    const unfiledToggle = within(unfiledGroup).getByRole('button', { name: /Unfiled/i });
+    expect(unfiledToggle.getAttribute('aria-expanded')).toBe('true');
+
+    const alphaCard = screen.getByText('Alpha').closest('article');
+    expect(alphaCard).toBeTruthy();
+    (alphaCard as HTMLElement).focus();
+    fireEvent.keyDown(alphaCard as HTMLElement, { key: 'F10', shiftKey: true });
+    await user.click(screen.getByRole('menuitem', { name: 'Move to Internal' }));
+
+    await waitFor(() => {
+      expect(moveSpy).toHaveBeenCalledWith(['a'], 'f-2');
+    });
+
+    const movedSessions = startSessions.map((session) => (
+      session.id === 'a' ? { ...session, folderId: 'f-2' } : session
+    ));
+
+    rerender(<LibraryView {...baseProps} sessions={movedSessions} />);
+
+    await waitFor(() => {
+      const updatedGroup = screen.getByLabelText('Unfiled folder');
+      const updatedToggle = within(updatedGroup).getByRole('button', { name: /Unfiled/i });
+      expect(updatedToggle.getAttribute('aria-expanded')).toBe('false');
+    });
+  });
+
+  it('auto-collapses a folder when deleting its last session', async () => {
+    const user = userEvent.setup();
+    const deleteSpy = vi.fn();
+    const startSessions = [
+      { ...sessions[0], folderId: 'f-1' },
+      { ...sessions[1], folderId: 'f-2' }
+    ];
+
+    const baseProps: React.ComponentProps<typeof LibraryView> = {
+      sessions: startSessions,
+      folders: multipleFolders,
+      activeSessionId: 'a',
+      onOpen: vi.fn(),
+      onCreate: vi.fn(),
+      onDelete: deleteSpy,
+      onCreateFolder: vi.fn(),
+      onRenameFolder: vi.fn(),
+      onDeleteFolder: vi.fn(),
+      onMoveSessions: vi.fn(async () => 1),
+      onImport: vi.fn(),
+      showToast: vi.fn()
+    };
+
+    const { rerender } = render(<LibraryView {...baseProps} />);
+
+    const clientGroup = screen.getByLabelText('Client Work folder');
+    const clientToggle = within(clientGroup).getByRole('button', { name: /Client Work/i });
+    expect(clientToggle.getAttribute('aria-expanded')).toBe('true');
+
+    await user.click(screen.getByRole('button', { name: 'Delete Alpha' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Delete session confirmation' });
+    await user.click(within(confirm).getByRole('button', { name: 'Delete' }));
+
+    expect(deleteSpy).toHaveBeenCalledWith('a');
+
+    const remainingSessions = startSessions.filter((session) => session.id !== 'a');
+    rerender(<LibraryView {...baseProps} sessions={remainingSessions} />);
+
+    await waitFor(() => {
+      const updatedGroup = screen.getByLabelText('Client Work folder');
+      const updatedToggle = within(updatedGroup).getByRole('button', { name: /Client Work/i });
+      expect(updatedToggle.getAttribute('aria-expanded')).toBe('false');
     });
   });
 });

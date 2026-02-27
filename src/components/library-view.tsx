@@ -396,6 +396,7 @@ export function LibraryView(props: LibraryViewProps) {
   const dragPreviewCardRef = useRef<HTMLElement | null>(null);
   const dragPreviewFrameRef = useRef<number | null>(null);
   const dragPreviewPositionRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+  const previousSessionCountsByGroupRef = useRef<Map<string, number> | null>(null);
   const touchPressTimerRef = useRef<number | null>(null);
   const touchOriginRef = useRef<{ x: number; y: number } | null>(null);
   const suppressNextCardClickRef = useRef(false);
@@ -475,6 +476,40 @@ export function LibraryView(props: LibraryViewProps) {
       isBuiltIn: false
     } as const;
   }, [defaultFolderName, folderDeleteCandidate, folderDeleteCandidateId]);
+  const hasDismissableModalOpen = (
+    showNewSessionFolderDialog
+    || isCreatingSession
+    || showFolderComposer
+    || Boolean(resolvedFolderRenameCandidate)
+    || Boolean(deleteCandidate)
+    || Boolean(resolvedFolderDeleteCandidate)
+    || showBulkDeleteConfirm
+    || showBulkMoveDialog
+  );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !hasDismissableModalOpen) {
+        return;
+      }
+
+      event.preventDefault();
+      setShowNewSessionFolderDialog(false);
+      setNewSessionFolderId('none');
+      setIsCreatingSession(false);
+      setShowFolderComposer(false);
+      setFolderRenameCandidateId(null);
+      setDeleteCandidateId(null);
+      setFolderDeleteCandidateId(null);
+      setShowBulkDeleteConfirm(false);
+      setShowBulkMoveDialog(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
+    };
+  }, [hasDismissableModalOpen]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -521,6 +556,48 @@ export function LibraryView(props: LibraryViewProps) {
   }, [sessions]);
 
   useEffect(() => {
+    const nextCounts = new Map<string, number>();
+    nextCounts.set(UNFILED_FOLDER_ID, 0);
+    folders.forEach((folder) => {
+      nextCounts.set(folder.id, 0);
+    });
+
+    sessions.forEach((session) => {
+      const groupId = session.folderId ?? UNFILED_FOLDER_ID;
+      nextCounts.set(groupId, (nextCounts.get(groupId) ?? 0) + 1);
+    });
+
+    const previousCounts = previousSessionCountsByGroupRef.current;
+    previousSessionCountsByGroupRef.current = nextCounts;
+    if (!previousCounts) {
+      return;
+    }
+
+    const newlyEmptyGroupIds = Array.from(nextCounts.entries())
+      .filter(([groupId, nextCount]) => {
+        const previousCount = previousCounts.get(groupId) ?? 0;
+        return previousCount > 0 && nextCount === 0;
+      })
+      .map(([groupId]) => groupId);
+
+    if (newlyEmptyGroupIds.length === 0) {
+      return;
+    }
+
+    setCollapsedFolderIds((previous) => {
+      const next = new Set(previous);
+      let changed = false;
+      newlyEmptyGroupIds.forEach((groupId) => {
+        if (!next.has(groupId)) {
+          next.add(groupId);
+          changed = true;
+        }
+      });
+      return changed ? next : previous;
+    });
+  }, [folders, sessions]);
+
+  useEffect(() => {
     const missingIds = sessions
       .map((session) => session.id)
       .filter((id) => sessionContentMap[id] === undefined);
@@ -562,6 +639,10 @@ export function LibraryView(props: LibraryViewProps) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+
       if (hasMultipleSessions && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
         event.preventDefault();
         setShowSearch(true);
@@ -1350,6 +1431,8 @@ export function LibraryView(props: LibraryViewProps) {
     if (target?.closest('button, a, input, select, textarea, [role="menuitem"], [data-overlay-no-drag="true"]')) {
       return;
     }
+
+    event.preventDefault();
 
     const sourceRect = event.currentTarget.getBoundingClientRect();
     pointerDragCandidateRef.current = {
