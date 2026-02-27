@@ -326,6 +326,11 @@ pub fn restore_from_backup(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn read_text_file(path: String) -> Result<String, String> {
+    fs::read_to_string(path).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 pub fn export_session_markdown(id: String, state: State<'_, AppState>) -> Result<String, String> {
     sessions::export_session_markdown(&state.sessions_root, id)
 }
@@ -2023,6 +2028,14 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
         });
     }
 
+    if action == "snap-to-center" {
+        return Ok(ShortcutAction {
+            action: String::from("snap-to-center"),
+            index: None,
+            delta: None,
+        });
+    }
+
     if action == "speed-up" {
         return Ok(ShortcutAction {
             action: String::from("speed-change"),
@@ -2075,6 +2088,10 @@ fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
         ShortcutBinding {
             action: String::from("toggle-play"),
             accelerator: String::from("Space"),
+        },
+        ShortcutBinding {
+            action: String::from("snap-to-center"),
+            accelerator: String::from("CmdOrCtrl+Shift+L"),
         },
         ShortcutBinding {
             action: String::from("start-over"),
@@ -2178,6 +2195,11 @@ mod tests {
         let speed_up = binding_to_shortcut_action("speed-up").unwrap();
         assert_eq!(speed_up.action, "speed-change");
         assert_eq!(speed_up.delta, Some(1));
+
+        let snap_to_center = binding_to_shortcut_action("snap-to-center").unwrap();
+        assert_eq!(snap_to_center.action, "snap-to-center");
+        assert_eq!(snap_to_center.index, None);
+        assert_eq!(snap_to_center.delta, None);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { open as openFileDialog, ask } from '@tauri-apps/plugin-dialog';
-import { openSessionsFolder, restoreFromBackup } from '../lib/tauri';
+import { openSessionsFolder, readTextFile } from '../lib/tauri';
 import { useAppStore } from '../store/use-app-store';
 
 function modifierKeyLabel(): string {
@@ -15,11 +15,24 @@ interface HelpViewProps {
   onRestoreSuccess?: () => void;
 }
 
+function toSuggestedSessionName(path: string): string {
+  const filename = path.split(/[\\/]/).pop() ?? '';
+  const cleaned = filename
+    .replace(/\.(md|markdown|txt)$/i, '')
+    .replace(/\.bak\.\d+$/i, '')
+    .replace(/\.bak$/i, '')
+    .trim();
+  return cleaned || 'Restored Session';
+}
+
 export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   const modifier = modifierKeyLabel();
 
   const showToast = useAppStore((state) => state.showToast);
-  const loadInitialState = useAppStore((state) => state.loadInitialState);
+  const activeSessionId = useAppStore((state) => state.activeSessionId);
+  const importMarkdown = useAppStore((state) => state.importMarkdown);
+  const persistActiveSession = useAppStore((state) => state.persistActiveSession);
+  const setMarkdown = useAppStore((state) => state.setMarkdown);
 
   const handleDonationClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -29,9 +42,9 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   const handleRestore = async () => {
     try {
       const selected = await openFileDialog({
-        title: 'Select Backup to Restore',
+        title: 'Select Session File to Restore',
         multiple: false,
-        filters: [{ name: 'Glance Backup', extensions: ['bak', 'md', '1', '2', '3', '4', '5'] }]
+        filters: [{ name: 'Markdown / Backup', extensions: ['md', 'markdown', 'txt', 'bak', '1', '2', '3', '4', '5'] }]
       });
 
       if (!selected || Array.isArray(selected)) {
@@ -39,7 +52,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
       }
 
       const confirmed = await ask(
-        'This will replace your current script content. Glance will automatically save a safety copy of your current version before proceeding.',
+        'This will replace the content currently open in your editor with the selected file.',
         {
           title: 'Restore this session?',
           kind: 'warning',
@@ -52,8 +65,17 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
         return;
       }
 
-      await restoreFromBackup(selected);
-      await loadInitialState();
+      const restoredMarkdown = await readTextFile(selected);
+      if (activeSessionId) {
+        setMarkdown(restoredMarkdown);
+        const persisted = await persistActiveSession();
+        if (!persisted) {
+          return;
+        }
+      } else {
+        const suggestedName = toSuggestedSessionName(selected);
+        await importMarkdown(suggestedName, restoredMarkdown, false);
+      }
 
       showToast('Session restored successfully', 'success');
 
@@ -62,7 +84,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
         onRestoreSuccess();
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to restore backup';
+      const message = error instanceof Error ? error.message : 'Failed to restore session';
       showToast(message, 'error');
     }
   };
@@ -108,6 +130,10 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
               <span className="ks">/</span>
               <kbd>{modifier}−</kbd>
             </span>
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">Snap to center</span>
+            <span className="hsr-keys"><kbd>{modifier}Shift+L</kbd></span>
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">Close prompter</span>
@@ -157,7 +183,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
             <div className="storage-section-content">
               <div className="storage-section-title">Session Recovery</div>
               <p className="storage-section-description">
-                Restore a previous version of your script from one of our automatic backups.
+                Load script content from a markdown or backup file into the current editor session.
               </p>
               <button
                 type="button"

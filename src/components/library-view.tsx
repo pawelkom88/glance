@@ -1861,7 +1861,7 @@ export function LibraryView(props: LibraryViewProps) {
             <div className="modal-actions">
               <button
                 type="button"
-                className="modal-btn-cancel"
+                className="modal-btn-cancel cancel-button"
                 onClick={() => {
                   setIsCreatingSession(false);
                   setNewSessionFolderId('none');
@@ -1869,7 +1869,7 @@ export function LibraryView(props: LibraryViewProps) {
               >
                 Cancel
               </button>
-              <button type="submit" className="modal-btn-create" disabled={draftSessionName.trim().length === 0}>
+              <button type="submit" className="modal-btn-create primary-button" disabled={draftSessionName.trim().length === 0}>
                 Create
               </button>
             </div>
@@ -1900,10 +1900,10 @@ export function LibraryView(props: LibraryViewProps) {
               aria-label="Folder name"
             />
             <div className="modal-actions">
-              <button type="button" className="modal-btn-cancel" onClick={() => setShowFolderComposer(false)}>
+              <button type="button" className="modal-btn-cancel cancel-button" onClick={() => setShowFolderComposer(false)}>
                 Cancel
               </button>
-              <button type="submit" className="modal-btn-create" disabled={draftFolderName.trim().length === 0}>
+              <button type="submit" className="modal-btn-create primary-button" disabled={draftFolderName.trim().length === 0}>
                 Create
               </button>
             </div>
@@ -1944,10 +1944,10 @@ export function LibraryView(props: LibraryViewProps) {
               aria-label="Rename folder"
             />
             <div className="modal-actions">
-              <button type="button" className="modal-btn-cancel" onClick={() => setFolderRenameCandidateId(null)}>
+              <button type="button" className="modal-btn-cancel cancel-button" onClick={() => setFolderRenameCandidateId(null)}>
                 Cancel
               </button>
-              <button type="submit" className="modal-btn-create" disabled={folderRenameDraft.trim().length === 0}>
+              <button type="submit" className="modal-btn-create primary-button" disabled={folderRenameDraft.trim().length === 0}>
                 Save
               </button>
             </div>

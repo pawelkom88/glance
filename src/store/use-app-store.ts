@@ -64,7 +64,7 @@ interface AppStoreState {
   readonly createSessionWithName: (name: string, folderId?: string | null) => Promise<void>;
   readonly duplicateSessionById: (id: string) => Promise<void>;
   readonly deleteSessionById: (id: string, notify?: boolean) => Promise<void>;
-  readonly importMarkdown: (name: string, markdown: string) => Promise<void>;
+  readonly importMarkdown: (name: string, markdown: string, notify?: boolean) => Promise<void>;
   readonly exportSessionById: (id: string, targetPath: string, notify?: boolean) => Promise<string | null>;
   readonly openSession: (id: string) => Promise<void>;
   readonly setMarkdown: (nextMarkdown: string) => void;
@@ -448,7 +448,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
     },
 
-    importMarkdown: async (name: string, markdown: string) => {
+    importMarkdown: async (name: string, markdown: string, notify = true) => {
       try {
         const imported = await createSessionFromMarkdown(name, markdown);
         const sessions = await listSessions();
@@ -456,7 +456,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           set({ sessions });
         });
         await get().openSession(imported.id);
-        get().showToast(`Imported "${imported.title}"`, 'success');
+        if (notify) {
+          get().showToast(`Imported "${imported.title}"`, 'success');
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to import markdown';
         get().showToast(message, 'error');

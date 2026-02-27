@@ -394,6 +394,10 @@ export async function restoreFromBackup(path: string): Promise<void> {
   await invoke('restore_from_backup', { path });
 }
 
+export async function readTextFile(path: string): Promise<string> {
+  return invoke<string>('read_text_file', { path });
+}
+
 export async function loadSession(id: string): Promise<SessionData> {
   return invoke<SessionData>('load_session', { id });
 }
@@ -448,6 +452,20 @@ export async function getMonitors(): Promise<readonly DetectedMonitor[]> {
   } catch (error) {
     logMonitorDebug('backend get_monitors failed', { error: String(error) });
     return [];
+  }
+}
+
+export async function getRuntimeMonitorCount(): Promise<number | null> {
+  if (!inTauri()) {
+    return null;
+  }
+
+  try {
+    const monitors = await runtimeAvailableMonitors();
+    return monitors.length;
+  } catch (error) {
+    logMonitorDebug('runtime availableMonitors failed', { error: String(error) });
+    return null;
   }
 }
 

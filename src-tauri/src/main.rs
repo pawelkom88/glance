@@ -246,6 +246,7 @@ fn main() {
             commands::delete_session,
             commands::open_sessions_folder,
             commands::restore_from_backup,
+            commands::read_text_file,
             commands::export_session_markdown,
             commands::load_session,
             commands::save_session,

@@ -28,6 +28,7 @@ vi.mock('../lib/tauri', () => ({
   exportDiagnostics: vi.fn().mockResolvedValue('/tmp/logs.zip'),
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
   getMonitors: vi.fn().mockResolvedValue([]),
+  getRuntimeMonitorCount: vi.fn().mockResolvedValue(null),
   getOverlayAlwaysOnTopPreference: vi.fn().mockReturnValue(true),
   listenForMonitorChanged: vi.fn().mockImplementation(async (
     callback: (payload: {
@@ -57,6 +58,7 @@ import { SettingsView } from './settings-view';
 const tauriMock = tauriBridge as unknown as {
   getLastMainMonitorName: ReturnType<typeof vi.fn>;
   getMonitors: ReturnType<typeof vi.fn>;
+  getRuntimeMonitorCount: ReturnType<typeof vi.fn>;
   listenForMonitorChanged: ReturnType<typeof vi.fn>;
   moveWindowToMonitor: ReturnType<typeof vi.fn>;
   registerShortcuts: ReturnType<typeof vi.fn>;
@@ -89,6 +91,7 @@ beforeEach(() => {
   resetStore();
   tauriMock.getLastMainMonitorName.mockReturnValue(null);
   tauriMock.getMonitors.mockResolvedValue([]);
+  tauriMock.getRuntimeMonitorCount.mockResolvedValue(null);
   tauriMock.moveWindowToMonitor.mockResolvedValue(undefined);
   tauriMock.registerShortcuts.mockResolvedValue(undefined);
   tauriMock.setLastMainMonitorName.mockImplementation(() => undefined);
@@ -204,7 +207,7 @@ describe('SettingsView behavior', () => {
     expect(pickerButton).toBeTruthy();
   });
 
-  it('disables display picker when there is no swap target', async () => {
+  it('shows a single-display message on macOS when only one monitor is detected', async () => {
     tauriMock.getMonitors.mockResolvedValue([
       {
         name: 'Built-in Retina Display',
@@ -220,6 +223,55 @@ describe('SettingsView behavior', () => {
         logicalHeight: 982
       }
     ]);
+    tauriMock.getRuntimeMonitorCount.mockResolvedValue(1);
+
+    render(<SettingsView />);
+
+    expect(await screen.findByText('Opening on your primary display.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Built-in Retina Display/i })).toBeNull();
+  });
+
+  it('shows a single-display message with Windows copy', async () => {
+    setPlatform('Win32');
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Laptop Display',
+        displayName: 'Laptop Display',
+        width: 1920,
+        height: 1080,
+        compositeKey: 'Laptop Display|1920x1080|0,0',
+        scaleFactor: 1,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1920,
+        logicalHeight: 1080
+      }
+    ]);
+    tauriMock.getRuntimeMonitorCount.mockResolvedValue(1);
+
+    render(<SettingsView />);
+
+    expect(await screen.findByText('Your primary display will be used.')).toBeTruthy();
+  });
+
+  it('keeps the dropdown as fallback when runtime monitor count is unavailable', async () => {
+    tauriMock.getMonitors.mockResolvedValue([
+      {
+        name: 'Built-in Retina Display',
+        displayName: 'Built-in Retina Display',
+        width: 3024,
+        height: 1964,
+        compositeKey: 'Built-in Retina Display|3024x1964|0,0',
+        scaleFactor: 2,
+        isPrimary: true,
+        positionX: 0,
+        positionY: 0,
+        logicalWidth: 1512,
+        logicalHeight: 982
+      }
+    ]);
+    tauriMock.getRuntimeMonitorCount.mockResolvedValue(null);
 
     render(<SettingsView />);
 
@@ -227,7 +279,6 @@ describe('SettingsView behavior', () => {
       name: /Built-in Retina Display \(1512 x 982\)/i
     });
     expect((pickerButton as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.queryByRole('menu', { name: /App display options/i })).toBeNull();
   });
 
   it('shows fallback message when display detection fails', async () => {

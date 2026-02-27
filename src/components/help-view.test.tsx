@@ -16,7 +16,7 @@ vi.mock('../lib/tauri', async (importOriginal) => {
   return {
     ...actual,
     openSessionsFolder: vi.fn(),
-    restoreFromBackup: vi.fn(),
+    readTextFile: vi.fn(),
     listSessions: vi.fn().mockResolvedValue([]),
     listFolders: vi.fn().mockResolvedValue([]),
     loadSession: vi.fn().mockResolvedValue({ id: '1', markdown: '', meta: {} })
@@ -34,7 +34,7 @@ const openFileDialogMock = openFileDialog as unknown as ReturnType<typeof vi.fn>
 const askMock = (await import('@tauri-apps/plugin-dialog')).ask as unknown as ReturnType<typeof vi.fn>;
 const tauriMock = tauriBridge as unknown as {
   openSessionsFolder: ReturnType<typeof vi.fn>;
-  restoreFromBackup: ReturnType<typeof vi.fn>;
+  readTextFile: ReturnType<typeof vi.fn>;
 };
 
 function setPlatform(value: string): void {
@@ -48,6 +48,11 @@ describe('HelpView behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setPlatform('MacIntel');
+    useAppStore.setState({
+      activeSessionId: null,
+      sessions: [],
+      toastMessage: null
+    });
   });
 
   it('renders platform modifier labels for keyboard shortcuts', () => {
@@ -70,12 +75,17 @@ describe('HelpView behavior', () => {
     expect(openUrlMock).toHaveBeenCalledWith('https://buymeacoffee.com/ordo');
   });
 
-  it('triggers backup restoration flow with confirmation', async () => {
+  it('imports restored content as a new session when no session is active', async () => {
     const user = userEvent.setup();
     const onRestoreSuccess = vi.fn();
+    const importMarkdownSpy = vi.fn().mockResolvedValue(undefined);
+    useAppStore.setState({
+      activeSessionId: null,
+      importMarkdown: importMarkdownSpy
+    });
     openFileDialogMock.mockResolvedValue('/path/to/backup.bak');
     askMock.mockResolvedValue(true);
-    tauriMock.restoreFromBackup.mockResolvedValue(undefined);
+    tauriMock.readTextFile.mockResolvedValue('# Restored\n\n- Content from file');
 
     render(<HelpView onRestoreSuccess={onRestoreSuccess} />);
 
@@ -83,12 +93,40 @@ describe('HelpView behavior', () => {
 
     expect(openFileDialogMock).toHaveBeenCalled();
     expect(askMock).toHaveBeenCalledWith(
-      expect.stringContaining('replace your current script content'),
+      expect.stringContaining('replace the content currently open in your editor'),
       expect.objectContaining({ title: 'Restore this session?' })
     );
-    expect(tauriMock.restoreFromBackup).toHaveBeenCalledWith('/path/to/backup.bak');
+    expect(tauriMock.readTextFile).toHaveBeenCalledWith('/path/to/backup.bak');
+    expect(importMarkdownSpy).toHaveBeenCalledWith('backup', '# Restored\n\n- Content from file', false);
     expect(onRestoreSuccess).toHaveBeenCalled();
 
+    expect(useAppStore.getState().toastMessage).toEqual({
+      message: 'Session restored successfully',
+      variant: 'success'
+    });
+  });
+
+  it('replaces content in active session and persists when a session is active', async () => {
+    const user = userEvent.setup();
+    const persistActiveSessionSpy = vi.fn().mockResolvedValue(true);
+    const importMarkdownSpy = vi.fn().mockResolvedValue(undefined);
+    useAppStore.setState({
+      activeSessionId: 'session-1',
+      markdown: '# Old',
+      persistActiveSession: persistActiveSessionSpy,
+      importMarkdown: importMarkdownSpy
+    });
+    openFileDialogMock.mockResolvedValue('/path/to/script.md');
+    askMock.mockResolvedValue(true);
+    tauriMock.readTextFile.mockResolvedValue('# Fresh\n\n- Loaded');
+
+    render(<HelpView />);
+    await user.click(screen.getByRole('button', { name: /Restore Session/i }));
+
+    expect(tauriMock.readTextFile).toHaveBeenCalledWith('/path/to/script.md');
+    expect(useAppStore.getState().markdown).toBe('# Fresh\n\n- Loaded');
+    expect(persistActiveSessionSpy).toHaveBeenCalledTimes(1);
+    expect(importMarkdownSpy).not.toHaveBeenCalled();
     expect(useAppStore.getState().toastMessage).toEqual({
       message: 'Session restored successfully',
       variant: 'success'
