@@ -78,15 +78,16 @@ export interface DisplaySegment {
 
 export interface ShortcutEventPayload {
   readonly action:
-    | 'toggle-overlay'
-    | 'snap-to-center'
-    | 'toggle-play'
-    | 'jump-section'
-    | 'speed-change'
-    | 'start-over'
-    | 'escape-pressed'
-    | 'font-scale-change'
-    | 'font-scale-reset';
+  | 'toggle-overlay'
+  | 'snap-to-center'
+  | 'toggle-controls'
+  | 'toggle-play'
+  | 'jump-section'
+  | 'speed-change'
+  | 'start-over'
+  | 'escape-pressed'
+  | 'font-scale-change'
+  | 'font-scale-reset';
   readonly index?: number;
   readonly delta?: number;
 }

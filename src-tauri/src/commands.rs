@@ -2075,6 +2075,14 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
             delta: None,
         });
     }
+    
+    if action == "toggle-controls" {
+        return Ok(ShortcutAction {
+            action: String::from("toggle-controls"),
+            index: None,
+            delta: None,
+        });
+    }
 
     Err(format!("Unsupported shortcut action '{}'", action))
 }
@@ -2092,6 +2100,10 @@ fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
         ShortcutBinding {
             action: String::from("snap-to-center"),
             accelerator: String::from("CmdOrCtrl+Shift+L"),
+        },
+        ShortcutBinding {
+            action: String::from("toggle-controls"),
+            accelerator: String::from("CmdOrCtrl+J"),
         },
         ShortcutBinding {
             action: String::from("start-over"),

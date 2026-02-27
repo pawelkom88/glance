@@ -65,9 +65,6 @@ interface MonitorSnapshot {
   readonly scaleFactor?: number;
 }
 
-function isMacPlatform(): boolean {
-  return navigator.platform.includes('Mac');
-}
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -243,6 +240,14 @@ function SnapToCentreIcon() {
   );
 }
 
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  );
+}
+
 
 function SlowSpeedIcon() {
   return (
@@ -388,6 +393,7 @@ export function OverlayPrompter() {
     width: 260,
     visible: false
   });
+  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
 
   useEffect(() => {
     // Start from top each time the overlay route mounts.
@@ -606,6 +612,10 @@ export function OverlayPrompter() {
     }
   }, [isSnapping, refreshWindowPlacement, showToast]);
 
+  const toggleControls = useCallback(() => {
+    setIsControlsCollapsed((prev) => !prev);
+  }, []);
+
 
   const renderTopActions = () => (
     <div className="overlay-top-actions">
@@ -657,6 +667,17 @@ export function OverlayPrompter() {
           <SnapToCentreIcon />
         </button>
       </div>
+      <button
+        type="button"
+        className={`overlay-top-action overlay-collapse-toggle ${isControlsCollapsed ? 'is-collapsed' : ''}`}
+        onClick={toggleControls}
+        title="Toggle controls"
+        aria-label="Toggle controls"
+        aria-expanded={!isControlsCollapsed}
+        aria-controls="overlay-controls-area"
+      >
+        <ChevronIcon />
+      </button>
       <button
         type="button"
         className="overlay-close-button"
@@ -1151,6 +1172,11 @@ export function OverlayPrompter() {
 
       if (payload.action === 'snap-to-center') {
         void handleSnapToCentre();
+        return;
+      }
+
+      if (payload.action === 'toggle-controls') {
+        toggleControls();
         return;
       }
 
@@ -2063,7 +2089,7 @@ export function OverlayPrompter() {
 
       <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
         {isCompactTopBar ? (
-          <div className="overlay-compact-dock">
+          <div className={`overlay-compact-dock ${isControlsCollapsed ? 'is-collapsed' : ''}`}>
             <div className="overlay-compact-context-bar">
               <div className="overlay-compact-context-main">
                 {renderSectionRail()}
@@ -2128,60 +2154,65 @@ export function OverlayPrompter() {
               ) : null}
             </div>
 
-            <div className="overlay-compact-control-bar">
-              {renderPlaybackControls('', true)}
-              <div className="overlay-compact-speed-row">
-                {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
-              </div>
-              <div className="overlay-compact-status-row">
-                <span className="overlay-compact-speed-display" aria-label="Current speed">
-                  {normalizedSpeed.toFixed(1)}x
-                </span>
-                <div className="overlay-compact-status-divider" />
-                <div className="overlay-compact-dim-group" role="group" aria-label="Reading ruler intensity">
-                  <span className="overlay-compact-dim-label">DIM</span>
-                  <div className="overlay-compact-dim-dots">
-                    {[1, 2, 3].map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
-                        aria-label={`Dim intensity level ${level}`}
-                        aria-pressed={showReadingRuler && dimLevel === level}
-                        onClick={() => {
-                          const store = useAppStore.getState();
-                          if (showReadingRuler && dimLevel === level) {
-                            store.setShowReadingRuler(false);
-                          } else {
-                            store.setShowReadingRuler(true);
-                            setDimLevel(level);
-                          }
-                        }}
-                      >
-                        <span className="overlay-compact-dim-dot" />
-                      </button>
-                    ))}
-                  </div>
+            <div
+              id="overlay-controls-area"
+              className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
+            >
+              <div className="overlay-compact-control-bar">
+                {renderPlaybackControls('', true)}
+                <div className="overlay-compact-speed-row">
+                  {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
                 </div>
-                <div className="overlay-compact-status-divider" />
-                <div className="overlay-compact-font-group">
-                  <button
-                    type="button"
-                    className="overlay-compact-font-btn"
-                    onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
-                    aria-label="Decrease font size"
-                  >
-                    A−
-                  </button>
-                  <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
-                  <button
-                    type="button"
-                    className="overlay-compact-font-btn"
-                    onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
-                    aria-label="Increase font size"
-                  >
-                    A+
-                  </button>
+                <div className="overlay-compact-status-row">
+                  <span className="overlay-compact-speed-display" aria-label="Current speed">
+                    {normalizedSpeed.toFixed(1)}x
+                  </span>
+                  <div className="overlay-compact-status-divider" />
+                  <div className="overlay-compact-dim-group" role="group" aria-label="Reading ruler intensity">
+                    <span className="overlay-compact-dim-label">DIM</span>
+                    <div className="overlay-compact-dim-dots">
+                      {[1, 2, 3].map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
+                          aria-label={`Dim intensity level ${level}`}
+                          aria-pressed={showReadingRuler && dimLevel === level}
+                          onClick={() => {
+                            const store = useAppStore.getState();
+                            if (showReadingRuler && dimLevel === level) {
+                              store.setShowReadingRuler(false);
+                            } else {
+                              store.setShowReadingRuler(true);
+                              setDimLevel(level);
+                            }
+                          }}
+                        >
+                          <span className="overlay-compact-dim-dot" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="overlay-compact-status-divider" />
+                  <div className="overlay-compact-font-group">
+                    <button
+                      type="button"
+                      className="overlay-compact-font-btn"
+                      onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
+                      aria-label="Decrease font size"
+                    >
+                      A−
+                    </button>
+                    <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
+                    <button
+                      type="button"
+                      className="overlay-compact-font-btn"
+                      onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
+                      aria-label="Increase font size"
+                    >
+                      A+
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

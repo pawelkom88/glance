@@ -4498,6 +4498,30 @@ body.is-session-dragging * {
   color: #fff;
 }
 
+.overlay-collapse-toggle svg {
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.overlay-collapse-toggle.is-collapsed svg {
+  transform: rotate(180deg);
+}
+
+.overlay-controls-collapsible {
+  width: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.overlay-controls-collapsible.is-collapsed {
+  grid-template-rows: 0fr;
+}
+
+.overlay-controls-collapsible>div {
+  min-height: 0;
+}
+
 .overlay-close-button:hover {
   background: rgba(220, 50, 50, 0.95);
 }
@@ -5662,6 +5686,11 @@ body.is-session-dragging * {
     margin-inline: auto;
     position: relative;
     font-family: 'DM Sans', sans-serif;
+    transition: gap 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .overlay-compact-dock.is-collapsed {
+    gap: 0;
   }
 
   .overlay-compact-context-bar {
@@ -5747,6 +5776,20 @@ body.is-session-dragging * {
     border-radius: 11px;
     border: 1px solid var(--overlay-divider);
     background: var(--overlay-controls-soft);
+    transition:
+      padding 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .overlay-controls-collapsible.is-collapsed .overlay-compact-control-bar {
+    padding-top: 0;
+    padding-bottom: 0;
+    border-color: transparent;
+    background-color: transparent;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .overlay-compact-control-bar .overlay-controls {

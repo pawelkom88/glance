@@ -13,7 +13,8 @@ export type ShortcutActionId =
   | 'jump-6'
   | 'jump-7'
   | 'jump-8'
-  | 'jump-9';
+  | 'jump-9'
+  | 'toggle-controls';
 
 export interface ShortcutBinding {
   readonly action: ShortcutActionId;
@@ -42,7 +43,8 @@ export const shortcutDefinitions: readonly ShortcutDefinition[] = [
   { action: 'jump-6', label: 'Jump Section 6' },
   { action: 'jump-7', label: 'Jump Section 7' },
   { action: 'jump-8', label: 'Jump Section 8' },
-  { action: 'jump-9', label: 'Jump Section 9' }
+  { action: 'jump-9', label: 'Jump Section 9' },
+  { action: 'toggle-controls', label: 'Toggle Controls' }
 ];
 
 const storageKey = `glance-shortcuts-${navigator.platform.toLowerCase()}`;
@@ -89,7 +91,8 @@ export function defaultShortcutConfig(): ShortcutConfig {
     'jump-6': `${modifier}+6`,
     'jump-7': `${modifier}+7`,
     'jump-8': `${modifier}+8`,
-    'jump-9': `${modifier}+9`
+    'jump-9': `${modifier}+9`,
+    'toggle-controls': `${modifier}+J`
   };
 }
 
