@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { loadSession } from '../lib/tauri';
 import type { SessionFolder, SessionSummary, ToastVariant } from '../types';
 
@@ -88,6 +88,11 @@ interface PointerDragCandidate {
   readonly pointerOffsetX: number;
   readonly pointerOffsetY: number;
   readonly started: boolean;
+}
+
+interface DragPreviewElements {
+  readonly shell: HTMLDivElement;
+  readonly card: HTMLDivElement;
 }
 
 function defaultSessionName(): string {
@@ -300,25 +305,28 @@ function folderIdFromGroupId(groupId: string): string | null {
   return groupId === UNFILED_FOLDER_ID ? null : groupId;
 }
 
-function createDragPreview(card: HTMLElement): HTMLDivElement {
-  const preview = card.cloneNode(true) as HTMLDivElement;
+function createDragPreview(card: HTMLElement): DragPreviewElements {
+  const shell = document.createElement('div');
+  shell.className = 'session-drag-preview-shell';
+
+  const previewCard = card.cloneNode(true) as HTMLDivElement;
   const rect = card.getBoundingClientRect();
   const computed = window.getComputedStyle(card);
-  preview.style.width = `${rect.width}px`;
-  preview.style.height = `${rect.height}px`;
-  preview.style.pointerEvents = 'none';
-  preview.style.margin = '0';
-  preview.style.position = 'fixed';
-  preview.style.top = '-9999px';
-  preview.style.left = '-9999px';
-  preview.style.boxSizing = 'border-box';
-  preview.style.borderRadius = computed.borderRadius;
-  preview.style.opacity = '0.85';
-  preview.style.transform = 'scale(1.02)';
-  preview.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.18)';
-  preview.style.transition = 'none';
-  document.body.appendChild(preview);
-  return preview;
+
+  previewCard.classList.remove('is-drop-arrival', 'is-drag-origin', 'is-selected', 'active');
+  previewCard.classList.add('session-drag-preview-card');
+  previewCard.style.width = `${rect.width}px`;
+  previewCard.style.height = `${rect.height}px`;
+  previewCard.style.margin = '0';
+  previewCard.style.boxSizing = 'border-box';
+  previewCard.style.borderRadius = computed.borderRadius;
+
+  shell.style.setProperty('--session-drag-preview-x', '-9999px');
+  shell.style.setProperty('--session-drag-preview-y', '-9999px');
+  shell.appendChild(previewCard);
+  document.body.appendChild(shell);
+
+  return { shell, card: previewCard };
 }
 
 export function LibraryView(props: LibraryViewProps) {
@@ -373,7 +381,6 @@ export function LibraryView(props: LibraryViewProps) {
   });
   const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
   const [recentlyMovedSessionId, setRecentlyMovedSessionId] = useState<string | null>(null);
-  const [collapsingPlaceholder, setCollapsingPlaceholder] = useState<{ readonly groupId: string; readonly height: number } | null>(null);
   const [moveMenu, setMoveMenu] = useState<MoveMenuState | null>(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [defaultFolderName, setDefaultFolderName] = useState('Unfiled');
@@ -386,6 +393,9 @@ export function LibraryView(props: LibraryViewProps) {
   const folderComposerInputRef = useRef<HTMLInputElement | null>(null);
   const lastCreateSessionRequestTokenRef = useRef(0);
   const dragPreviewRef = useRef<HTMLElement | null>(null);
+  const dragPreviewCardRef = useRef<HTMLElement | null>(null);
+  const dragPreviewFrameRef = useRef<number | null>(null);
+  const dragPreviewPositionRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const touchPressTimerRef = useRef<number | null>(null);
   const touchOriginRef = useRef<{ x: number; y: number } | null>(null);
   const suppressNextCardClickRef = useRef(false);
@@ -702,20 +712,6 @@ export function LibraryView(props: LibraryViewProps) {
   }, [dragState.status]);
 
   useEffect(() => {
-    if (!collapsingPlaceholder) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setCollapsingPlaceholder(null);
-    }, 260);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [collapsingPlaceholder]);
-
-  useEffect(() => {
     if (!recentlyMovedSessionId) {
       return;
     }
@@ -796,9 +792,14 @@ export function LibraryView(props: LibraryViewProps) {
       activeDragRef.current = null;
       pointerDragCandidateRef.current = null;
       pointerDragHoverGroupIdRef.current = null;
+      dragPreviewPositionRef.current = null;
       if (dragPreviewRef.current) {
         dragPreviewRef.current.remove();
         dragPreviewRef.current = null;
+      }
+      dragPreviewCardRef.current = null;
+      if (dragPreviewFrameRef.current !== null) {
+        window.cancelAnimationFrame(dragPreviewFrameRef.current);
       }
       if (touchPressTimerRef.current !== null) {
         window.clearTimeout(touchPressTimerRef.current);
@@ -1004,11 +1005,47 @@ export function LibraryView(props: LibraryViewProps) {
     touchPressTimerRef.current = null;
   };
 
+  const clearDragPreviewFrame = () => {
+    if (dragPreviewFrameRef.current === null) {
+      return;
+    }
+
+    window.cancelAnimationFrame(dragPreviewFrameRef.current);
+    dragPreviewFrameRef.current = null;
+  };
+
+  const flushDragPreviewPosition = () => {
+    dragPreviewFrameRef.current = null;
+
+    const preview = dragPreviewRef.current;
+    const pointer = dragPreviewPositionRef.current;
+    if (!preview || !pointer) {
+      return;
+    }
+
+    const x = Math.round(pointer.x - pointer.offsetX);
+    const y = Math.round(pointer.y - pointer.offsetY);
+    preview.style.setProperty('--session-drag-preview-x', `${x}px`);
+    preview.style.setProperty('--session-drag-preview-y', `${y}px`);
+  };
+
+  const queueDragPreviewPositionFlush = () => {
+    if (dragPreviewFrameRef.current !== null) {
+      return;
+    }
+
+    dragPreviewFrameRef.current = window.requestAnimationFrame(flushDragPreviewPosition);
+  };
+
   const clearDragPreview = () => {
+    clearDragPreviewFrame();
+    dragPreviewPositionRef.current = null;
+
     if (dragPreviewRef.current) {
       dragPreviewRef.current.remove();
       dragPreviewRef.current = null;
     }
+    dragPreviewCardRef.current = null;
   };
 
   const updateDragPreviewPosition = (pointerX: number, pointerY: number, offsetX: number, offsetY: number) => {
@@ -1016,9 +1053,15 @@ export function LibraryView(props: LibraryViewProps) {
       return;
     }
 
-    dragPreviewRef.current.style.left = `${Math.round(pointerX - offsetX)}px`;
-    dragPreviewRef.current.style.top = `${Math.round(pointerY - offsetY)}px`;
+    dragPreviewPositionRef.current = {
+      x: pointerX,
+      y: pointerY,
+      offsetX,
+      offsetY
+    };
+    queueDragPreviewPositionFlush();
   };
+
 
   const acknowledgeInteractionModel = () => {
     interactionAckRef.current = true;
@@ -1118,10 +1161,6 @@ export function LibraryView(props: LibraryViewProps) {
       showToast(`"${input.sessionTitle}" moved to ${folderLabelForGroupId(input.destinationGroupId)}`, 'success');
       acknowledgeInteractionModel();
       setRecentlyMovedSessionId(input.sessionId);
-      setCollapsingPlaceholder({
-        groupId: input.sourceGroupId,
-        height: input.sourceCardHeight
-      });
       return true;
     }
 
@@ -1284,9 +1323,9 @@ export function LibraryView(props: LibraryViewProps) {
 
     activeDragRef.current = payload;
     const preview = createDragPreview(candidate.sourceElement);
-    preview.style.opacity = '0.96';
-    preview.style.zIndex = '1200';
-    dragPreviewRef.current = preview;
+    dragPreviewRef.current = preview.shell;
+    dragPreviewCardRef.current = preview.card;
+    dragPreviewCardRef.current.classList.add('is-lifted');
     updateDragPreviewPosition(candidate.originX, candidate.originY, candidate.pointerOffsetX, candidate.pointerOffsetY);
     setDragState({
       status: 'dragging',
@@ -1415,20 +1454,23 @@ export function LibraryView(props: LibraryViewProps) {
       && destinationGroupId !== null
       && isValidDropTarget(destinationGroupId, activeDrag);
 
-    if (!shouldMove || !activeDrag || !destinationGroupId) {
-      resetDragInteractionState();
+    const finalizedDragPayload = activeDrag ? { ...activeDrag } : null;
+    const finalizedDestinationGroupId = destinationGroupId;
+
+    resetDragInteractionState();
+
+    if (!shouldMove || !finalizedDragPayload || !finalizedDestinationGroupId) {
       return;
     }
 
     void (async () => {
-      const moved = await moveSessionWithFeedback({
-        sessionId: activeDrag.sessionId,
-        sessionTitle: activeDrag.sessionTitle,
-        sourceGroupId: activeDrag.sourceGroupId,
-        destinationGroupId,
-        sourceCardHeight: activeDrag.cardHeight
+      await moveSessionWithFeedback({
+        sessionId: finalizedDragPayload.sessionId,
+        sessionTitle: finalizedDragPayload.sessionTitle,
+        sourceGroupId: finalizedDragPayload.sourceGroupId,
+        destinationGroupId: finalizedDestinationGroupId,
+        sourceCardHeight: finalizedDragPayload.cardHeight
       });
-      resetDragInteractionState();
     })();
   };
 
@@ -1986,13 +2028,6 @@ export function LibraryView(props: LibraryViewProps) {
                   id={`folder-group-${group.id}`}
                   className="session-folder-content"
                 >
-                  {collapsingPlaceholder && collapsingPlaceholder.groupId === group.id ? (
-                    <div
-                      className="session-card-drag-collapse"
-                      style={{ '--session-drag-collapse-height': `${Math.max(56, collapsingPlaceholder.height)}px` } as CSSProperties}
-                      aria-hidden="true"
-                    />
-                  ) : null}
                   {group.sessions.length > 0 ? group.sessions.map((session) => {
                     const wordCount = wordCountBySessionId[session.id] ?? 0;
                     const snippet = previewForContent(sessionContentMap[session.id] ?? '', searchQuery);
