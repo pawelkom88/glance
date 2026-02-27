@@ -415,6 +415,9 @@ describe('OverlayPrompter behavior', () => {
     });
 
     render(<OverlayPrompter />);
+    await waitFor(() => {
+      expect(tauriMocks.listenForShortcutEvents).toHaveBeenCalledTimes(1);
+    });
 
     // Initial state: expanded (from resetStore)
     expect(useAppStore.getState().isControlsCollapsed).toBe(false);
@@ -430,5 +433,6 @@ describe('OverlayPrompter behavior', () => {
       shortcutCallback({ action: 'toggle-controls' });
     });
     expect(useAppStore.getState().isControlsCollapsed).toBe(false);
+    expect(tauriMocks.listenForShortcutEvents).toHaveBeenCalledTimes(1);
   });
 });

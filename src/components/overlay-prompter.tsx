@@ -326,7 +326,6 @@ export function OverlayPrompter() {
   const dimLevel = useAppStore((state) => state.dimLevel);
   const isControlsCollapsed = useAppStore((state) => state.isControlsCollapsed);
   const setDimLevel = useAppStore((state) => state.setDimLevel);
-  const setIsControlsCollapsed = useAppStore((state) => state.setIsControlsCollapsed);
   const openSession = useAppStore((state) => state.openSession);
   const togglePlayback = useAppStore((state) => state.togglePlayback);
   const setPlaybackState = useAppStore((state) => state.setPlaybackState);
@@ -371,6 +370,14 @@ export function OverlayPrompter() {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [isTimerMenuOpen, setIsTimerMenuOpen] = useState(false);
   const [isOverlayFocused, setIsOverlayFocused] = useState(true);
+
+  const isJumpMenuOpenRef = useRef(isJumpMenuOpen);
+  const isFontMenuOpenRef = useRef(isFontMenuOpen);
+  const isTimerMenuOpenRef = useRef(isTimerMenuOpen);
+
+  useEffect(() => { isJumpMenuOpenRef.current = isJumpMenuOpen; }, [isJumpMenuOpen]);
+  useEffect(() => { isFontMenuOpenRef.current = isFontMenuOpen; }, [isFontMenuOpen]);
+  useEffect(() => { isTimerMenuOpenRef.current = isTimerMenuOpen; }, [isTimerMenuOpen]);
   const [windowPosition, setWindowPosition] = useState<{ x: number; y: number } | null>(null);
   const [snapTarget, setSnapTarget] = useState<{ x: number; y: number } | null>(null);
   const [isSnapping, setIsSnapping] = useState(false);
@@ -648,7 +655,8 @@ export function OverlayPrompter() {
   }, [isSnapping, refreshWindowPlacement, showToast]);
 
   const toggleControls = useCallback(async () => {
-    const nextCollapsed = !isControlsCollapsed;
+    const currentState = useAppStore.getState();
+    const nextCollapsed = !currentState.isControlsCollapsed;
 
     if (!nextCollapsed && isTauriRuntime()) {
       const appWindow = getCurrentWindow();
@@ -670,8 +678,8 @@ export function OverlayPrompter() {
       }
     }
 
-    setIsControlsCollapsed(nextCollapsed);
-  }, [isControlsCollapsed, setIsControlsCollapsed]);
+    currentState.setIsControlsCollapsed(nextCollapsed);
+  }, []);
 
 
   const renderTopActions = () => (
@@ -1212,78 +1220,135 @@ export function OverlayPrompter() {
     }, fadeDurationMs);
   }, [isClosing, persistActiveSession, setPlaybackState, showToast]);
 
+  const shortcutHandlersRef = useRef({
+    changeScrollSpeedBy,
+    closeFontMenu,
+    closeJumpMenu,
+    closeTimerMenu,
+    commitFontScale,
+    handleSnapToCentre,
+    jumpToSection,
+    requestCloseOverlay,
+    resetPresentationTimer,
+    revealSpeedBubble,
+    setPlaybackState,
+    setScrollPosition,
+    toggleControls,
+    togglePlayback,
+    triggerSpeedIconAnimation
+  });
+
+  useEffect(() => {
+    shortcutHandlersRef.current = {
+      changeScrollSpeedBy,
+      closeFontMenu,
+      closeJumpMenu,
+      closeTimerMenu,
+      commitFontScale,
+      handleSnapToCentre,
+      jumpToSection,
+      requestCloseOverlay,
+      resetPresentationTimer,
+      revealSpeedBubble,
+      setPlaybackState,
+      setScrollPosition,
+      toggleControls,
+      togglePlayback,
+      triggerSpeedIconAnimation
+    };
+  }, [
+    changeScrollSpeedBy,
+    closeFontMenu,
+    closeJumpMenu,
+    closeTimerMenu,
+    commitFontScale,
+    handleSnapToCentre,
+    jumpToSection,
+    requestCloseOverlay,
+    resetPresentationTimer,
+    revealSpeedBubble,
+    setPlaybackState,
+    setScrollPosition,
+    toggleControls,
+    togglePlayback,
+    triggerSpeedIconAnimation
+  ]);
+
   useEffect(() => {
     let isDisposed = false;
     let unlisten: (() => void) | null = null;
 
     void listenForShortcutEvents((payload) => {
+      const handlers = shortcutHandlersRef.current;
+
       if (payload.action === 'toggle-overlay') {
-        requestCloseOverlay();
+        handlers.requestCloseOverlay();
         return;
       }
 
       if (payload.action === 'toggle-play') {
-        togglePlayback();
+        handlers.togglePlayback();
         return;
       }
 
       if (payload.action === 'snap-to-center') {
-        void handleSnapToCentre();
+        void handlers.handleSnapToCentre();
         return;
       }
 
       if (payload.action === 'toggle-controls') {
-        toggleControls();
+        void handlers.toggleControls();
         return;
       }
 
       if (payload.action === 'jump-section' && typeof payload.index === 'number') {
-        jumpToSection(payload.index);
+        handlers.jumpToSection(payload.index);
         return;
       }
 
       if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
-        changeScrollSpeedBy(payload.delta);
-        revealSpeedBubble();
+        handlers.changeScrollSpeedBy(payload.delta);
+        handlers.revealSpeedBubble();
         if (payload.delta < 0) {
-          triggerSpeedIconAnimation('slow');
+          handlers.triggerSpeedIconAnimation('slow');
         } else if (payload.delta > 0) {
-          triggerSpeedIconAnimation('fast');
+          handlers.triggerSpeedIconAnimation('fast');
         }
         return;
       }
 
       if (payload.action === 'start-over') {
-        setPlaybackState('paused');
-        setScrollPosition(0);
-        resetPresentationTimer();
+        handlers.setPlaybackState('paused');
+        handlers.setScrollPosition(0);
+        handlers.resetPresentationTimer();
         return;
       }
 
       if (payload.action === 'font-scale-change' && typeof payload.delta === 'number') {
-        commitFontScale(overlayFontScale + payload.delta * fontScaleStep);
+        const currentScale = useAppStore.getState().overlayFontScale;
+        handlers.commitFontScale(currentScale + payload.delta * fontScaleStep);
         return;
       }
 
       if (payload.action === 'font-scale-reset') {
-        commitFontScale(1);
+        handlers.commitFontScale(1);
         return;
       }
 
       if (payload.action === 'escape-pressed') {
-        if (isJumpMenuOpen) {
-          closeJumpMenu(true);
+        if (isJumpMenuOpenRef.current) {
+          handlers.closeJumpMenu(true);
           return;
         }
-        if (isFontMenuOpen) {
-          closeFontMenu(true);
+        if (isFontMenuOpenRef.current) {
+          handlers.closeFontMenu(true);
           return;
         }
-        if (isTimerMenuOpen) {
-          closeTimerMenu(true);
+        if (isTimerMenuOpenRef.current) {
+          handlers.closeTimerMenu(true);
           return;
         }
-        requestCloseOverlay();
+        handlers.requestCloseOverlay();
       }
     }).then((fn) => {
       if (isDisposed) {
@@ -1298,27 +1363,7 @@ export function OverlayPrompter() {
       isDisposed = true;
       unlisten?.();
     };
-  }, [
-    changeScrollSpeedBy,
-    closeFontMenu,
-    closeJumpMenu,
-    closeTimerMenu,
-    commitFontScale,
-    handleSnapToCentre,
-    isFontMenuOpen,
-    isJumpMenuOpen,
-    isTimerMenuOpen,
-    overlayFontScale,
-    resetPresentationTimer,
-    requestCloseOverlay,
-    jumpToSection,
-    revealSpeedBubble,
-    setPlaybackState,
-    setScrollPosition,
-    togglePlayback,
-    triggerSpeedIconAnimation,
-    toggleControls
-  ]);
+  }, []);
 
   useEffect(() => {
     const syncActiveSession = () => {
