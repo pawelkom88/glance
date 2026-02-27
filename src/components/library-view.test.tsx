@@ -1,7 +1,7 @@
 import type React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LibraryView } from './library-view';
 
 vi.mock('../lib/tauri', () => ({
@@ -78,6 +78,10 @@ function renderLibrary(custom?: Partial<React.ComponentProps<typeof LibraryView>
 }
 
 describe('LibraryView behavior', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('creates a session from composer with a trimmed name', async () => {
     const user = userEvent.setup();
     const props = renderLibrary({ folders: noFolders });
@@ -176,6 +180,33 @@ describe('LibraryView behavior', () => {
     expect(screen.getByRole('dialog', { name: 'Session list controls' })).toBeTruthy();
   });
 
+  it('selects on single click and opens on double click', () => {
+    const props = renderLibrary();
+
+    const alphaCard = screen.getByText('Alpha').closest('article');
+    expect(alphaCard).toBeTruthy();
+
+    fireEvent.pointerDown(alphaCard as HTMLElement, { pointerId: 10, pointerType: 'mouse', button: 0, clientX: 20, clientY: 20 });
+    fireEvent.click(alphaCard as HTMLElement, { clientX: 20, clientY: 20 });
+    expect(props.onOpen).not.toHaveBeenCalled();
+    expect(alphaCard?.className).not.toContain('is-list-selected');
+
+    fireEvent.pointerDown(alphaCard as HTMLElement, { pointerId: 10, pointerType: 'mouse', button: 0, clientX: 20, clientY: 20 });
+    fireEvent.click(alphaCard as HTMLElement, { clientX: 20, clientY: 20 });
+    expect(props.onOpen).toHaveBeenCalledWith('a');
+  });
+
+  it('does not render redundant chevron open button in session rows', () => {
+    renderLibrary();
+    expect(screen.queryByRole('button', { name: 'Open Alpha' })).toBeNull();
+  });
+
+  it('shows the temporary double-click coaching hint above the first folder', () => {
+    renderLibrary();
+    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    expect(within(unfiledGroup).getByText('Tip: Double-click a session to open it. Drag to move.')).toBeTruthy();
+  });
+
   it('asks for a folder before creating a new session when at least one custom folder exists', async () => {
     const user = userEvent.setup();
     const props = renderLibrary();
@@ -206,13 +237,76 @@ describe('LibraryView behavior', () => {
     const user = userEvent.setup();
     renderLibrary();
 
-    await user.click(screen.getByRole('button', { name: 'Sort and filter sessions' }));
-    await user.click(screen.getByRole('button', { name: /\+ New Folder/i }));
+    await user.click(screen.getByRole('button', { name: 'Create new folder' }));
 
     const input = await screen.findByLabelText('Folder name');
     await waitFor(() => {
       expect(document.activeElement).toBe(input);
     });
+  });
+
+  it('removes new folder action from filter popover and keeps dedicated folder button', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+
+    await user.click(screen.getByRole('button', { name: 'Sort and filter sessions' }));
+    expect(screen.queryByRole('button', { name: /\+ New Folder/i })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Create new folder' })).toBeTruthy();
+  });
+
+  it('allows renaming the default unfiled folder without calling folder rename API', async () => {
+    const user = userEvent.setup();
+    const props = renderLibrary({ folders: noFolders, sessions: oneSession });
+
+    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    await user.click(within(unfiledGroup).getByRole('button', { name: 'Rename' }));
+
+    const input = await screen.findByLabelText('Rename folder');
+    await user.clear(input);
+    await user.type(input, 'Inbox');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(props.onRenameFolder).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Inbox folder')).toBeTruthy();
+  });
+
+  it('shows delete action for the default unfiled folder', () => {
+    renderLibrary();
+    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    expect(within(unfiledGroup).getByRole('button', { name: 'Delete' })).toBeTruthy();
+  });
+
+  it('deletes empty unfiled folder from view', async () => {
+    const user = userEvent.setup();
+    renderLibrary({ sessions: [sessions[1]], folders: multipleFolders });
+
+    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    await user.click(within(unfiledGroup).getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete Folder' }));
+
+    expect(screen.queryByLabelText('Unfiled folder')).toBeNull();
+  });
+
+  it('hides empty folders while in selection mode', async () => {
+    const user = userEvent.setup();
+    const clientOnlySessions = [
+      sessions[1],
+      { ...sessions[1], id: 'b-2', title: 'Beta 2', updatedAt: '2025-01-03T10:00:00Z' }
+    ];
+
+    renderLibrary({
+      sessions: clientOnlySessions,
+      folders: multipleFolders
+    });
+
+    expect(screen.getByLabelText('Unfiled folder')).toBeTruthy();
+    expect(screen.getByLabelText('Internal folder')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Select' }));
+
+    expect(screen.queryByLabelText('Unfiled folder')).toBeNull();
+    expect(screen.getByLabelText('Client Work folder')).toBeTruthy();
+    expect(screen.queryByLabelText('Internal folder')).toBeNull();
   });
 
   it('shows search, filter, and select controls only when there is more than one session', async () => {
