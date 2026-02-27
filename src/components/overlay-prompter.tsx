@@ -1316,7 +1316,8 @@ export function OverlayPrompter() {
     setPlaybackState,
     setScrollPosition,
     togglePlayback,
-    triggerSpeedIconAnimation
+    triggerSpeedIconAnimation,
+    toggleControls
   ]);
 
   useEffect(() => {
@@ -1350,6 +1351,8 @@ export function OverlayPrompter() {
         syncActiveSession();
         return;
       }
+
+      setPlaybackState('paused');
 
       if (!hasShownInactiveHintRef.current) {
         hasShownInactiveHintRef.current = true;

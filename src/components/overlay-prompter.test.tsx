@@ -407,4 +407,28 @@ describe('OverlayPrompter behavior', () => {
     });
   });
 
+  it('toggles controls when the toggle-controls shortcut event is received', async () => {
+    let shortcutCallback: (payload: { action: string }) => void = () => { };
+    tauriMocks.listenForShortcutEvents.mockImplementation(async (cb: (payload: { action: string }) => void) => {
+      shortcutCallback = cb;
+      return () => { };
+    });
+
+    render(<OverlayPrompter />);
+
+    // Initial state: expanded (from resetStore)
+    expect(useAppStore.getState().isControlsCollapsed).toBe(false);
+
+    // First shortcut event: should collapse
+    await act(async () => {
+      shortcutCallback({ action: 'toggle-controls' });
+    });
+    expect(useAppStore.getState().isControlsCollapsed).toBe(true);
+
+    // Second shortcut event: should expand
+    await act(async () => {
+      shortcutCallback({ action: 'toggle-controls' });
+    });
+    expect(useAppStore.getState().isControlsCollapsed).toBe(false);
+  });
 });
