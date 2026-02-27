@@ -50,7 +50,8 @@ function mockElementFromPoint(impl: (x: number, y: number) => Element | null) {
       if (originalDescriptor) {
         Object.defineProperty(document, 'elementFromPoint', originalDescriptor);
       } else {
-        delete (document as Document & { elementFromPoint?: unknown }).elementFromPoint;
+        const docWithOptionalElementFromPoint = document as { elementFromPoint?: unknown };
+        delete docWithOptionalElementFromPoint.elementFromPoint;
       }
     }
   };
@@ -75,6 +76,10 @@ function renderLibrary(custom?: Partial<React.ComponentProps<typeof LibraryView>
 
   render(<LibraryView {...props} />);
   return props;
+}
+
+async function flushReactUpdates() {
+  await act(async () => {});
 }
 
 describe('LibraryView behavior', () => {
@@ -180,7 +185,7 @@ describe('LibraryView behavior', () => {
     expect(screen.getByRole('dialog', { name: 'Session list controls' })).toBeTruthy();
   });
 
-  it('selects on single click and opens on double click', () => {
+  it('selects on single click and opens on double click', async () => {
     const props = renderLibrary();
 
     const alphaCard = screen.getByText('Alpha').closest('article');
@@ -194,17 +199,20 @@ describe('LibraryView behavior', () => {
     fireEvent.pointerDown(alphaCard as HTMLElement, { pointerId: 10, pointerType: 'mouse', button: 0, clientX: 20, clientY: 20 });
     fireEvent.click(alphaCard as HTMLElement, { clientX: 20, clientY: 20 });
     expect(props.onOpen).toHaveBeenCalledWith('a');
+    await flushReactUpdates();
   });
 
-  it('does not render redundant chevron open button in session rows', () => {
+  it('does not render redundant chevron open button in session rows', async () => {
     renderLibrary();
     expect(screen.queryByRole('button', { name: 'Open Alpha' })).toBeNull();
+    await flushReactUpdates();
   });
 
-  it('shows the temporary double-click coaching hint above the first folder', () => {
+  it('shows the temporary double-click coaching hint above the first folder', async () => {
     renderLibrary();
     const unfiledGroup = screen.getByLabelText('Unfiled folder');
     expect(within(unfiledGroup).getByText('Tip: Double-click a session to open it. Drag to move.')).toBeTruthy();
+    await flushReactUpdates();
   });
 
   it('asks for a folder before creating a new session when at least one custom folder exists', async () => {
@@ -270,10 +278,11 @@ describe('LibraryView behavior', () => {
     expect(screen.getByLabelText('Inbox folder')).toBeTruthy();
   });
 
-  it('shows delete action for the default unfiled folder', () => {
+  it('shows delete action for the default unfiled folder', async () => {
     renderLibrary();
     const unfiledGroup = screen.getByLabelText('Unfiled folder');
     expect(within(unfiledGroup).getByRole('button', { name: 'Delete' })).toBeTruthy();
+    await flushReactUpdates();
   });
 
   it('deletes empty unfiled folder from view', async () => {
@@ -458,6 +467,7 @@ describe('LibraryView behavior', () => {
     });
     fireEvent.pointerUp(alphaCard as HTMLElement, { pointerId: 4, pointerType: 'mouse', button: 0, clientX: 50, clientY: 54 });
     elementFromPoint.restore();
+    await flushReactUpdates();
   });
 
   it('opens keyboard move menu and moves session without dragging', async () => {
