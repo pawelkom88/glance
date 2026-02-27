@@ -194,11 +194,11 @@
   --overlay-controls-bg: #eef2f7;
   --overlay-controls-text: #121826;
   --overlay-controls-text-muted: rgba(18, 24, 38, 0.76);
-  --overlay-controls-border: rgba(18, 24, 38, 0.16);
+  --overlay-controls-border: rgba(18, 24, 38, 0.24);
   --overlay-controls-soft: rgba(18, 24, 38, 0.06);
   --overlay-controls-soft-hover: rgba(18, 24, 38, 0.12);
   --overlay-chip-neutral-bg: rgba(18, 24, 38, 0.08);
-  --overlay-chip-neutral-border: rgba(18, 24, 38, 0.2);
+  --overlay-chip-neutral-border: rgba(18, 24, 38, 0.28);
   --overlay-chip-neutral-text: rgba(18, 24, 38, 0.88);
   --overlay-divider: rgba(18, 24, 38, 0.12);
   --overlay-debug-border: rgba(18, 24, 38, 0.2);
@@ -1700,6 +1700,12 @@ select {
 body.is-session-dragging .session-card-selectable.is-draggable,
 body.is-session-dragging .session-card-selectable.is-draggable * {
   cursor: grabbing !important;
+}
+
+body.is-session-dragging,
+body.is-session-dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .session-card-selectable:focus-visible {
@@ -4525,7 +4531,7 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
   border-radius: 9px !important;
   background: var(--overlay-chip-neutral-bg) !important;
   border: 1px solid var(--overlay-chip-neutral-border) !important;
-  color: #fff !important;
+  color: var(--overlay-controls-text) !important;
   display: inline-grid;
   place-items: center;
   cursor: pointer;
@@ -5225,8 +5231,8 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
   height: 32px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--overlay-controls-border);
+  background: var(--overlay-controls-soft);
   color: var(--overlay-controls-text-muted);
   font-size: 0.8rem;
   font-weight: 700;
@@ -5240,7 +5246,7 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
 .overlay-controls-divider {
   width: 1px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--overlay-divider);
   margin: 0 4px;
 }
 
@@ -5339,15 +5345,15 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
 }
 
 .overlay-secondary-button {
-  border: none;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--overlay-controls-border);
+  background: var(--overlay-controls-soft);
   color: var(--overlay-controls-text);
   width: 56px;
   height: 56px;
 }
 
 .overlay-secondary-button:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--overlay-controls-soft-hover);
 }
 
 .overlay-primary-button-wrap {
@@ -5826,19 +5832,20 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
+    background: var(--overlay-controls-soft);
+    border: 1px solid var(--overlay-controls-border);
     cursor: pointer;
     padding: 0;
     transition: all 120ms ease;
   }
 
   .overlay-compact-dim-stage:hover {
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--overlay-controls-soft-hover);
   }
 
   .overlay-compact-dim-stage.is-active {
     background: rgba(43, 83, 154, 0.95);
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--overlay-controls-border));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 
@@ -5879,8 +5886,8 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
+    background: var(--overlay-controls-soft);
+    border: 1px solid var(--overlay-controls-border);
     color: var(--overlay-controls-text-muted);
     cursor: pointer;
     font-size: 0.82rem;
@@ -5891,7 +5898,7 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
   }
 
   .overlay-compact-font-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--overlay-controls-soft-hover);
     color: var(--overlay-controls-text);
   }
 
