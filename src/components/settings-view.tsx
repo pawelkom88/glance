@@ -632,7 +632,7 @@ export function SettingsView() {
             <div className="setting-row">
               <div className="setting-copy">
                 <span className="setting-title">Always on Top</span>
-                <span className="setting-subtitle">Stays visible during screen share.</span>
+                <span className="setting-subtitle">Keeps prompter on the top layer of your screen.</span>
               </div>
               <button
                 type="button"
