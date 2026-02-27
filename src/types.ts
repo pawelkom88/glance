@@ -79,6 +79,7 @@ export interface DisplaySegment {
 export interface ShortcutEventPayload {
   readonly action:
     | 'toggle-overlay'
+    | 'snap-to-center'
     | 'toggle-play'
     | 'jump-section'
     | 'speed-change'

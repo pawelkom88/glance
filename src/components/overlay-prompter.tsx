@@ -1190,6 +1190,11 @@ export function OverlayPrompter() {
         return;
       }
 
+      if (payload.action === 'snap-to-center') {
+        void handleSnapToCentre();
+        return;
+      }
+
       if (payload.action === 'jump-section' && typeof payload.index === 'number') {
         jumpToSection(payload.index);
         return;
@@ -1257,6 +1262,7 @@ export function OverlayPrompter() {
     closeJumpMenu,
     closeTimerMenu,
     commitFontScale,
+    handleSnapToCentre,
     isFontMenuOpen,
     isJumpMenuOpen,
     isTimerMenuOpen,
@@ -1367,6 +1373,15 @@ export function OverlayPrompter() {
         return;
       }
 
+      if (event.shiftKey && event.key.toLowerCase() === 'l') {
+        if (tauriRuntime) {
+          return;
+        }
+        event.preventDefault();
+        void handleSnapToCentre();
+        return;
+      }
+
       if (event.key.toLowerCase() === 'w') {
         event.preventDefault();
         requestCloseOverlay();
@@ -1451,7 +1466,8 @@ export function OverlayPrompter() {
     resetPresentationTimer,
     setPlaybackState,
     setScrollPosition,
-    togglePlayback
+    togglePlayback,
+    handleSnapToCentre
   ]);
 
   useEffect(() => {

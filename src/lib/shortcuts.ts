@@ -1,5 +1,6 @@
 export type ShortcutActionId =
   | 'toggle-overlay'
+  | 'snap-to-center'
   | 'toggle-play'
   | 'speed-up'
   | 'speed-down'
@@ -28,6 +29,7 @@ export interface ShortcutDefinition {
 
 export const shortcutDefinitions: readonly ShortcutDefinition[] = [
   { action: 'toggle-overlay', label: 'Toggle Prompter (Global)' },
+  { action: 'snap-to-center', label: 'Snap To Center' },
   { action: 'toggle-play', label: 'Play/Pause' },
   { action: 'start-over', label: 'Rewind' },
   { action: 'speed-up', label: 'Speed Up' },
@@ -74,6 +76,7 @@ export function defaultShortcutConfig(): ShortcutConfig {
   const modifier = platformPrimaryModifier();
   return {
     'toggle-overlay': `${modifier}+Shift+K`,
+    'snap-to-center': `${modifier}+Shift+L`,
     'toggle-play': 'Space',
     'start-over': 'R',
     'speed-up': `${modifier}+Up`,
