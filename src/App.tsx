@@ -581,7 +581,7 @@ export default function App() {
       return <SettingsView />;
     }
 
-    return <HelpView />;
+    return <HelpView onRestoreSuccess={() => switchTab('editor')} />;
   }, [
     activeSessionId,
     activeSessionTitle,

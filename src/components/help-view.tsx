@@ -1,5 +1,5 @@
 import { open as openUrl } from '@tauri-apps/plugin-shell';
-import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+import { open as openFileDialog, ask } from '@tauri-apps/plugin-dialog';
 import { openSessionsFolder, restoreFromBackup } from '../lib/tauri';
 import { useAppStore } from '../store/use-app-store';
 
@@ -11,7 +11,11 @@ function modifierKeyLabel(): string {
   return navigator.platform.includes('Mac') ? '⌘' : 'Ctrl';
 }
 
-export function HelpView() {
+interface HelpViewProps {
+  onRestoreSuccess?: () => void;
+}
+
+export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   const modifier = modifierKeyLabel();
 
   const showToast = useAppStore((state) => state.showToast);
@@ -27,16 +31,36 @@ export function HelpView() {
       const selected = await openFileDialog({
         title: 'Select Backup to Restore',
         multiple: false,
-        filters: [{ name: 'Backup File', extensions: ['bak', '1', '2', '3', '4', '5'] }]
+        filters: [{ name: 'Glance Backup', extensions: ['bak', 'md', '1', '2', '3', '4', '5'] }]
       });
 
       if (!selected || Array.isArray(selected)) {
         return;
       }
 
+      const confirmed = await ask(
+        'This will replace your current script content. Glance will automatically save a safety copy of your current version before proceeding.',
+        {
+          title: 'Restore this session?',
+          kind: 'warning',
+          okLabel: 'Restore',
+          cancelLabel: 'Cancel'
+        }
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
       await restoreFromBackup(selected);
       await loadInitialState();
+
       showToast('Session restored successfully', 'success');
+
+      // Navigate to editor so user can see their restored content immediately
+      if (onRestoreSuccess) {
+        onRestoreSuccess();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to restore backup';
       showToast(message, 'error');
@@ -119,55 +143,6 @@ export function HelpView() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="help-footer">
-        <div className="help-footer-icon" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none">
-            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" />
-          </svg>
-        </div>
-        <p className="help-footer-text" role="note" aria-label="Local privacy notice">
-          <strong>Local by default.</strong> No account, no cloud sync, no remote storage.
-        </p>
-        <a
-          href="https://buymeacoffee.com/ordo"
-          onClick={handleDonationClick}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            backgroundColor: '#FFDD00',
-            color: '#000000',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontFamily: 'Inter, sans-serif',
-            boxShadow: '0 2px 8px rgba(255, 221, 0, 0.2)',
-            transition: 'transform 0.1s ease, box-shadow 0.1s ease',
-            whiteSpace: 'nowrap',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 221, 0, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(255, 221, 0, 0.2)';
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-            <line x1="6" y1="1" x2="6" y2="4"></line>
-            <line x1="10" y1="1" x2="10" y2="4"></line>
-            <line x1="14" y1="1" x2="14" y2="4"></line>
-          </svg>
-          Buy me a coffee
-        </a>
-      </div>
-
       {/* Local Storage section */}
       <div>
         <div className="setting-group-label">Local Storage</div>
@@ -217,6 +192,55 @@ export function HelpView() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="help-footer">
+        <div className="help-footer-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" />
+          </svg>
+        </div>
+        <p className="help-footer-text" role="note" aria-label="Local privacy notice">
+          <strong>Local by default.</strong> No account, no cloud sync, no remote storage.
+        </p>
+        <a
+          href="https://buymeacoffee.com/ordo"
+          onClick={handleDonationClick}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            backgroundColor: '#FFDD00',
+            color: '#000000',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontFamily: 'Inter, sans-serif',
+            boxShadow: '0 2px 8px rgba(255, 221, 0, 0.2)',
+            transition: 'transform 0.1s ease, box-shadow 0.1s ease',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 221, 0, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(255, 221, 0, 0.2)';
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+          Buy me a coffee
+        </a>
       </div>
     </section>
   );

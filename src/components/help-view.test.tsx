@@ -7,7 +7,8 @@ vi.mock('@tauri-apps/plugin-shell', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
-  open: vi.fn()
+  open: vi.fn(),
+  ask: vi.fn()
 }));
 
 vi.mock('../lib/tauri', async (importOriginal) => {
@@ -30,6 +31,7 @@ import { HelpView } from './help-view';
 
 const openUrlMock = openUrl as unknown as ReturnType<typeof vi.fn>;
 const openFileDialogMock = openFileDialog as unknown as ReturnType<typeof vi.fn>;
+const askMock = (await import('@tauri-apps/plugin-dialog')).ask as unknown as ReturnType<typeof vi.fn>;
 const tauriMock = tauriBridge as unknown as {
   openSessionsFolder: ReturnType<typeof vi.fn>;
   restoreFromBackup: ReturnType<typeof vi.fn>;
@@ -68,17 +70,24 @@ describe('HelpView behavior', () => {
     expect(openUrlMock).toHaveBeenCalledWith('https://buymeacoffee.com/ordo');
   });
 
-  it('triggers backup restoration flow', async () => {
+  it('triggers backup restoration flow with confirmation', async () => {
     const user = userEvent.setup();
+    const onRestoreSuccess = vi.fn();
     openFileDialogMock.mockResolvedValue('/path/to/backup.bak');
+    askMock.mockResolvedValue(true);
     tauriMock.restoreFromBackup.mockResolvedValue(undefined);
 
-    render(<HelpView />);
+    render(<HelpView onRestoreSuccess={onRestoreSuccess} />);
 
     await user.click(screen.getByRole('button', { name: /Restore Session/i }));
 
     expect(openFileDialogMock).toHaveBeenCalled();
+    expect(askMock).toHaveBeenCalledWith(
+      expect.stringContaining('replace your current script content'),
+      expect.objectContaining({ title: 'Restore this session?' })
+    );
     expect(tauriMock.restoreFromBackup).toHaveBeenCalledWith('/path/to/backup.bak');
+    expect(onRestoreSuccess).toHaveBeenCalled();
 
     expect(useAppStore.getState().toastMessage).toEqual({
       message: 'Session restored successfully',
