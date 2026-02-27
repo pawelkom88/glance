@@ -746,7 +746,7 @@ select {
 }
 
 .storage-section-description {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
   margin: 0 0 10px 0;
@@ -933,6 +933,9 @@ select {
 
 .sessions-list-controls-wrap {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .sessions-list-controls-popover {
@@ -1079,23 +1082,12 @@ select {
   outline-offset: 2px;
 }
 
-.sessions-new-folder-inline {
-  border: 0;
-  border-top: 1px solid rgba(60, 60, 67, 0.16);
-  min-height: 52px;
-  background: transparent;
-  color: #0a84ff;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  text-align: left;
-  padding: 0 22px;
-  letter-spacing: -0.01em;
-  cursor: pointer;
+.sessions-new-folder-button {
+  color: var(--accent);
 }
 
-.sessions-new-folder-inline:hover {
-  background: color-mix(in srgb, var(--line-soft) 30%, transparent);
+.sessions-new-folder-button:hover {
+  color: color-mix(in srgb, var(--accent) 82%, black);
 }
 
 .sessions-search-row {
@@ -1704,12 +1696,6 @@ select {
   position: relative;
 }
 
-.session-arrow {
-  color: var(--text-muted);
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
 .session-card-selectable {
   cursor: pointer;
   transition: border-color 150ms ease, box-shadow 150ms ease, opacity 180ms ease;
@@ -1775,6 +1761,41 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
   height: 44px;
   opacity: 1;
   margin-bottom: 12px;
+}
+
+.session-interaction-coach {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-muted));
+  color: var(--text-strong);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.session-interaction-coach-inline {
+  margin: 8px 8px 0;
+}
+
+.session-interaction-coach-dismiss {
+  border: 1px solid color-mix(in srgb, var(--line-soft) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-control-neutral) 72%, transparent);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.session-interaction-coach-dismiss:hover {
+  color: var(--text-strong);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .selection-checkbox {
@@ -2178,8 +2199,8 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
 
 .session-row-menu-wrap {
   position: absolute;
-  right: 15px;
-  top: 11px;
+  right: 16px;
+  top: 50%;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
@@ -2194,6 +2215,10 @@ body.is-session-dragging .session-card-selectable.is-draggable * {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
   opacity: 1;
   pointer-events: auto;
   transition: background-color 160ms ease, transform 160ms ease, color 160ms ease, opacity 160ms ease;
