@@ -4354,6 +4354,9 @@ body.is-session-dragging * {
 }
 
 .overlay-unfocused-hint {
+  width: fit-content;
+  min-width: 350px;
+  margin: 0 auto;
   position: fixed;
   left: 50%;
   top: 50%;
@@ -4371,6 +4374,7 @@ body.is-session-dragging * {
   padding: 9px 14px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   box-shadow: 0 8px 28px rgba(6, 12, 24, 0.26);
   -webkit-app-region: no-drag;
