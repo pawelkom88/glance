@@ -361,14 +361,8 @@ describe('OverlayPrompter behavior', () => {
     }
   });
 
-  it('shows focus-loss hint toast only once after repeated blur events', async () => {
+  it('shows focus-loss hint and clears it on focus regain', async () => {
     (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
-    const originalShowToast = useAppStore.getState().showToast;
-    const showToastSpy = vi.fn((message: string, variant?: 'info' | 'success' | 'warning' | 'error') => {
-      originalShowToast(message, variant);
-    });
-    useAppStore.setState({ showToast: showToastSpy });
-
     render(<OverlayPrompter />);
 
     await waitFor(() => {
@@ -378,13 +372,15 @@ describe('OverlayPrompter behavior', () => {
 
     act(() => {
       focusChangedListener?.({ payload: false });
-      focusChangedListener?.({ payload: false });
     });
 
-    const hintCalls = showToastSpy.mock.calls.filter(([message]) =>
-      String(message).includes('Overlay inactive. Click it to re-enable shortcuts.')
-    );
-    expect(hintCalls).toHaveLength(1);
+    expect(document.querySelector('.overlay-unfocused-hint')).toBeTruthy();
+
+    act(() => {
+      focusChangedListener?.({ payload: true });
+    });
+
+    expect(document.querySelector('.overlay-unfocused-hint')).toBeNull();
   });
 
   it('enforces dynamic height constraints when toggling controls', async () => {

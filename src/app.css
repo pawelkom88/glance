@@ -4265,7 +4265,7 @@ body.is-session-dragging * {
   opacity: 1;
   transform: translateY(0) scale(1);
   transition:
-    opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 300ms ease,
     transform .3s cubic-bezier(0.22, 1, 0.36, 1),
     grid-template-columns 760ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-app-region: no-drag;
@@ -4299,17 +4299,17 @@ body.is-session-dragging * {
 .overlay-root.overlay-unfocused::after {
   opacity: 1;
   background: rgba(172, 186, 212, 0.12);
-  backdrop-filter: blur(16px) saturate(1.08);
   transition:
     opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
-    backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
+    filter .3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-root.overlay-unfocused {
-  opacity: 0.84;
+  opacity: 0.34;
+  filter: blur(5px);
   transition:
-    opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
-    backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 300ms ease,
+    filter .3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .overlay-root.overlay-unfocused .reading-ruler {
@@ -4354,11 +4354,11 @@ body.is-session-dragging * {
 }
 
 .overlay-unfocused-hint {
-  position: absolute;
+  position: fixed;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 92;
+  z-index: 9999;
   pointer-events: none;
   border-radius: 999px;
   border: 1px solid var(--overlay-debug-border);

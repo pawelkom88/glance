@@ -320,6 +320,41 @@ function currentSectionFromLine(lines: readonly { sectionIndex: number | null }[
 
 }
 
+function formatCompactShortcutHint(accelerator: string): string {
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
+  const normalized = accelerator.replace(/\s+/g, '');
+
+  if (!normalized) {
+    return isMac ? '⌘⇧K' : 'Ctrl+Shift+K';
+  }
+
+  if (!isMac) {
+    return normalized
+      .replace(/CmdOrCtrl/gi, 'Ctrl')
+      .replace(/Command/gi, 'Ctrl');
+  }
+
+  const parts = normalized.split('+').filter(Boolean);
+  const mapped = parts.map((part) => {
+    const lower = part.toLowerCase();
+    if (lower === 'cmdorctrl' || lower === 'cmd' || lower === 'command' || lower === 'meta') {
+      return '⌘';
+    }
+    if (lower === 'shift') {
+      return '⇧';
+    }
+    if (lower === 'alt' || lower === 'option') {
+      return '⌥';
+    }
+    if (lower === 'ctrl' || lower === 'control') {
+      return '⌃';
+    }
+    return part.toUpperCase();
+  });
+
+  return mapped.join('');
+}
+
 export function OverlayPrompter() {
   const { t } = useI18n();
   const activeSessionId = useAppStore((state) => state.activeSessionId);
@@ -345,10 +380,27 @@ export function OverlayPrompter() {
 
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const sections = parsed.sections;
-  const togglePrompterShortcutHint = useMemo(() => {
-    const configured = loadShortcutConfig()['toggle-overlay'];
+  const hidePrompterShortcutHint = useMemo(() => {
+    const configured = loadShortcutConfig()['hide-overlay'];
     return configured.trim() || 'CmdOrCtrl+Shift+K';
   }, []);
+  const compactHidePrompterShortcutHint = useMemo(
+    () => formatCompactShortcutHint(hidePrompterShortcutHint),
+    [hidePrompterShortcutHint]
+  );
+  const focusLossHintTemplate = useMemo(
+    () => t('overlay.pressToToggle', { key: '__SHORTCUT__' }),
+    [t]
+  );
+  const [focusLossHintPrefix, focusLossHintSuffix] = useMemo(() => {
+    const marker = '__SHORTCUT__';
+    const split = focusLossHintTemplate.split(marker);
+    if (split.length < 2) {
+      return [focusLossHintTemplate, ''];
+    }
+    const [prefix, ...rest] = split;
+    return [prefix ?? '', rest.join(marker)];
+  }, [focusLossHintTemplate]);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   const speedRef = useRef(scrollSpeed);
@@ -369,7 +421,6 @@ export function OverlayPrompter() {
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resizeTimeoutRef = useRef<number | null>(null);
   const moveTimeoutRef = useRef<number | null>(null);
-  const hasShownInactiveHintRef = useRef(false);
 
   const [isClosing, setIsClosing] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
@@ -1297,11 +1348,6 @@ export function OverlayPrompter() {
     void listenForShortcutEvents((payload) => {
       const handlers = shortcutHandlersRef.current;
 
-      if (payload.action === 'toggle-overlay') {
-        handlers.requestCloseOverlay();
-        return;
-      }
-
       if (payload.action === 'toggle-play') {
         handlers.togglePlayback();
         return;
@@ -1413,11 +1459,6 @@ export function OverlayPrompter() {
       }
 
       setPlaybackState('paused');
-
-      if (!hasShownInactiveHintRef.current) {
-        hasShownInactiveHintRef.current = true;
-        showToast(t('overlay.inactiveToast'), 'info');
-      }
     }).then((fn) => {
       unlistenFocus = fn;
     });
@@ -1425,7 +1466,7 @@ export function OverlayPrompter() {
     return () => {
       unlistenFocus?.();
     };
-  }, [activeSessionId, openSession, showToast]);
+  }, [activeSessionId, openSession, setPlaybackState]);
 
   useEffect(() => {
     const tauriRuntime = isTauriRuntime();
@@ -2066,7 +2107,8 @@ export function OverlayPrompter() {
   }, []);
 
   return (
-    <main
+    <>
+      <main
       ref={overlayRootRef}
       className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''} ${isOverlayFocused ? '' : 'overlay-unfocused'}`}
       role="application"
@@ -2082,11 +2124,6 @@ export function OverlayPrompter() {
       <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label={t('overlay.sizeAria')}>
         {overlaySize.width} × {overlaySize.height}
       </div>
-      {!isOverlayFocused ? (
-        <div className="overlay-unfocused-hint" aria-live="polite">
-          {t('overlay.pressToToggle', { key: togglePrompterShortcutHint })}
-        </div>
-      ) : null}
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
         {!isCompactTopBar ? (
           <div className="overlay-left-sidebar-layout">
@@ -2433,6 +2470,17 @@ export function OverlayPrompter() {
         : null}
 
       {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer', true) : null}
-    </main>
+      </main>
+      {!isOverlayFocused
+        ? createPortal(
+          <div className="overlay-unfocused-hint" aria-live="polite">
+            <span>{focusLossHintPrefix}</span>
+            <kbd>{compactHidePrompterShortcutHint}</kbd>
+            <span>{focusLossHintSuffix}</span>
+          </div>,
+          document.body
+        )
+        : null}
+    </>
   );
 }
