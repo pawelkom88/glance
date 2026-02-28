@@ -318,7 +318,10 @@ pub fn delete_session(id: String, state: State<'_, AppState>) -> Result<(), Stri
 pub fn open_sessions_folder(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
     app.opener()
-        .open_path(state.sessions_root.to_string_lossy().to_string(), None::<&str>)
+        .open_path(
+            state.sessions_root.to_string_lossy().to_string(),
+            None::<&str>,
+        )
         .map_err(|error| error.to_string())
 }
 
@@ -381,7 +384,17 @@ fn show_overlay_window_inner(
             .primary_monitor()
             .map_err(|error| error.to_string())?)
         .ok_or_else(|| String::from("No monitors available"))?;
+    let target_monitor_label = monitor_label(&target_monitor);
+    let target_monitor_size = *target_monitor.size();
+    let target_monitor_position = *target_monitor.position();
     let target_monitor_id = monitor_key(&target_monitor);
+    let target_monitor_selection_key = monitor_selection_key_from_parts(
+        target_monitor_label.as_str(),
+        target_monitor_size,
+        target_monitor_position,
+    );
+
+    set_saved_main_monitor_key(app, Some(target_monitor_selection_key));
 
     // Guard against accidental fullscreen/maximized state which blocks normal dragging.
     if overlay.is_fullscreen().map_err(|error| error.to_string())? {
@@ -446,7 +459,9 @@ fn hide_glance_when_overlay_visible(app: &AppHandle, state: &AppState) -> Result
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
     let is_overlay_visible = overlay.is_visible().map_err(|error| error.to_string())?;
-    let is_main_visible = main_window.is_visible().map_err(|error| error.to_string())?;
+    let is_main_visible = main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?;
 
     if is_overlay_visible {
         hide_overlay_window_inner(app, state)?;
@@ -473,11 +488,11 @@ pub fn show_main_window(saved_monitor_key: Option<String>, app: AppHandle) -> Re
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
 
-    if let Some(monitor_selection) = saved_monitor_key
-        .as_deref()
-        .and_then(parse_monitor_selection_key)
-    {
-        let monitor_key = monitor_selection.to_key();
+    let tracked_monitor_key = read_saved_main_monitor_key(&app);
+    if let Some(monitor_key) = resolve_main_window_restore_monitor_key(
+        saved_monitor_key.as_deref(),
+        tracked_monitor_key.as_deref(),
+    ) {
         normalize_main_window_state(&main_window)?;
         let selected_monitor =
             move_main_window_to_monitor_selection(&main_window, monitor_key.as_str())?;
@@ -999,6 +1014,27 @@ fn monitor_composite_key(
     position_y: i32,
 ) -> String {
     format!("{name}|{width}x{height}|{position_x},{position_y}")
+}
+
+fn monitor_selection_key_from_parts(
+    name: &str,
+    size: PhysicalSize<u32>,
+    position: PhysicalPosition<i32>,
+) -> String {
+    monitor_composite_key(name, size.width, size.height, position.x, position.y)
+}
+
+fn normalize_monitor_selection_key(value: &str) -> Option<String> {
+    parse_monitor_selection_key(value).map(|selection| selection.to_key())
+}
+
+fn resolve_main_window_restore_monitor_key(
+    requested_key: Option<&str>,
+    tracked_key: Option<&str>,
+) -> Option<String> {
+    requested_key
+        .and_then(normalize_monitor_selection_key)
+        .or_else(|| tracked_key.and_then(normalize_monitor_selection_key))
 }
 
 fn monitor_debug_enabled() -> bool {
@@ -1907,25 +1943,6 @@ fn resolve_monitor_for_point_or_primary(
         .or_else(|| monitors.first().cloned())
 }
 
-#[cfg(test)]
-fn apply_overlay_bounds(
-    overlay: &tauri::WebviewWindow,
-    bounds: &OverlayBounds,
-) -> Result<(), String> {
-    let width = bounds.width.round().max(OVERLAY_MIN_WIDTH as f64) as u32;
-    let height = bounds.height.round().max(OVERLAY_MIN_HEIGHT as f64) as u32;
-    overlay
-        .set_size(Size::Physical(PhysicalSize::new(width, height)))
-        .map_err(|error| error.to_string())?;
-
-    overlay
-        .set_position(Position::Physical(PhysicalPosition::new(
-            bounds.x.round() as i32,
-            bounds.y.round() as i32,
-        )))
-        .map_err(|error| error.to_string())
-}
-
 fn normalize_main_window_state(main_window: &tauri::WebviewWindow) -> Result<(), String> {
     if main_window
         .is_fullscreen()
@@ -2084,7 +2101,7 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
             delta: None,
         });
     }
-    
+
     if action == "toggle-controls" {
         return Ok(ShortcutAction {
             action: String::from("toggle-controls"),
@@ -2293,6 +2310,55 @@ mod tests {
                 position_y: Some(0),
             })
         );
+    }
+
+    #[test]
+    fn test_resolve_main_window_restore_monitor_key_prefers_explicit_when_valid() {
+        let resolved = resolve_main_window_restore_monitor_key(
+            Some("Display A|3024x1964|0,0"),
+            Some("Display B|1920x1080|1920,0"),
+        );
+
+        assert_eq!(resolved, Some(String::from("Display A|3024x1964|0,0")));
+    }
+
+    #[test]
+    fn test_resolve_main_window_restore_monitor_key_uses_tracked_when_explicit_missing() {
+        let resolved =
+            resolve_main_window_restore_monitor_key(None, Some("Display B|1920x1080|1920,0"));
+
+        assert_eq!(resolved, Some(String::from("Display B|1920x1080|1920,0")));
+    }
+
+    #[test]
+    fn test_resolve_main_window_restore_monitor_key_uses_tracked_when_explicit_invalid() {
+        let resolved = resolve_main_window_restore_monitor_key(
+            Some("invalid-key"),
+            Some("Display B|1920x1080|1920,0"),
+        );
+
+        assert_eq!(resolved, Some(String::from("Display B|1920x1080|1920,0")));
+    }
+
+    #[test]
+    fn test_resolve_main_window_restore_monitor_key_returns_none_when_both_invalid() {
+        let resolved = resolve_main_window_restore_monitor_key(
+            Some("invalid-explicit"),
+            Some("invalid-tracked"),
+        );
+
+        assert_eq!(resolved, None);
+    }
+
+    #[test]
+    fn test_monitor_selection_key_from_parts_matches_expected_format() {
+        let key = monitor_selection_key_from_parts(
+            "Built-in Retina Display",
+            PhysicalSize::new(3024, 1964),
+            PhysicalPosition::new(0, 0),
+        );
+
+        assert_eq!(key, "Built-in Retina Display|3024x1964|0,0");
     }
 
     #[test]

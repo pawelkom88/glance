@@ -147,10 +147,10 @@ describe('OverlayPrompter behavior', () => {
     expect(tauriMocks.closeOverlayWindow).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Font size settings' }));
-    expect(screen.getByRole('dialog', { name: 'Font size controls' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Font size settings' })).toBeTruthy();
     await user.keyboard('{Escape}');
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Font size controls' })).toBeNull();
+      expect(screen.queryByRole('dialog', { name: 'Font size settings' })).toBeNull();
     });
     expect(tauriMocks.closeOverlayWindow).not.toHaveBeenCalled();
 
@@ -240,16 +240,30 @@ describe('OverlayPrompter behavior', () => {
     expect(tauriMocks.showMainWindow).toHaveBeenCalledTimes(1);
   });
 
+  it('restores the main window without passing a stale monitor override on close', async () => {
+    window.localStorage.setItem('glance-main-last-monitor-v1', 'External A|1920x1080|1920,0');
+    render(<OverlayPrompter />);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(tauriMocks.closeOverlayWindow).toHaveBeenCalledTimes(1);
+      expect(tauriMocks.showMainWindow).toHaveBeenCalledWith();
+    });
+  });
+
   it('applies speed keyboard shortcuts with visible speed feedback', () => {
     const { container } = render(<OverlayPrompter />);
+    act(() => {
+      useAppStore.setState({ scrollSpeed: 3.2, speedStep: 0.1 });
+    });
 
     fireEvent.keyDown(window, { key: 'ArrowUp', ctrlKey: true });
-    expect(useAppStore.getState().scrollSpeed).toBe(43);
+    expect(useAppStore.getState().scrollSpeed).toBe(3.3);
     expect(container.querySelector('.overlay-speed-bubble.is-visible')).toBeTruthy();
     expect(container.querySelector('.overlay-speed-icon-fast.is-animating')).toBeTruthy();
 
     fireEvent.keyDown(window, { key: 'ArrowDown', ctrlKey: true });
-    expect(useAppStore.getState().scrollSpeed).toBe(42);
+    expect(useAppStore.getState().scrollSpeed).toBe(3.2);
     expect(container.querySelector('.overlay-speed-icon-slow.is-animating')).toBeTruthy();
   });
 
@@ -289,10 +303,10 @@ describe('OverlayPrompter behavior', () => {
     });
 
     await user.click(screen.getByRole('button', { name: 'Font size settings' }));
-    expect(screen.getByRole('dialog', { name: 'Font size controls' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Font size settings' })).toBeTruthy();
     fireEvent.pointerDown(document.body);
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Font size controls' })).toBeNull();
+      expect(screen.queryByRole('dialog', { name: 'Font size settings' })).toBeNull();
     });
   });
 

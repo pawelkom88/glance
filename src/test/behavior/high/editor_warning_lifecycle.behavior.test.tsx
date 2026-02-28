@@ -19,10 +19,12 @@ const tauriMocks = vi.hoisted(() => ({
   hideMainWindow: vi.fn(),
   listenForLanguageChanged: vi.fn(),
   listenForMainWindowShown: vi.fn(),
+  listenForMonitorChanged: vi.fn(),
   listenForThemeChanged: vi.fn(),
   moveWindowToMonitor: vi.fn(),
   openOverlayWindow: vi.fn(),
-  parseMonitorPreferenceKey: vi.fn()
+  parseMonitorPreferenceKey: vi.fn(),
+  setLastMainMonitorName: vi.fn()
 }));
 
 vi.mock('../../../lib/tauri', async (importOriginal) => {
@@ -36,10 +38,12 @@ vi.mock('../../../lib/tauri', async (importOriginal) => {
     hideMainWindow: tauriMocks.hideMainWindow,
     listenForLanguageChanged: tauriMocks.listenForLanguageChanged,
     listenForMainWindowShown: tauriMocks.listenForMainWindowShown,
+    listenForMonitorChanged: tauriMocks.listenForMonitorChanged,
     listenForThemeChanged: tauriMocks.listenForThemeChanged,
     moveWindowToMonitor: tauriMocks.moveWindowToMonitor,
     openOverlayWindow: tauriMocks.openOverlayWindow,
-    parseMonitorPreferenceKey: tauriMocks.parseMonitorPreferenceKey
+    parseMonitorPreferenceKey: tauriMocks.parseMonitorPreferenceKey,
+    setLastMainMonitorName: tauriMocks.setLastMainMonitorName
   };
 });
 
@@ -51,6 +55,7 @@ describe('High behavior: editor warning lifecycle', () => {
     tauriMocks.listenForLanguageChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForThemeChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForMainWindowShown.mockResolvedValue(() => undefined);
+    tauriMocks.listenForMonitorChanged.mockResolvedValue(() => undefined);
     tauriMocks.openOverlayWindow.mockResolvedValue({ monitorName: 'Built-in', usedSavedBounds: false });
     tauriMocks.hideMainWindow.mockResolvedValue(undefined);
     tauriMocks.emitThemeChanged.mockResolvedValue(undefined);

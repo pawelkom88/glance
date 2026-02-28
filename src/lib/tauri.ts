@@ -639,8 +639,7 @@ export async function showMainWindow(): Promise<void> {
   if (!inTauri()) {
     return;
   }
-  const savedMonitorKey = getLastMainMonitorName();
-  await invoke('show_main_window', { savedMonitorKey });
+  await invoke('show_main_window');
 }
 
 export async function startOverlayDrag(): Promise<void> {

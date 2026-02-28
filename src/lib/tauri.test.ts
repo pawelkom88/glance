@@ -136,15 +136,13 @@ describe('tauri monitor bridge behavior', () => {
     expect(invokeMock).toHaveBeenCalledWith('move_main_to_monitor', { monitorName: 'monitor-main' });
   });
 
-  it('showMainWindow forwards saved main monitor id to backend', async () => {
+  it('showMainWindow lets backend restore monitor state without frontend override', async () => {
     window.localStorage.setItem(mainMonitorKey, 'saved-main-monitor');
     invokeMock.mockResolvedValue(undefined);
 
     await showMainWindow();
 
-    expect(invokeMock).toHaveBeenCalledWith('show_main_window', {
-      savedMonitorKey: 'saved-main-monitor'
-    });
+    expect(invokeMock).toHaveBeenCalledWith('show_main_window');
   });
 
   it('getMonitors returns backend monitor metadata sorted primary-first', async () => {

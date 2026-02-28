@@ -15,11 +15,13 @@ import {
   getLastMainMonitorName,
   hideMainWindow,
   listenForLanguageChanged,
+  listenForMonitorChanged,
   listenForThemeChanged,
   listenForMainWindowShown,
   moveWindowToMonitor,
   openOverlayWindow,
-  parseMonitorPreferenceKey
+  parseMonitorPreferenceKey,
+  setLastMainMonitorName
 } from './lib/tauri';
 import { useAppStore } from './store/use-app-store';
 import { useI18n } from './i18n/use-i18n';
@@ -449,6 +451,33 @@ export default function App() {
       return;
     }
 
+    let didCancel = false;
+    let unlisten: (() => void) | null = null;
+
+    void listenForMonitorChanged((payload) => {
+      if (didCancel) {
+        return;
+      }
+      setLastMainMonitorName(payload.compositeKey);
+    }).then((detach) => {
+      if (didCancel) {
+        detach();
+        return;
+      }
+      unlisten = detach;
+    });
+
+    return () => {
+      didCancel = true;
+      unlisten?.();
+    };
+  }, [isOverlay]);
+
+  useEffect(() => {
+    if (!isTauri() || isOverlay) {
+      return;
+    }
+
     const savedMonitorKey = getLastMainMonitorName();
     if (!savedMonitorKey) {
       return;
@@ -620,7 +649,7 @@ export default function App() {
           }}
           onCloseOverlay={() => {
             void closeOverlayWindow().catch((error) => {
-              const message = error instanceof Error ? error.message : t('editor.closeErrorToast');
+              const message = error instanceof Error ? error.message : t('overlay.closeErrorToast');
               showToast(message, 'error');
             });
           }}
