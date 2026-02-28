@@ -17,11 +17,20 @@ vi.mock('./components/library-view', () => ({
 }));
 
 vi.mock('./components/editor-view', () => ({
-  EditorView: ({ onCreateSession, onExportMarkdown }: { onCreateSession: () => void; onExportMarkdown: () => void }) => (
+  EditorView: ({
+    onCreateSession,
+    onExportMarkdown,
+    onLaunchOverlay
+  }: {
+    onCreateSession: () => void;
+    onExportMarkdown: () => void;
+    onLaunchOverlay: () => void;
+  }) => (
     <div>
       <div>Editor Mock</div>
       <button type="button" onClick={onCreateSession}>Trigger New Session</button>
       <button type="button" onClick={onExportMarkdown}>Trigger Export</button>
+      <button type="button" onClick={onLaunchOverlay}>Trigger Launch</button>
     </div>
   )
 }));
@@ -61,6 +70,7 @@ import * as tauriBridge from './lib/tauri';
 const tauriMock = tauriBridge as unknown as {
   getLastMainMonitorName: ReturnType<typeof vi.fn>;
   moveWindowToMonitor: ReturnType<typeof vi.fn>;
+  openOverlayWindow: ReturnType<typeof vi.fn>;
   parseMonitorPreferenceKey: ReturnType<typeof vi.fn>;
 };
 
@@ -205,6 +215,69 @@ describe('App shell behavior', () => {
     expect(useAppStore.getState().toastMessage).toEqual({
       message: 'Open a session before exporting',
       variant: 'warning'
+    });
+  });
+
+  it('shows invalid-structure warning and blocks launch when markdown has no headings', async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({
+      activeSessionId: baseSession.id,
+      markdown: 'Just plain text',
+      parseWarnings: parseMarkdown('Just plain text').warnings
+    });
+
+    render(<App />);
+
+    await user.click(screen.getByTitle('Scripts'));
+    await waitFor(() => {
+      expect(screen.queryByText('Editor Mock')).not.toBeNull();
+    });
+    await user.click(screen.getByRole('button', { name: 'Trigger Launch' }));
+
+    expect(useAppStore.getState().toastMessage).toEqual({
+      message: 'Invalid file structure: Add at least one heading (# Title) to your file to use it as a prompter session.',
+      variant: 'warning'
+    });
+    expect(tauriMock.openOverlayWindow).not.toHaveBeenCalled();
+  });
+
+  it('shows select-file warning and blocks launch when no session is active', async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({ activeSessionId: null });
+
+    render(<App />);
+
+    await user.click(screen.getByTitle('Scripts'));
+    await waitFor(() => {
+      expect(screen.queryByText('Editor Mock')).not.toBeNull();
+    });
+    await user.click(screen.getByRole('button', { name: 'Trigger Launch' }));
+
+    expect(useAppStore.getState().toastMessage).toEqual({
+      message: 'Select a file to get started.',
+      variant: 'warning'
+    });
+    expect(tauriMock.openOverlayWindow).not.toHaveBeenCalled();
+  });
+
+  it('keeps happy-path launch behavior unchanged when markdown is valid', async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({
+      activeSessionId: baseSession.id,
+      markdown: '# Intro\n\nReady',
+      parseWarnings: parseMarkdown('# Intro\n\nReady').warnings
+    });
+
+    render(<App />);
+
+    await user.click(screen.getByTitle('Scripts'));
+    await waitFor(() => {
+      expect(screen.queryByText('Editor Mock')).not.toBeNull();
+    });
+    await user.click(screen.getByRole('button', { name: 'Trigger Launch' }));
+
+    await waitFor(() => {
+      expect(tauriMock.openOverlayWindow).toHaveBeenCalledTimes(1);
     });
   });
 

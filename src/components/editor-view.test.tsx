@@ -36,7 +36,7 @@ describe('EditorView behavior', () => {
     expect(screen.queryByText('No session selected')).not.toBeNull();
   });
 
-  it('disables launch controls when no sections exist', () => {
+  it('keeps launch controls enabled when no sections exist', () => {
     renderEditor({
       sections: [],
       markdown: 'No headings yet'
@@ -44,7 +44,7 @@ describe('EditorView behavior', () => {
 
     expect(
       (screen.getByRole('button', { name: 'Launch Prompter' }) as HTMLButtonElement).disabled
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('shows word count and estimated read duration based on markdown content', () => {

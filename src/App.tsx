@@ -396,18 +396,20 @@ export default function App() {
   }, [clearToast, toastMessage]);
 
   useEffect(() => {
-    if (parseWarnings.length === 0) {
+    const displayWarnings = parseWarnings.filter((warning) => warning.code !== 'missing-h1');
+
+    if (displayWarnings.length === 0) {
       warningSignatureRef.current = '';
       return;
     }
 
-    const signature = parseWarnings.map((warning) => `${warning.code}-${warning.lineIndex ?? 0}`).join('|');
+    const signature = displayWarnings.map((warning) => `${warning.code}-${warning.lineIndex ?? 0}`).join('|');
     if (signature === warningSignatureRef.current) {
       return;
     }
 
     warningSignatureRef.current = signature;
-    showToast(parseWarnings[0].message, 'warning');
+    showToast(displayWarnings[0].message, 'warning');
   }, [parseWarnings, showToast]);
 
   useEffect(() => {
@@ -581,6 +583,19 @@ export default function App() {
             })();
           }}
           onLaunchOverlay={() => {
+            if (!activeSessionId) {
+              showToast('Select a file to get started.', 'warning');
+              return;
+            }
+
+            if (sections.length === 0) {
+              showToast(
+                'Invalid file structure: Add at least one heading (# Title) to your file to use it as a prompter session.',
+                'warning'
+              );
+              return;
+            }
+
             void (async () => {
               try {
                 const persisted = await persistActiveSession();

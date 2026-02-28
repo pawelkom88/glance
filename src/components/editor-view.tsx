@@ -85,8 +85,7 @@ export function EditorView(props: EditorViewProps) {
   void onOpenShortcutSettings;
   void warnings;
   const { t } = useI18n();
-  const hasSections = sections.length > 0;
-  const sectionCount = (markdown.match(/^#{1,6}\s/gm) ?? []).length;
+  const sectionCount = sections.length;
   const wordCount = markdown.trim() ? markdown.trim().split(/\s+/).filter(Boolean).length : 0;
   const scriptWordsLabel = t('editor.wordCountApprox', { count: wordCount });
   const estimatedRead = estimateReadDuration(wordCount, t);
@@ -183,7 +182,6 @@ export function EditorView(props: EditorViewProps) {
           type="button"
           className="editor-mobile-launch"
           onClick={onLaunchOverlay}
-          disabled={!hasSections}
         >
           <RocketIcon />
           {t('editor.launch')}
@@ -235,7 +233,6 @@ export function EditorView(props: EditorViewProps) {
               type="button"
               className="editor-sidebar-launch"
               onClick={onLaunchOverlay}
-              disabled={!hasSections}
             >
               <RocketIcon />
               {t('editor.launchPrompter')}
