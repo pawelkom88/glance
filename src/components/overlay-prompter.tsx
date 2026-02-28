@@ -37,7 +37,7 @@ const baseLineHeight = 54;
 const overlayLineGapPx = 10;
 const fadeDurationMs = 140;
 const minFontScale = 0.85;
-const maxFontScale = 1.8;
+const maxFontScale = 2.0;
 const fontScaleStep = 0.05;
 const nonDraggableSelector = 'button, input, select, textarea, a, [role="menuitem"], [data-overlay-no-drag="true"]';
 const timerPrefsStorageKey = 'glance-overlay-timer-prefs-v1';

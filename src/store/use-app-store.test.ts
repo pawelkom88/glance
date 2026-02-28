@@ -239,7 +239,7 @@ describe('useAppStore session lifecycle behavior', () => {
     expect(useAppStore.getState().overlayFontScale).toBe(1.33);
 
     useAppStore.getState().setOverlayFontScale(9);
-    expect(useAppStore.getState().overlayFontScale).toBe(1.8);
+    expect(useAppStore.getState().overlayFontScale).toBe(2.0);
   });
 
   it('does not change scroll position for invalid section indexes', () => {

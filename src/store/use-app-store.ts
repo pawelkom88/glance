@@ -311,7 +311,7 @@ function normalizeFontScale(value: number | undefined): number {
     return 1;
   }
 
-  return Math.max(0.85, Math.min(1.8, Number(value.toFixed(2))));
+  return Math.max(0.85, Math.min(2.0, Number(value.toFixed(2))));
 }
 
 function persistOverlayState(state: AppStoreState): void {
