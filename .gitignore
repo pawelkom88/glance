@@ -3,4 +3,7 @@ node_modules
 /src-tauri/target
 .DS_Store
 *.log
-/docs
+/docs/*
+!/docs/testing/
+/docs/testing/*
+!/docs/testing/behavioral-testing.md

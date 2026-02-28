@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "test:frontend": "vitest run --exclude src/test/behavior/**",
+    "test:behavior": "vitest run --config vitest.behavior.config.ts",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:critical": "vitest run --config vitest.behavior.config.ts src/test/behavior/critical && cargo test --manifest-path src-tauri/Cargo.toml runtime_",
     "i18n:audit": "node scripts/i18n-audit.mjs",
     "i18n:audit:strict": "node scripts/i18n-audit.mjs --strict",
     "preview": "vite preview",
