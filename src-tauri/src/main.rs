@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod license;
 mod sessions;
 
 use std::collections::HashMap;
@@ -268,7 +269,11 @@ fn main() {
             commands::snap_overlay_to_center,
             commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
-            commands::export_diagnostics
+            commands::export_diagnostics,
+            license::check_status,
+            license::purchase_unlock,
+            license::restore_purchases,
+            license::get_unlock_product
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Glance application");
