@@ -6014,11 +6014,6 @@ body.is-session-dragging * {
     box-sizing: border-box;
   }
 
-  .overlay-compact-dock.is-collapsed .overlay-compact-context-bar>.overlay-font-popover-compact {
-    top: auto;
-    bottom: calc(100% + 6px);
-  }
-
   .overlay-compact-utility-cluster .overlay-top-actions {
     flex-direction: row;
     align-items: center;
