@@ -22,6 +22,9 @@ fn runtime_contract_session_roundtrip_includes_scroll_and_overlay_defaults() {
     assert!(!loaded.meta.scroll.running);
     assert_eq!(loaded.meta.overlay.font_scale, 1.0);
     assert_eq!(loaded.meta.word_count, 5);
+
+    let folders = sessions::list_folders(root).expect("list folders");
+    assert!(folders.is_empty());
 }
 
 #[test]

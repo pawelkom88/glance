@@ -68,4 +68,7 @@ fn runtime_session_restore_returns_error_for_missing_backup_file() {
     let result = sessions::restore_from_backup(&missing);
 
     assert!(result.is_err());
+
+    let folders = sessions::list_folders(root).expect("list folders");
+    assert!(folders.is_empty());
 }

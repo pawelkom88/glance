@@ -39,4 +39,7 @@ fn runtime_visibility_shortcut_preserves_running_flag_roundtrip() {
 
     let paused_loaded = sessions::load_session(root, created.id).expect("reload paused");
     assert!(!paused_loaded.meta.scroll.running);
+
+    let folders = sessions::list_folders(root).expect("list folders");
+    assert!(folders.is_empty());
 }
