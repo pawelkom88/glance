@@ -29,6 +29,9 @@ jobs:
       - name: Run critical frontend behavior tests
         run: pnpm exec vitest run --config vitest.behavior.config.ts src/test/behavior/critical
 
+      - name: Ensure frontendDist exists for Rust compile
+        run: node -e "require('fs').mkdirSync('dist', { recursive: true })"
+
       - name: Run runtime contract tests (retry once)
         uses: nick-fields/retry@v3
         with:
@@ -59,6 +62,9 @@ jobs:
       - name: Run critical frontend behavior tests
         run: pnpm exec vitest run --config vitest.behavior.config.ts src/test/behavior/critical
 
+      - name: Ensure frontendDist exists for Rust compile
+        run: node -e "require('fs').mkdirSync('dist', { recursive: true })"
+
       - name: Run runtime contract tests (retry once)
         uses: nick-fields/retry@v3
         with:
@@ -73,6 +79,9 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Ensure frontendDist exists for Rust compile
+        run: mkdir -p dist
 
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
