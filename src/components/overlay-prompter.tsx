@@ -1631,7 +1631,7 @@ export function OverlayPrompter() {
     }
 
     const timer = window.setTimeout(() => {
-      fontMenuRef.current?.querySelector<HTMLButtonElement>('[data-font-focus="true"]')?.focus();
+      fontMenuRef.current?.querySelector<HTMLButtonElement>('[data-font-focus="true"]')?.focus({ preventScroll: true });
     }, 0);
 
     return () => {
@@ -1936,6 +1936,165 @@ export function OverlayPrompter() {
       moveFocus(items.length - 1);
     }
   }, []);
+
+  const logFontPopoverLayoutDebug = useCallback((phase: string) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    if (window.localStorage.getItem('glance-font-popover-debug') !== '1') {
+      return;
+    }
+
+    if (!isCompactTopBar || !isFontMenuOpen) {
+      return;
+    }
+
+    const toSnapshot = (element: HTMLElement | null) => {
+      if (!element) {
+        return null;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+
+      return {
+        className: element.className,
+        rect: {
+          left: Math.round(rect.left),
+          top: Math.round(rect.top),
+          right: Math.round(rect.right),
+          bottom: Math.round(rect.bottom),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height)
+        },
+        display: style.display,
+        position: style.position,
+        zIndex: style.zIndex,
+        overflow: style.overflow,
+        backgroundColor: style.backgroundColor,
+        gridTemplateRows: style.gridTemplateRows
+      };
+    };
+
+    const overlayRoot = overlayRootRef.current;
+    const compactDock = document.querySelector<HTMLElement>('.overlay-compact-dock');
+    const contextBar = document.querySelector<HTMLElement>('.overlay-compact-context-bar');
+    const collapsible = document.querySelector<HTMLElement>('.overlay-controls-collapsible');
+    const compactControlBar = document.querySelector<HTMLElement>('.overlay-compact-control-bar');
+    const popover = document.querySelector<HTMLElement>('.overlay-font-popover-compact');
+    const rightSidebar = document.querySelector<HTMLElement>('.overlay-right-sidebar');
+    const content = document.querySelector<HTMLElement>('.overlay-content');
+
+    let gapProbe: { x: number; y: number; element: string | null } | null = null;
+
+    if (overlayRoot && contextBar && popover) {
+      const rootRect = overlayRoot.getBoundingClientRect();
+      const contextRect = contextBar.getBoundingClientRect();
+      const popoverRect = popover.getBoundingClientRect();
+
+      const probeTop = Math.round(contextRect.bottom + 6);
+      const probeBottom = Math.round(Math.min(popoverRect.top - 6, rootRect.bottom - 6));
+      const probeX = Math.round(popoverRect.left + (popoverRect.width / 2));
+
+      if (probeBottom >= probeTop) {
+        const probeY = Math.round((probeTop + probeBottom) / 2);
+        const element = document.elementFromPoint(probeX, probeY) as HTMLElement | null;
+        gapProbe = {
+          x: probeX,
+          y: probeY,
+          element: element ? `${element.tagName.toLowerCase()}.${element.className}` : null
+        };
+      }
+    }
+
+    const buildHitMap = (x: number) => {
+      if (!overlayRoot) {
+        return [];
+      }
+
+      const rootRect = overlayRoot.getBoundingClientRect();
+      const startY = Math.round(rootRect.top + 6);
+      const endY = Math.round(rootRect.bottom - 6);
+      const step = 24;
+      const rows: Array<{
+        y: number;
+        element: string | null;
+        bg: string | null;
+        zIndex: string | null;
+      }> = [];
+
+      for (let y = startY; y <= endY; y += step) {
+        const hit = document.elementFromPoint(x, y) as HTMLElement | null;
+        const hitStyle = hit ? window.getComputedStyle(hit) : null;
+        rows.push({
+          y,
+          element: hit ? `${hit.tagName.toLowerCase()}.${hit.className}` : null,
+          bg: hitStyle?.backgroundColor ?? null,
+          zIndex: hitStyle?.zIndex ?? null
+        });
+      }
+
+      return rows;
+    };
+
+    const rootRect = overlayRoot?.getBoundingClientRect() ?? null;
+    const centerX = rootRect ? Math.round(rootRect.left + (rootRect.width / 2)) : 0;
+    const rightX = rootRect ? Math.round(rootRect.right - 120) : 0;
+    const hitMapCenter = buildHitMap(centerX);
+    const hitMapRight = buildHitMap(rightX);
+
+    console.groupCollapsed(`[font-popover-debug] ${phase}`);
+    console.log('state', {
+      isCompactTopBar,
+      isControlsCollapsed,
+      isFontMenuOpen
+    });
+    console.log('overlay-root', toSnapshot(overlayRoot));
+    console.log('overlay-content', toSnapshot(content));
+    console.log('overlay-right-sidebar', toSnapshot(rightSidebar));
+    console.log('overlay-compact-dock', toSnapshot(compactDock));
+    console.log('overlay-compact-context-bar', toSnapshot(contextBar));
+    console.log('overlay-controls-collapsible', toSnapshot(collapsible));
+    console.log('overlay-compact-control-bar', toSnapshot(compactControlBar));
+    console.log('overlay-font-popover-compact', toSnapshot(popover));
+    console.log('gap-probe', gapProbe);
+    console.log('flat-metrics', JSON.stringify({
+      overlayRoot: toSnapshot(overlayRoot),
+      overlayContent: toSnapshot(content),
+      overlayRightSidebar: toSnapshot(rightSidebar),
+      overlayCompactDock: toSnapshot(compactDock),
+      overlayCompactContextBar: toSnapshot(contextBar),
+      overlayControlsCollapsible: toSnapshot(collapsible),
+      overlayCompactControlBar: toSnapshot(compactControlBar),
+      overlayFontPopoverCompact: toSnapshot(popover),
+      gapProbe
+    }, null, 2));
+    console.log('hit-map-center-x', centerX, hitMapCenter);
+    console.log('hit-map-right-x', rightX, hitMapRight);
+    console.groupEnd();
+  }, [isCompactTopBar, isControlsCollapsed, isFontMenuOpen]);
+
+  useEffect(() => {
+    if (!isFontMenuOpen || !isCompactTopBar) {
+      return;
+    }
+
+    logFontPopoverLayoutDebug('open-sync');
+
+    const rafId = window.requestAnimationFrame(() => {
+      logFontPopoverLayoutDebug('open-raf');
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      logFontPopoverLayoutDebug('open-200ms');
+    }, 200);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [isCompactTopBar, isFontMenuOpen, isControlsCollapsed, logFontPopoverLayoutDebug]);
 
   useEffect(() => {
     const updateRuler = () => {

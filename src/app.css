@@ -4813,7 +4813,7 @@ body.is-session-dragging * {
 }
 
 .overlay-font-popover {
-  width: min(350px, calc(100vw - 360px));
+  width: min(280px, calc(100vw - 360px));
   display: grid;
   gap: 9px;
 }
@@ -5899,7 +5899,7 @@ body.is-session-dragging * {
 @media (max-width: 1200px) {
   .overlay-root {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .overlay-left-sidebar {
@@ -5927,13 +5927,16 @@ body.is-session-dragging * {
   }
 
   .overlay-right-sidebar {
-    grid-column: 1;
-    grid-row: 2;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
     border-left: 0;
     border-top: 1px solid var(--overlay-divider);
     background: var(--overlay-controls-bg);
     padding: 14px 16px;
     display: block;
+    z-index: 30;
   }
 
   .overlay-compact-dock {
@@ -6007,8 +6010,13 @@ body.is-session-dragging * {
     right: 0;
     width: min(280px, calc(100vw - 32px));
     max-width: calc(100vw - 32px);
-    z-index: 260;
+    z-index: 420;
     box-sizing: border-box;
+  }
+
+  .overlay-compact-dock.is-collapsed .overlay-compact-context-bar>.overlay-font-popover-compact {
+    top: auto;
+    bottom: calc(100% + 6px);
   }
 
   .overlay-compact-utility-cluster .overlay-top-actions {
@@ -6047,6 +6055,10 @@ body.is-session-dragging * {
     background-color: transparent;
     opacity: 0;
     pointer-events: none;
+  }
+
+  .overlay-controls-collapsible.is-collapsed {
+    display: none;
   }
 
   .overlay-compact-control-bar .overlay-controls {
