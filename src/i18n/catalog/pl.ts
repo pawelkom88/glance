@@ -260,7 +260,7 @@ export const plCatalog: TranslationCatalog = {
         countUp: 'Licz w górę',
         countDown: 'Licz w dół',
         dim: 'PRZYCIEMNIJ',
-        pressToToggle: ({ key }) => `Naciśnij ${key}, aby przełączyć prompter`,
+        pressToToggle: ({ key }) => `Naciśnij ${key}, aby schować prompter`,
         fontSizeSettings: 'Ustawienia wielkości czcionki',
         fontSize: 'Wielkość czcionki',
         decreaseFontSize: 'Zmniejsz wielkość czcionki',
