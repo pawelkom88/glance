@@ -1,5 +1,5 @@
 export type ShortcutActionId =
-  | 'toggle-overlay'
+  | 'hide-overlay'
   | 'snap-to-center'
   | 'toggle-play'
   | 'speed-up'
@@ -29,7 +29,7 @@ export interface ShortcutDefinition {
 }
 
 export const shortcutDefinitions: readonly ShortcutDefinition[] = [
-  { action: 'toggle-overlay', label: 'settingsView.shortcuts.togglePrompter' },
+  { action: 'hide-overlay', label: 'settingsView.shortcuts.hidePrompter' },
   { action: 'snap-to-center', label: 'settingsView.shortcuts.snapToCenter' },
   { action: 'toggle-play', label: 'settingsView.shortcuts.playPause' },
   { action: 'start-over', label: 'settingsView.shortcuts.rewind' },
@@ -77,7 +77,7 @@ function migrateLegacyDefaults(config: ShortcutConfig): ShortcutConfig {
 export function defaultShortcutConfig(): ShortcutConfig {
   const modifier = platformPrimaryModifier();
   return {
-    'toggle-overlay': `${modifier}+Shift+K`,
+    'hide-overlay': `${modifier}+Shift+K`,
     'snap-to-center': `${modifier}+Shift+L`,
     'toggle-play': 'Space',
     'start-over': 'R',
@@ -104,7 +104,11 @@ export function loadShortcutConfig(): ShortcutConfig {
   }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<ShortcutConfig>;
+    const parsed = JSON.parse(raw) as Partial<ShortcutConfig> & { 'toggle-overlay'?: string };
+    if (typeof parsed['toggle-overlay'] === 'string' && typeof parsed['hide-overlay'] !== 'string') {
+      parsed['hide-overlay'] = parsed['toggle-overlay'];
+    }
+    delete parsed['toggle-overlay'];
     const migrated = Object.fromEntries(
       Object.entries(parsed).map(([key, value]) => [key, typeof value === 'string' ? migrateModifier(value) : value])
     ) as Partial<ShortcutConfig>;

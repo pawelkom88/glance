@@ -17,8 +17,9 @@ const OVERLAY_MIN_HEIGHT: u32 = 200;
 const OVERLAY_DEFAULT_WIDTH: u32 = 1120;
 const OVERLAY_DEFAULT_HEIGHT: u32 = 400;
 const MAIN_WINDOW_MOVE_SETTLE_MS: u64 = 50;
-const TOGGLE_OVERLAY_ACTION: &str = "toggle-overlay";
-const TOGGLE_OVERLAY_DEFAULT_ACCELERATOR: &str = "CmdOrCtrl+Shift+K";
+const HIDE_OVERLAY_ACTION: &str = "hide-overlay";
+const LEGACY_TOGGLE_OVERLAY_ACTION: &str = "toggle-overlay";
+const HIDE_OVERLAY_DEFAULT_ACCELERATOR: &str = "CmdOrCtrl+Shift+K";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -185,14 +186,16 @@ pub fn apply_bindings(
     Ok(())
 }
 
-fn find_toggle_overlay_binding(bindings: &[ShortcutBinding]) -> Option<ShortcutBinding> {
+fn find_hide_overlay_binding(bindings: &[ShortcutBinding]) -> Option<ShortcutBinding> {
     bindings
         .iter()
-        .find(|binding| binding.action == TOGGLE_OVERLAY_ACTION)
+        .find(|binding| {
+            binding.action == HIDE_OVERLAY_ACTION || binding.action == LEGACY_TOGGLE_OVERLAY_ACTION
+        })
         .cloned()
 }
 
-pub fn apply_toggle_overlay_binding_only(app: &AppHandle, state: &AppState) -> Result<(), String> {
+pub fn apply_hide_overlay_binding_only(app: &AppHandle, state: &AppState) -> Result<(), String> {
     let manager = app.global_shortcut();
     let _ = manager.unregister_all();
 
@@ -200,10 +203,10 @@ pub fn apply_toggle_overlay_binding_only(app: &AppHandle, state: &AppState) -> R
         .active_bindings
         .lock()
         .ok()
-        .and_then(|bindings| find_toggle_overlay_binding(&bindings))
+        .and_then(|bindings| find_hide_overlay_binding(&bindings))
         .unwrap_or(ShortcutBinding {
-            action: String::from(TOGGLE_OVERLAY_ACTION),
-            accelerator: String::from(TOGGLE_OVERLAY_DEFAULT_ACCELERATOR),
+            action: String::from(HIDE_OVERLAY_ACTION),
+            accelerator: String::from(HIDE_OVERLAY_DEFAULT_ACCELERATOR),
         });
 
     if is_os_reserved_shortcut(&binding.accelerator) {
@@ -227,7 +230,7 @@ pub fn apply_toggle_overlay_binding_only(app: &AppHandle, state: &AppState) -> R
     action_map.insert(
         normalize_shortcut_text(&shortcut.to_string()),
         ShortcutAction {
-            action: String::from(TOGGLE_OVERLAY_ACTION),
+            action: String::from(HIDE_OVERLAY_ACTION),
             index: None,
             delta: None,
         },
@@ -422,7 +425,7 @@ fn hide_overlay_window_inner(app: &AppHandle, state: &AppState) -> Result<(), St
         .ok_or_else(|| String::from("Overlay window is not available"))?;
 
     overlay.hide().map_err(|error| error.to_string())?;
-    apply_toggle_overlay_binding_only(app, state)?;
+    apply_hide_overlay_binding_only(app, state)?;
     Ok(())
 }
 
@@ -435,26 +438,32 @@ pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
     main_window.hide().map_err(|error| error.to_string())
 }
 
-fn toggle_overlay_visibility(app: &AppHandle, state: &AppState) -> Result<(), String> {
+fn hide_glance_when_overlay_visible(app: &AppHandle, state: &AppState) -> Result<(), String> {
     let overlay = app
         .get_webview_window("overlay")
         .ok_or_else(|| String::from("Overlay window is not available"))?;
-    let is_visible = overlay.is_visible().map_err(|error| error.to_string())?;
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| String::from("Main window is not available"))?;
+    let is_overlay_visible = overlay.is_visible().map_err(|error| error.to_string())?;
+    let is_main_visible = main_window.is_visible().map_err(|error| error.to_string())?;
 
-    if is_visible {
+    if is_overlay_visible {
         hide_overlay_window_inner(app, state)?;
-        if let Some(main_window) = app.get_webview_window("main") {
-            let _ = main_window.show();
-            let _ = main_window.set_focus();
-            let _ = app.emit_to("main", "main-window-shown", ());
-        }
+        main_window.hide().map_err(|error| error.to_string())?;
         return Ok(());
     }
 
-    show_overlay_window_inner(app, state)?;
-    if let Some(main_window) = app.get_webview_window("main") {
-        let _ = main_window.hide();
+    // If both windows are hidden (shortcut-hidden state), restore only the
+    // overlay and return focus there for instant resume.
+    if !is_overlay_visible && !is_main_visible {
+        overlay.show().map_err(|error| error.to_string())?;
+        overlay.set_focus().map_err(|error| error.to_string())?;
+        recover_overlay_focus_inner(app, state)?;
     }
+
+    // If overlay is hidden while main is visible, keep this as no-op. This
+    // avoids unexpectedly opening overlay when user is just in the editor.
     Ok(())
 }
 
@@ -526,13 +535,13 @@ pub fn register_shortcuts(
     // Register to validate conflicts and activate shortcuts.
     apply_bindings(&app, &bindings, &state)?;
 
-    // If overlay is not focused, keep only the global toggle shortcut active.
+    // If overlay is not focused, keep only the global hide shortcut active.
     if let Some(overlay) = app.get_webview_window("overlay") {
         if !overlay.is_focused().unwrap_or(false) {
-            apply_toggle_overlay_binding_only(&app, &state)?;
+            apply_hide_overlay_binding_only(&app, &state)?;
         }
     } else {
-        apply_toggle_overlay_binding_only(&app, &state)?;
+        apply_hide_overlay_binding_only(&app, &state)?;
     }
 
     Ok(())
@@ -957,7 +966,7 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
         .and_then(|locked| locked.get(&normalized).cloned());
 
     if let Some(action) = action {
-        if action.action == TOGGLE_OVERLAY_ACTION {
+        if action.action == HIDE_OVERLAY_ACTION {
             // Avoid mutating global shortcut registrations inside the plugin
             // callback stack; macOS can deadlock when unregister/register is
             // performed synchronously while dispatching a hotkey event.
@@ -966,7 +975,7 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
                 let app_for_main_thread = app_handle.clone();
                 let _ = app_handle.run_on_main_thread(move || {
                     let state = app_for_main_thread.state::<AppState>();
-                    let _ = toggle_overlay_visibility(&app_for_main_thread, &state);
+                    let _ = hide_glance_when_overlay_visible(&app_for_main_thread, &state);
                 });
             });
             return;
@@ -2012,9 +2021,9 @@ fn is_os_reserved_shortcut(accelerator: &str) -> bool {
 }
 
 fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
-    if action == TOGGLE_OVERLAY_ACTION {
+    if action == HIDE_OVERLAY_ACTION || action == LEGACY_TOGGLE_OVERLAY_ACTION {
         return Ok(ShortcutAction {
-            action: String::from(TOGGLE_OVERLAY_ACTION),
+            action: String::from(HIDE_OVERLAY_ACTION),
             index: None,
             delta: None,
         });
@@ -2090,8 +2099,8 @@ fn binding_to_shortcut_action(action: &str) -> Result<ShortcutAction, String> {
 fn default_shortcut_bindings() -> Vec<ShortcutBinding> {
     vec![
         ShortcutBinding {
-            action: String::from(TOGGLE_OVERLAY_ACTION),
-            accelerator: String::from(TOGGLE_OVERLAY_DEFAULT_ACCELERATOR),
+            action: String::from(HIDE_OVERLAY_ACTION),
+            accelerator: String::from(HIDE_OVERLAY_DEFAULT_ACCELERATOR),
         },
         ShortcutBinding {
             action: String::from("toggle-play"),

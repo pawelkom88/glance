@@ -18,7 +18,7 @@ describe('shortcut config', () => {
     const config = defaultShortcutConfig();
     const expected = navigator.platform.toLowerCase().includes('mac') ? 'Cmd' : 'Ctrl';
 
-    expect(config['toggle-overlay']).toBe(`${expected}+Shift+K`);
+    expect(config['hide-overlay']).toBe(`${expected}+Shift+K`);
     expect(config['speed-up']).toBe(`${expected}+Up`);
     expect(config['speed-down']).toBe(`${expected}+Down`);
     expect(config['jump-1']).toBe(`${expected}+1`);
@@ -54,8 +54,8 @@ describe('shortcut config', () => {
 
     const validation = validateShortcutConfig(config);
     expect(validation).toContain('Duplicate shortcut');
-    expect(validation).toContain('Play/Pause');
-    expect(validation).toContain('Rewind');
+    expect(validation).toContain('settingsView.shortcuts.playPause');
+    expect(validation).toContain('settingsView.shortcuts.rewind');
   });
 
   it('converts config to bindings preserving definition order', () => {
@@ -65,10 +65,10 @@ describe('shortcut config', () => {
     expect(bindings.map((binding) => binding.action)).toEqual(
       shortcutDefinitions.map((definition) => definition.action)
     );
-    const toggleBinding = bindings.find((binding) => binding.action === 'toggle-overlay');
+    const toggleBinding = bindings.find((binding) => binding.action === 'hide-overlay');
     expect(toggleBinding).toEqual({
-      action: 'toggle-overlay',
-      accelerator: config['toggle-overlay']
+      action: 'hide-overlay',
+      accelerator: config['hide-overlay']
     });
   });
 });

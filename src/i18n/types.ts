@@ -306,7 +306,7 @@ export interface TranslationCatalog {
       readonly restartScript: string;
       readonly fontSize: string;
       readonly changeSpeed: string;
-      readonly togglePrompter: string;
+      readonly hidePrompter: string;
       readonly snapToCenter: string;
       readonly toggleControls: string;
       readonly rewind: string;

@@ -298,7 +298,7 @@ export const esCatalog: TranslationCatalog = {
       restartScript: 'Reiniciar guion',
       fontSize: 'Tamaño de fuente',
       changeSpeed: 'Cambiar velocidad',
-      togglePrompter: 'Alternar prompter (Global)',
+      hidePrompter: 'Ocultar prompter (Global)',
       snapToCenter: 'Centrar prompter',
       toggleControls: 'Alternar controles',
       rewind: 'Rebobinar',

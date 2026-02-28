@@ -298,7 +298,7 @@ export const enCatalog: TranslationCatalog = {
       restartScript: 'Restart Script',
       fontSize: 'Font Size',
       changeSpeed: 'Change Speed',
-      togglePrompter: 'Toggle Prompter (Global)',
+      hidePrompter: 'Hide Prompter (Global)',
       snapToCenter: 'Snap To Center',
       toggleControls: 'Toggle Controls',
       rewind: 'Rewind',

@@ -32,7 +32,7 @@ import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types
 import { ShortcutKeycaps } from './shortcut-keycaps';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
-const globalActions: readonly ShortcutActionId[] = ['toggle-overlay', 'snap-to-center', 'toggle-controls'];
+const globalActions: readonly ShortcutActionId[] = ['hide-overlay', 'snap-to-center', 'toggle-controls'];
 const jumpActions: readonly ShortcutActionId[] = [
   'jump-1',
   'jump-2',

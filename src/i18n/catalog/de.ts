@@ -298,7 +298,7 @@ export const deCatalog: TranslationCatalog = {
             restartScript: 'Skript neu starten',
             fontSize: 'Schriftgröße',
             changeSpeed: 'Geschwindigkeit ändern',
-            togglePrompter: 'Prompter umschalten (Global)',
+            hidePrompter: 'Prompter ausblenden (Global)',
             snapToCenter: 'An der Mitte ausrichten',
             toggleControls: 'Bedienelemente umschalten',
             rewind: 'Zurückspulen',

@@ -25,7 +25,7 @@ pub struct AppState {
     pub _log_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 
-fn should_keep_only_global_toggle_shortcut(window_label: &str, focused: bool) -> bool {
+fn should_keep_only_global_hide_shortcut(window_label: &str, focused: bool) -> bool {
     !focused || window_label != "overlay"
 }
 
@@ -183,10 +183,10 @@ fn main() {
                     return;
                 }
 
-                if should_keep_only_global_toggle_shortcut(window_label, *focused) {
-                    // When overlay is unfocused, keep only the global toggle shortcut registered.
+                if should_keep_only_global_hide_shortcut(window_label, *focused) {
+                    // When overlay is unfocused, keep only the global hide shortcut registered.
                     if let Some(state) = window.try_state::<AppState>() {
-                        let _ = commands::apply_toggle_overlay_binding_only(
+                        let _ = commands::apply_hide_overlay_binding_only(
                             window.app_handle(),
                             &state,
                         );
@@ -276,13 +276,13 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::should_keep_only_global_toggle_shortcut;
+    use super::should_keep_only_global_hide_shortcut;
 
     #[test]
     fn keeps_shortcuts_only_for_focused_overlay() {
-        assert!(!should_keep_only_global_toggle_shortcut("overlay", true));
-        assert!(should_keep_only_global_toggle_shortcut("overlay", false));
-        assert!(should_keep_only_global_toggle_shortcut("main", true));
-        assert!(should_keep_only_global_toggle_shortcut("main", false));
+        assert!(!should_keep_only_global_hide_shortcut("overlay", true));
+        assert!(should_keep_only_global_hide_shortcut("overlay", false));
+        assert!(should_keep_only_global_hide_shortcut("main", true));
+        assert!(should_keep_only_global_hide_shortcut("main", false));
     }
 }

@@ -298,7 +298,7 @@ export const frCatalog: TranslationCatalog = {
       restartScript: 'Recommencer le script',
       fontSize: 'Taille de police',
       changeSpeed: 'Changer la vitesse',
-      togglePrompter: 'Bascule du prompteur (Global)',
+      hidePrompter: 'Masquer le prompteur (Global)',
       snapToCenter: 'Centrer le prompteur',
       toggleControls: 'Afficher/Masquer les commandes',
       rewind: 'Rembobiner',
