@@ -76,6 +76,7 @@ describe('HelpView behavior', () => {
   it('renders current customized shortcuts instead of hardcoded defaults', () => {
     const custom = defaultShortcutConfig();
     custom['toggle-play'] = 'Shift+P';
+    custom['hide-overlay'] = 'Shift+K';
     saveShortcutConfig(custom);
 
     render(<HelpView />);
@@ -85,6 +86,11 @@ describe('HelpView behavior', () => {
     expect(within(playPauseRow as HTMLElement).queryByText('⇧')).not.toBeNull();
     expect(within(playPauseRow as HTMLElement).queryByText('P')).not.toBeNull();
     expect(within(playPauseRow as HTMLElement).queryByText('Space')).toBeNull();
+
+    const togglePrompterRow = screen.getByText('Toggle prompter').closest('.help-shortcut-row');
+    expect(togglePrompterRow).not.toBeNull();
+    expect(within(togglePrompterRow as HTMLElement).queryByText('⇧')).not.toBeNull();
+    expect(within(togglePrompterRow as HTMLElement).queryByText('K')).not.toBeNull();
   });
 
   it('opens donation link via shell integration', async () => {
