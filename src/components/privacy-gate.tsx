@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/use-i18n';
 import { useAppStore } from '../store/use-app-store';
 
 const glanceLogo = new URL('../../src-tauri/icons/Square142x142Logo.png', import.meta.url).href;
@@ -22,18 +23,19 @@ function PadlockIcon() {
 }
 
 export function PrivacyGate() {
+    const { t } = useI18n();
     const completeOnboarding = useAppStore((state) => state.completeOnboarding);
 
     return (
         <div className="privacy-gate-overlay">
             <div className="privacy-gate-container">
                 <div className="privacy-gate-icon-container">
-                    <img width={75} height={75} src={glanceLogo} alt="Glance logo" />
-                    <span className="privacy-gate-icon-title">Glance</span>
+                    <img width={75} height={75} src={glanceLogo} alt={t('privacy.logoAlt')} />
+                    <span className="privacy-gate-icon-title">{t('privacy.wordmark')}</span>
                 </div>
-                <h1 className="privacy-gate-title">Read your script. <br /> <span className="privacy-gate-title-sub">Keep your eyes forward.</span></h1>
+                <h1 className="privacy-gate-title">{t('privacy.heroLead')} <br /> <span className="privacy-gate-title-sub">{t('privacy.heroSub')}</span></h1>
                 <p className="privacy-gate-body">
-                    A local-first teleprompter for presenters who care about eye contact — and their privacy.
+                    {t('privacy.body')}
                 </p>
 
                 <div className="privacy-gate-notice">
@@ -41,9 +43,9 @@ export function PrivacyGate() {
                         <PadlockIcon />
                     </span>
                     <div className="privacy-gate-notice-copy">
-                        <strong>100% local. Zero telemetry.</strong>
+                        <strong>{t('privacy.noticeTitle')}</strong>
                         <p>
-                            Your scripts never leave this machine. If you hit a bug, crash reports are entirely manual and opt-in via Settings → Export Logs.
+                            {t('privacy.noticeBody')}
                         </p>
                     </div>
                 </div>
@@ -54,10 +56,10 @@ export function PrivacyGate() {
                         void completeOnboarding();
                     }}
                 >
-                    <span>Get Started</span>
+                    <span>{t('privacy.getStarted')}</span>
                     <ArrowRightIcon />
                 </button>
-                <p className="privacy-gate-footer">No account. No subscription. No internet required.</p>
+                <p className="privacy-gate-footer">{t('privacy.footer')}</p>
             </div>
         </div>
     );

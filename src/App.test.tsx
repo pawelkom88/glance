@@ -44,9 +44,11 @@ vi.mock('./components/privacy-gate', () => ({
 
 vi.mock('./lib/tauri', () => ({
   closeOverlayWindow: vi.fn().mockResolvedValue(undefined),
+  emitLanguageChanged: vi.fn().mockResolvedValue(undefined),
   emitThemeChanged: vi.fn().mockResolvedValue(undefined),
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
   hideMainWindow: vi.fn().mockResolvedValue(undefined),
+  listenForLanguageChanged: vi.fn().mockResolvedValue(() => undefined),
   listenForThemeChanged: vi.fn().mockResolvedValue(() => undefined),
   listenForMainWindowShown: vi.fn().mockResolvedValue(() => undefined),
   moveWindowToMonitor: vi.fn().mockResolvedValue(undefined),
@@ -84,6 +86,8 @@ function resetStore() {
     toastMessage: null,
     themeMode: 'system',
     resolvedTheme: 'light',
+    language: 'en',
+    resolvedLanguage: 'en',
     loadInitialState: vi.fn().mockResolvedValue(undefined),
     persistActiveSession: vi.fn().mockResolvedValue(true)
   });
@@ -253,5 +257,19 @@ describe('App shell behavior', () => {
       expect(screen.queryByText('Library Mock')).not.toBeNull();
     });
     expect(tauriMock.moveWindowToMonitor).not.toHaveBeenCalled();
+  });
+
+  it('hydrates language from storage events', async () => {
+    render(<App />);
+
+    act(() => {
+      window.localStorage.setItem('glance-language-v1', 'fr');
+      window.dispatchEvent(new StorageEvent('storage', { key: 'glance-language-v1' }));
+    });
+
+    await waitFor(() => {
+      expect(useAppStore.getState().language).toBe('fr');
+      expect(useAppStore.getState().resolvedLanguage).toBe('fr');
+    });
   });
 });

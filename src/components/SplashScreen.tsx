@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSplashContext } from '../contexts/SplashContext';
 import { emitAppReady } from '../lib/tauri';
+import { useI18n } from '../i18n/use-i18n';
 
 const glanceLogo = new URL('../../src-tauri/icons/Square142x142Logo.png', import.meta.url).href;
 
@@ -25,6 +26,7 @@ function currentTimestampMs(): number {
 }
 
 export function SplashScreen({ onReady, isAppReady }: SplashScreenProps) {
+  const { t } = useI18n();
   const [phase, setPhase] = useState<SplashPhase>('entering');
   const [isWordmarkVisible, setIsWordmarkVisible] = useState(false);
   const { isAppReady: isContextReady } = useSplashContext();
@@ -122,8 +124,8 @@ export function SplashScreen({ onReady, isAppReady }: SplashScreenProps) {
   return (
     <div className={`splash-screen splash-screen--${phase}`} aria-hidden={phase === 'exiting'}>
       <div className={`splash-screen__brand ${isWordmarkVisible ? 'is-visible' : ''}`}>
-        <img className="splash-screen__logo" src={glanceLogo} width={68} height={68} alt="Glance logo" />
-        <span className="splash-screen__wordmark">GLANCE</span>
+        <img className="splash-screen__logo" src={glanceLogo} width={68} height={68} alt={t('splash.logoAlt')} />
+        <span className="splash-screen__wordmark">{t('splash.wordmark')}</span>
         <span className="splash-screen__rule" aria-hidden="true" />
       </div>
     </div>

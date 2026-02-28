@@ -202,10 +202,17 @@ describe('OverlayPrompter behavior', () => {
       expect(useAppStore.getState().overlayFontScale).toBe(1.05);
 
       act(() => {
+        fireEvent.keyDown(window, { key: '=', ctrlKey: true });
+        fireEvent.keyDown(window, { key: '=', ctrlKey: true });
+        flushRaf();
+      });
+      expect(useAppStore.getState().overlayFontScale).toBe(1.15);
+
+      act(() => {
         fireEvent.keyDown(window, { key: '-', ctrlKey: true });
         flushRaf();
       });
-      expect(useAppStore.getState().overlayFontScale).toBe(1);
+      expect(useAppStore.getState().overlayFontScale).toBe(1.1);
 
       useAppStore.setState({ overlayFontScale: 1.25 });
       act(() => {

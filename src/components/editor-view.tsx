@@ -1,4 +1,5 @@
 import type { ParseWarning, SectionItem } from '../types';
+import { useI18n } from '../i18n/use-i18n';
 
 interface EditorViewProps {
   readonly markdown: string;
@@ -18,15 +19,15 @@ interface EditorViewProps {
   readonly onExportMarkdown: () => void;
 }
 
-function estimateReadDuration(words: number): string {
+function estimateReadDuration(words: number, t: (keyPath: any, params?: any) => string): string {
   const totalSeconds = Math.max(0, Math.round((words / 130) * 60));
   if (totalSeconds < 60) {
-    return `~${totalSeconds}s`;
+    return t('editor.estimateReadSeconds', { seconds: totalSeconds });
   }
 
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `~${minutes}m ${seconds}s`;
+  return t('editor.estimateReadMinutes', { minutes, seconds });
 }
 
 function ExportIcon() {
@@ -83,28 +84,29 @@ export function EditorView(props: EditorViewProps) {
   } = props;
   void onOpenShortcutSettings;
   void warnings;
+  const { t } = useI18n();
   const hasSections = sections.length > 0;
   const sectionCount = (markdown.match(/^#{1,6}\s/gm) ?? []).length;
   const wordCount = markdown.trim() ? markdown.trim().split(/\s+/).filter(Boolean).length : 0;
-  const scriptWordsLabel = `~${wordCount}`;
-  const estimatedRead = estimateReadDuration(wordCount);
+  const scriptWordsLabel = t('editor.wordCountApprox', { count: wordCount });
+  const estimatedRead = estimateReadDuration(wordCount, t);
 
   if (!hasSessions) {
     return (
       <section className="panel editor-panel">
         <header className="panel-header">
           <div>
-            <p className="eyebrow">Session Editor</p>
-            <h2>Create your first session</h2>
+            <p className="eyebrow">{t('editor.headerLabel')}</p>
+            <h2>{t('editor.createFirstSessionTitle')}</h2>
           </div>
           <div className="header-actions">
             <button type="button" className="cancel-button editor-action-button" onClick={onImportSession}>
               <ImportIcon />
-              <span>Import Markdown</span>
+              <span>{t('editor.importMarkdown')}</span>
             </button>
             <button type="button" className="primary-button editor-action-button" onClick={onCreateSession}>
               <PlusIcon />
-              <span>New Session</span>
+              <span>{t('editor.newSession')}</span>
             </button>
           </div>
         </header>
@@ -116,8 +118,8 @@ export function EditorView(props: EditorViewProps) {
               <path d="M9.5 13h5M12 10.5v5" />
             </svg>
           </div>
-          <h3 className="editor-empty-title">No sessions yet</h3>
-          <p className="editor-empty-copy">Create one to start writing markdown and section shortcuts.</p>
+          <h3 className="editor-empty-title">{t('editor.noSessionsYetTitle')}</h3>
+          <p className="editor-empty-copy">{t('editor.noSessionsYetCopy')}</p>
         </div>
       </section>
     );
@@ -128,16 +130,16 @@ export function EditorView(props: EditorViewProps) {
       <section className="panel editor-panel">
         <header className="panel-header">
           <div>
-            <p className="eyebrow">Session Editor</p>
-            <h2>Select a session</h2>
+            <p className="eyebrow">{t('editor.headerLabel')}</p>
+            <h2>{t('editor.selectSessionTitle')}</h2>
           </div>
           <div className="header-actions">
             <button type="button" className="ghost-button editor-action-button" onClick={onCreateSession}>
               <PlusIcon />
-              <span>New Session</span>
+              <span>{t('editor.newSession')}</span>
             </button>
             <button type="button" className="primary-button" onClick={onOpenSessions}>
-              <span>Go to Sessions</span>
+              <span>{t('editor.goToSessions')}</span>
             </button>
           </div>
         </header>
@@ -148,10 +150,8 @@ export function EditorView(props: EditorViewProps) {
               <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h3A2.5 2.5 0 0 1 12 6.5V20H6.5A2.5 2.5 0 0 1 4 17.5v-11Zm8 13.5V6.5A2.5 2.5 0 0 1 14.5 4h3A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H12Z" />
             </svg>
           </div>
-          <h3 className="editor-empty-title">No session selected</h3>
-          <p className="editor-empty-copy">
-            Choose a session from Sessions to start writing and formatting markdown.
-          </p>
+          <h3 className="editor-empty-title">{t('editor.noSessionSelectedTitle')}</h3>
+          <p className="editor-empty-copy">{t('editor.noSessionSelectedCopy')}</p>
         </div>
       </section>
     );
@@ -165,16 +165,16 @@ export function EditorView(props: EditorViewProps) {
           className="editor-breadcrumb-link editor-breadcrumb-mobile"
           onClick={onOpenSessions}
         >
-          ‹ Sessions
+          {`‹ ${t('editor.breadcrumbSessions')}`}
         </button>
         <div className="editor-breadcrumb editor-breadcrumb-desktop">
-          <button type="button" className="editor-breadcrumb-link" onClick={onOpenSessions}>Sessions</button>
+          <button type="button" className="editor-breadcrumb-link" onClick={onOpenSessions}>{t('editor.breadcrumbSessions')}</button>
           <span className="editor-breadcrumb-separator" aria-hidden="true">›</span>
           <span className="editor-breadcrumb-current" title={activeSessionTitle}>{activeSessionTitle}</span>
         </div>
         <div className="editor-topbar-spacer" aria-hidden="true" />
         <span className={`autosave-badge ${autosaveStatus === 'saving' ? 'is-saving' : ''}`}>
-          {autosaveStatus === 'saving' ? 'Saving…' : 'Saved'}
+          {autosaveStatus === 'saving' ? t('editor.autosaveSaving') : t('editor.autosaveSaved')}
         </span>
       </div>
 
@@ -186,11 +186,11 @@ export function EditorView(props: EditorViewProps) {
           disabled={!hasSections}
         >
           <RocketIcon />
-          Launch
+          {t('editor.launch')}
         </button>
         <button type="button" className="editor-mobile-export" onClick={onExportMarkdown}>
           <ExportIcon />
-          Export
+          {t('editor.export')}
         </button>
       </div>
 
@@ -206,31 +206,31 @@ export function EditorView(props: EditorViewProps) {
 
           <div className="editor-mobile-infostrip">
             <span className="editor-info-pill">
-              <span className="editor-info-pill-label">Sections</span>
+              <span className="editor-info-pill-label">{t('editor.infoSections')}</span>
               <span className="editor-info-pill-value">{sectionCount}</span>
             </span>
             <span className="editor-info-pill">
-              <span className="editor-info-pill-label">Words</span>
+              <span className="editor-info-pill-label">{t('editor.infoWords')}</span>
               <span className="editor-info-pill-value">{scriptWordsLabel}</span>
             </span>
             <span className="editor-info-pill">
-              <span className="editor-info-pill-label">Est. read</span>
+              <span className="editor-info-pill-label">{t('editor.infoEstimatedRead')}</span>
               <span className="editor-info-pill-value">{estimatedRead}</span>
             </span>
           </div>
 
           <div className="editor-statusbar">
-            <span>Markdown</span>
+            <span>{t('editor.statusMarkdown')}</span>
             <span aria-hidden="true">·</span>
-            <span>UTF-8</span>
+            <span>{t('editor.statusEncoding')}</span>
             <span className="editor-statusbar-wordcount" aria-hidden="true">·</span>
-            <span className="editor-statusbar-wordcount">{wordCount} words</span>
+            <span className="editor-statusbar-wordcount">{t('editor.statusWordCount', { count: wordCount })}</span>
           </div>
         </div>
 
         <aside className="editor-sidebar">
           <section className="editor-sidebar-panel">
-            <span className="editor-sidebar-label">Actions</span>
+            <span className="editor-sidebar-label">{t('editor.actions')}</span>
             <button
               type="button"
               className="editor-sidebar-launch"
@@ -238,26 +238,26 @@ export function EditorView(props: EditorViewProps) {
               disabled={!hasSections}
             >
               <RocketIcon />
-              Launch Prompter
+              {t('editor.launchPrompter')}
             </button>
             <button type="button" className="editor-sidebar-export" onClick={onExportMarkdown}>
               <ExportIcon />
-              Export Markdown
+              {t('editor.exportMarkdown')}
             </button>
           </section>
 
           <section className="editor-sidebar-panel">
-            <span className="editor-sidebar-label">Script Info</span>
+            <span className="editor-sidebar-label">{t('editor.scriptInfo')}</span>
             <div className="editor-script-info-row">
-              <span className="editor-script-info-label">Sections</span>
+              <span className="editor-script-info-label">{t('editor.infoSections')}</span>
               <span className="editor-script-info-value">{sectionCount}</span>
             </div>
             <div className="editor-script-info-row">
-              <span className="editor-script-info-label">Words</span>
+              <span className="editor-script-info-label">{t('editor.infoWords')}</span>
               <span className="editor-script-info-value">{scriptWordsLabel}</span>
             </div>
             <div className="editor-script-info-row">
-              <span className="editor-script-info-label">Est. read</span>
+              <span className="editor-script-info-label">{t('editor.infoEstimatedRead')}</span>
               <span className="editor-script-info-value">{estimatedRead}</span>
             </div>
           </section>

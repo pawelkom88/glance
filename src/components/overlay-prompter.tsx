@@ -25,16 +25,19 @@ import {
 import { loadShortcutConfig } from '../lib/shortcuts';
 import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
+import { useI18n } from '../i18n/use-i18n';
+import {
+  BASE_SPEED_UNITS,
+  MAX_SPEED_MULTIPLIER,
+  MIN_SPEED_MULTIPLIER
+} from '../constants';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 
 const baseLineHeight = 54;
 const overlayLineGapPx = 10;
 const fadeDurationMs = 140;
-const baseSpeed = 42;
-const minSpeed = 10;
-const maxSpeed = 140;
 const minFontScale = 0.85;
-const maxFontScale = 1.4;
+const maxFontScale = 1.8;
 const fontScaleStep = 0.05;
 const nonDraggableSelector = 'button, input, select, textarea, a, [role="menuitem"], [data-overlay-no-drag="true"]';
 const timerPrefsStorageKey = 'glance-overlay-timer-prefs-v1';
@@ -112,8 +115,8 @@ function calculateSnapTarget(
   };
 }
 
-function monitorIdFromSnapshot(monitor: MonitorSnapshot): string {
-  const label = monitor.name ?? 'Unnamed Monitor';
+function monitorIdFromSnapshot(monitor: MonitorSnapshot, unnamedLabel: string): string {
+  const label = monitor.name ?? unnamedLabel;
   const scale = typeof monitor.scaleFactor === 'number' && Number.isFinite(monitor.scaleFactor)
     ? monitor.scaleFactor
     : 1;
@@ -316,6 +319,7 @@ function currentSectionFromLine(lines: readonly { sectionIndex: number | null }[
 }
 
 export function OverlayPrompter() {
+  const { t } = useI18n();
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const markdown = useAppStore((state) => state.markdown);
   const playbackState = useAppStore((state) => state.playbackState);
@@ -333,6 +337,7 @@ export function OverlayPrompter() {
   const setScrollSpeed = useAppStore((state) => state.setScrollSpeed);
   const setOverlayFontScale = useAppStore((state) => state.setOverlayFontScale);
   const changeScrollSpeedBy = useAppStore((state) => state.changeScrollSpeedBy);
+  const speedStep = useAppStore((state) => state.speedStep);
   const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const showToast = useAppStore((state) => state.showToast);
 
@@ -508,8 +513,9 @@ export function OverlayPrompter() {
     : firstRenderableLine?.kind === 'bullet'
       ? -10
       : 0;
-  const normalizedSpeed = scrollSpeed / baseSpeed;
-  const speedProgress = ((scrollSpeed - minSpeed) / (maxSpeed - minSpeed)) * 100;
+  const normalizedSpeed = scrollSpeed;
+  const currentFontSize = Math.round(28 * overlayFontScale);
+  const speedProgress = ((scrollSpeed - MIN_SPEED_MULTIPLIER) / (MAX_SPEED_MULTIPLIER - MIN_SPEED_MULTIPLIER)) * 100;
   const timerTargetMs = timerTargetSeconds * 1000;
   const timerRemainingMs = Math.max(0, timerTargetMs - timerElapsedMs);
   const timerDisplayMs = timerMode === 'count-down' ? timerRemainingMs : timerElapsedMs;
@@ -645,7 +651,7 @@ export function OverlayPrompter() {
       await updateWindowConstraints();
       await refreshWindowPlacement();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to snap overlay to centre';
+      const message = error instanceof Error ? error.message : t('overlay.snapError');
       showToast(message, 'error');
     } finally {
       setIsSnapping(false);
@@ -688,8 +694,8 @@ export function OverlayPrompter() {
         ref={fontTriggerRef}
         type="button"
         className={`overlay-top-action ${isFontMenuOpen ? 'is-active' : ''}`}
-        aria-label="Font size settings"
-        title="Font size"
+        aria-label={t('overlay.fontSizeSettings')}
+        title={t('overlay.fontSize')}
         aria-haspopup="dialog"
         aria-expanded={isFontMenuOpen}
         aria-pressed={isFontMenuOpen}
@@ -706,8 +712,8 @@ export function OverlayPrompter() {
           ref={jumpTriggerRef}
           type="button"
           className={`overlay-top-action ${isJumpMenuOpen ? 'is-active' : ''}`}
-          aria-label="Jump to section"
-          title="Jump"
+          aria-label={t('overlay.jumpToSection')}
+          title={t('overlay.jump')}
           aria-haspopup="menu"
           aria-expanded={isJumpMenuOpen}
           aria-pressed={isJumpMenuOpen}
@@ -725,8 +731,8 @@ export function OverlayPrompter() {
           type="button"
           className="overlay-top-action overlay-snap-button"
           onClick={handleSnapToCentre}
-          aria-label="Snap to centre"
-          title="Snap to centre"
+          aria-label={t('overlay.snapToCentre')}
+          title={t('overlay.snapToCentre')}
           tabIndex={shouldRenderSnap ? 0 : -1}
         >
           <SnapToCentreIcon />
@@ -736,8 +742,8 @@ export function OverlayPrompter() {
         type="button"
         className={`overlay-top-action overlay-collapse-toggle ${isControlsCollapsed ? 'is-collapsed' : ''}`}
         onClick={toggleControls}
-        title="Toggle controls"
-        aria-label="Toggle controls"
+        title={t('overlay.toggleControls')}
+        aria-label={t('overlay.toggleControls')}
         aria-expanded={!isControlsCollapsed}
         aria-controls="overlay-controls-area"
       >
@@ -747,8 +753,8 @@ export function OverlayPrompter() {
         type="button"
         className="overlay-close-button"
         onClick={requestCloseOverlay}
-        aria-label="Close prompter"
-        title="Close"
+        aria-label={t('overlay.close')}
+        title={t('overlay.close')}
       >
         <CloseIcon />
       </button>
@@ -758,19 +764,19 @@ export function OverlayPrompter() {
   const renderSectionRail = () => (
     <>
       <span className="overlay-section-counter">
-        {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
+        {sections.length > 0 ? t('overlay.sectionCounter', { current: currentSectionIndex + 1, total: sections.length }) : t('overlay.sectionCounter', { current: 0, total: 0 })}
       </span>
 
-      <div className="overlay-section-rail" aria-label="Current and next section">
-        <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
+      <div className="overlay-section-rail" aria-label={t('overlay.currentSection')}>
+        <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? t('overlay.currentSection')}>
           {showSectionTitlesInRail
-            ? (currentSection?.title ?? 'Waiting for headings')
-            : `${currentSectionIndex + 1}`}
+            ? (currentSection?.title ?? t('overlay.waitingForHeadings'))
+            : (currentSectionIndex + 1)}
         </span>
 
         {nextSection ? (
           <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-            {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
+            {showSectionTitlesInRail ? t('overlay.nextSection', { title: nextSection.title }) : (currentSectionIndex + 2)}
           </span>
         ) : null}
       </div>
@@ -784,7 +790,7 @@ export function OverlayPrompter() {
           ref={timerTriggerRef}
           type="button"
           className={`overlay-timer-chip ${isTimerMenuOpen ? 'is-active' : ''} ${timerIsExpired ? 'is-expired' : ''}`}
-          aria-label={`${timerMode === 'count-down' ? 'Remaining' : 'Elapsed'} timer ${formatTimerClock(timerDisplayMs)}`}
+          aria-label={t('overlay.timerDisplay', { mode: timerMode === 'count-down' ? t('overlay.remaining') : t('overlay.elapsed'), time: formatTimerClock(timerDisplayMs) })}
           aria-haspopup="dialog"
           aria-expanded={isTimerMenuOpen}
           onClick={() => {
@@ -797,13 +803,13 @@ export function OverlayPrompter() {
           } as CSSProperties}
         >
           <span className="overlay-timer-label">
-            {timerMode === 'count-down' ? 'Remaining' : 'Elapsed'}
+            {timerMode === 'count-down' ? t('overlay.remaining') : t('overlay.elapsed')}
           </span>
           <span className="overlay-timer-value">{formatTimerClock(timerDisplayMs)}</span>
         </button>
         {isTimerMenuOpen ? (
-          <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label="Presentation timer controls">
-            <div className="overlay-timer-mode-group" role="radiogroup" aria-label="Timer mode">
+          <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label={t('overlay.timerControlsAria')}>
+            <div className="overlay-timer-mode-group" role="radiogroup" aria-label={t('overlay.timerModeAria')}>
               <button
                 type="button"
                 role="radio"
@@ -811,7 +817,7 @@ export function OverlayPrompter() {
                 className={`overlay-timer-mode-option ${timerMode === 'count-up' ? 'is-selected' : ''}`}
                 onClick={() => setTimerMode('count-up')}
               >
-                Count Up
+                {t('overlay.countUp')}
               </button>
               <button
                 type="button"
@@ -820,14 +826,14 @@ export function OverlayPrompter() {
                 className={`overlay-timer-mode-option ${timerMode === 'count-down' ? 'is-selected' : ''}`}
                 onClick={() => setTimerMode('count-down')}
               >
-                Count Down
+                {t('overlay.countDown')}
               </button>
             </div>
 
             {timerMode === 'count-down' ? (
               <div className="overlay-timer-target">
                 <label>
-                  <span>Minutes</span>
+                  <span>{t('overlay.minutes')}</span>
                   <input
                     type="number"
                     min={0}
@@ -841,7 +847,7 @@ export function OverlayPrompter() {
                   />
                 </label>
                 <label>
-                  <span>Seconds</span>
+                  <span>{t('overlay.seconds')}</span>
                   <input
                     type="number"
                     min={0}
@@ -863,14 +869,14 @@ export function OverlayPrompter() {
                 className="overlay-popover-link"
                 onClick={resetPresentationTimer}
               >
-                Reset Timer
+                {t('overlay.resetTimer')}
               </button>
               <button
                 type="button"
                 className="overlay-popover-link"
                 onClick={() => closeTimerMenu(true)}
               >
-                Done
+                {t('overlay.done')}
               </button>
             </div>
           </div>
@@ -889,7 +895,7 @@ export function OverlayPrompter() {
         <button
           type="button"
           className="overlay-icon-button overlay-secondary-button overlay-skip-back"
-          aria-label="Restart"
+          aria-label={t('overlay.restart')}
           onClick={(e) => {
             setPlaybackState('paused');
             setScrollPosition(0);
@@ -912,7 +918,7 @@ export function OverlayPrompter() {
               e.currentTarget.blur();
               overlayRootRef.current?.focus({ preventScroll: true });
             }}
-            aria-label={playbackState === 'running' ? 'Pause' : 'Play'}
+            aria-label={playbackState === 'running' ? t('overlay.pause') : t('overlay.play')}
           >
             <span className="overlay-play-icon-stack" aria-hidden="true">
               <span className="overlay-play-icon overlay-play-icon-play">
@@ -953,9 +959,9 @@ export function OverlayPrompter() {
           <input
             className="overlay-speed-slider"
             type="range"
-            min={minSpeed}
-            max={maxSpeed}
-            step={0.1}
+            min={MIN_SPEED_MULTIPLIER}
+            max={MAX_SPEED_MULTIPLIER}
+            step={speedStep}
             value={scrollSpeed}
             onChange={(event) => {
               const nextValue = Number(event.target.value);
@@ -969,9 +975,9 @@ export function OverlayPrompter() {
                 triggerSpeedIconAnimation('fast');
                 return;
               }
-              triggerSpeedIconAnimation(nextValue <= baseSpeed ? 'slow' : 'fast');
+              triggerSpeedIconAnimation(nextValue <= 1.0 ? 'slow' : 'fast');
             }}
-            aria-label="Scroll speed"
+            aria-label={t('overlay.scrollSpeedAria')}
             onPointerDown={() => revealSpeedBubble()}
             onFocus={() => revealSpeedBubble()}
             onPointerUp={(e) => {
@@ -1065,6 +1071,11 @@ export function OverlayPrompter() {
     }, 240);
   }, [activeSessionId, persistActiveSession, setOverlayFontScale]);
 
+  const changeFontScaleBy = useCallback((delta: number) => {
+    const currentScale = useAppStore.getState().overlayFontScale;
+    commitFontScale(currentScale + (delta * fontScaleStep));
+  }, [commitFontScale]);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setIsOpening(false);
@@ -1146,7 +1157,7 @@ export function OverlayPrompter() {
     const maxPosition = Math.max(0, linePositions.totalHeight - lineStride);
 
     engineRef.current = new ScrollEngine({
-      getSpeed: () => speedRef.current,
+      getSpeed: () => speedRef.current * BASE_SPEED_UNITS,
       onTick: (position) => {
         setScrollPosition(Math.min(position, maxPosition));
       }
@@ -1222,6 +1233,7 @@ export function OverlayPrompter() {
 
   const shortcutHandlersRef = useRef({
     changeScrollSpeedBy,
+    changeFontScaleBy,
     closeFontMenu,
     closeJumpMenu,
     closeTimerMenu,
@@ -1241,6 +1253,7 @@ export function OverlayPrompter() {
   useEffect(() => {
     shortcutHandlersRef.current = {
       changeScrollSpeedBy,
+      changeFontScaleBy,
       closeFontMenu,
       closeJumpMenu,
       closeTimerMenu,
@@ -1258,6 +1271,7 @@ export function OverlayPrompter() {
     };
   }, [
     changeScrollSpeedBy,
+    changeFontScaleBy,
     closeFontMenu,
     closeJumpMenu,
     closeTimerMenu,
@@ -1325,8 +1339,7 @@ export function OverlayPrompter() {
       }
 
       if (payload.action === 'font-scale-change' && typeof payload.delta === 'number') {
-        const currentScale = useAppStore.getState().overlayFontScale;
-        handlers.commitFontScale(currentScale + payload.delta * fontScaleStep);
+        handlers.changeFontScaleBy(payload.delta);
         return;
       }
 
@@ -1401,7 +1414,7 @@ export function OverlayPrompter() {
 
       if (!hasShownInactiveHintRef.current) {
         hasShownInactiveHintRef.current = true;
-        showToast('Overlay inactive. Click it to re-enable shortcuts.', 'info');
+        showToast(t('overlay.inactiveToast'), 'info');
       }
     }).then((fn) => {
       unlistenFocus = fn;
@@ -1483,7 +1496,7 @@ export function OverlayPrompter() {
           return;
         }
         event.preventDefault();
-        commitFontScale(overlayFontScale + fontScaleStep);
+        changeFontScaleBy(1);
         return;
       }
 
@@ -1492,7 +1505,7 @@ export function OverlayPrompter() {
           return;
         }
         event.preventDefault();
-        commitFontScale(overlayFontScale - fontScaleStep);
+        changeFontScaleBy(-1);
         return;
       }
 
@@ -1547,11 +1560,11 @@ export function OverlayPrompter() {
     closeFontMenu,
     closeJumpMenu,
     closeTimerMenu,
+    changeFontScaleBy,
     commitFontScale,
     isFontMenuOpen,
     isJumpMenuOpen,
     isTimerMenuOpen,
-    overlayFontScale,
     requestCloseOverlay,
     resetPresentationTimer,
     setPlaybackState,
@@ -1735,7 +1748,7 @@ export function OverlayPrompter() {
         if (!monitor) {
           return null;
         }
-        return monitorIdFromSnapshot(monitor);
+        return monitorIdFromSnapshot(monitor, t('overlay.unnamedMonitor'));
       } catch {
         return null;
       }
@@ -1988,7 +2001,7 @@ export function OverlayPrompter() {
       ref={overlayRootRef}
       className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''} ${isOverlayFocused ? '' : 'overlay-unfocused'}`}
       role="application"
-      aria-label="Glance overlay"
+      aria-label={t('overlay.mainAria')}
       tabIndex={-1}
       style={overlayVars}
       onMouseDownCapture={handleRootMouseDownCapture}
@@ -1997,12 +2010,12 @@ export function OverlayPrompter() {
       }}
       onMouseDown={handleDragMouseDown}
     >
-      <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label="Overlay size">
+      <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label={t('overlay.sizeAria')}>
         {overlaySize.width} × {overlaySize.height}
       </div>
       {!isOverlayFocused ? (
         <div className="overlay-unfocused-hint" aria-live="polite">
-          Press <ShortcutKeycaps shortcuts={togglePrompterShortcutHint} /> to toggle prompter
+          {t('overlay.pressToToggle', { key: togglePrompterShortcutHint })}
         </div>
       ) : null}
       <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
@@ -2017,16 +2030,16 @@ export function OverlayPrompter() {
               </span>
             </div>
             <div className="overlay-left-nav-cluster">
-              <div className="overlay-section-rail" aria-label="Current and next section">
-                <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? 'Current section'}>
+              <div className="overlay-section-rail" aria-label={t('overlay.currentSection')}>
+                <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? t('overlay.currentSection')}>
                   {showSectionTitlesInRail
-                    ? (currentSection?.title ?? 'Waiting for headings')
-                    : `${currentSectionIndex + 1}`}
+                    ? (currentSection?.title ?? t('overlay.waitingForHeadings'))
+                    : (currentSectionIndex + 1)}
                 </span>
 
                 {nextSection ? (
                   <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-                    {showSectionTitlesInRail ? `Next: ${nextSection.title}` : `${currentSectionIndex + 2}`}
+                    {showSectionTitlesInRail ? t('overlay.nextSection', { title: nextSection.title }) : (currentSectionIndex + 2)}
                   </span>
                 ) : null}
               </div>
@@ -2035,44 +2048,51 @@ export function OverlayPrompter() {
         ) : null}
 
         {isFontMenuOpen ? (
-          <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label="Font size controls">
-            <div className="overlay-font-controls">
+          <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label={t('overlay.fontSizeSettings')}>
+            <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
               <button
                 type="button"
-                className="overlay-popover-button"
+                className="overlay-font-stepper-button"
                 data-font-focus="true"
-                onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
-                aria-label="Decrease font size"
+                onClick={() => changeFontScaleBy(-1)}
+                aria-label={t('overlay.decreaseFontSize')}
               >
-                A−
+                −
               </button>
+              <span className="overlay-font-stepper-divider" aria-hidden="true" />
+              <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
+              <span className="overlay-font-stepper-divider" aria-hidden="true" />
+              <button
+                type="button"
+                className="overlay-font-stepper-button"
+                onClick={() => changeFontScaleBy(1)}
+                aria-label={t('overlay.increaseFontSize')}
+              >
+                +
+              </button>
+            </div>
+            <div className="overlay-font-slider-row">
+              <span className="overlay-font-label-small" aria-hidden="true">A</span>
               <input
+                className="overlay-font-slider"
                 type="range"
                 min={minFontScale}
                 max={maxFontScale}
                 step={fontScaleStep}
                 value={overlayFontScale}
                 onChange={(event) => commitFontScale(Number(event.target.value))}
-                aria-label="Font size"
+                aria-label={t('overlay.fontSize')}
               />
-              <button
-                type="button"
-                className="overlay-popover-button"
-                onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
-                aria-label="Increase font size"
-              >
-                A+
-              </button>
+              <span className="overlay-font-label-large" aria-hidden="true">A</span>
             </div>
-            <div className="overlay-font-footer">
-              <span>{Math.round(overlayFontScale * 100)}%</span>
-              <ShortcutKeycaps className="overlay-font-shortcuts" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus', 'CmdOrCtrl+0']} alternativeSeparator="·" />
+            <div className="overlay-font-footer overlay-font-footer-row">
+              <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
               <button
                 type="button"
-                className="overlay-popover-link"
+                className="overlay-popover-link overlay-font-reset"
                 onClick={() => commitFontScale(1)}
               >
-                Reset
+                {t('overlay.reset')}
               </button>
             </div>
           </div>
@@ -2083,7 +2103,7 @@ export function OverlayPrompter() {
             ref={jumpMenuRef}
             className="overlay-popover overlay-jump-popover"
             role="menu"
-            aria-label="Jump to section"
+            aria-label={t('overlay.jumpToSection')}
             onKeyDown={handleJumpMenuKeyDown}
           >
             {sections.map((section, index) => (
@@ -2203,22 +2223,41 @@ export function OverlayPrompter() {
                 {renderTopActions()}
               </div>
               {isFontMenuOpen ? (
-                <div ref={fontMenuRef} className="overlay-popover overlay-font-popover overlay-font-popover-compact" role="dialog" aria-label="Font size controls">
-                  <div className="overlay-font-controls">
+                <div ref={fontMenuRef} className="overlay-popover overlay-font-popover overlay-font-popover-compact" role="dialog" aria-label={t('overlay.fontSizeSettings')}>
+                  <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
                     <button
                       type="button"
-                      className="overlay-popover-button"
+                      className="overlay-font-stepper-button"
                       data-font-focus="true"
                       onClick={(e) => {
-                        commitFontScale(overlayFontScale - fontScaleStep);
+                        changeFontScaleBy(-1);
                         e.currentTarget.blur();
                         overlayRootRef.current?.focus({ preventScroll: true });
                       }}
-                      aria-label="Decrease font size"
+                      aria-label={t('overlay.decreaseFontSize')}
                     >
-                      A−
+                      −
                     </button>
+                    <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                    <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
+                    <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                    <button
+                      type="button"
+                      className="overlay-font-stepper-button"
+                      onClick={(e) => {
+                        changeFontScaleBy(1);
+                        e.currentTarget.blur();
+                        overlayRootRef.current?.focus({ preventScroll: true });
+                      }}
+                      aria-label={t('overlay.increaseFontSize')}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="overlay-font-slider-row">
+                    <span className="overlay-font-label-small" aria-hidden="true">A</span>
                     <input
+                      className="overlay-font-slider"
                       type="range"
                       min={minFontScale}
                       max={maxFontScale}
@@ -2229,30 +2268,18 @@ export function OverlayPrompter() {
                         e.currentTarget.blur();
                         overlayRootRef.current?.focus({ preventScroll: true });
                       }}
-                      aria-label="Font size"
+                      aria-label={t('overlay.fontSize')}
                     />
-                    <button
-                      type="button"
-                      className="overlay-popover-button"
-                      onClick={(e) => {
-                        commitFontScale(overlayFontScale + fontScaleStep);
-                        e.currentTarget.blur();
-                        overlayRootRef.current?.focus({ preventScroll: true });
-                      }}
-                      aria-label="Increase font size"
-                    >
-                      A+
-                    </button>
+                    <span className="overlay-font-label-large" aria-hidden="true">A</span>
                   </div>
-                  <div className="overlay-font-footer">
-                    <span>{Math.round(overlayFontScale * 100)}%</span>
-                    <ShortcutKeycaps className="overlay-font-shortcuts" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus', 'CmdOrCtrl+0']} alternativeSeparator="·" />
+                  <div className="overlay-font-footer overlay-font-footer-row">
+                    <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
                     <button
                       type="button"
-                      className="overlay-popover-link"
+                      className="overlay-popover-link overlay-font-reset"
                       onClick={() => commitFontScale(1)}
                     >
-                      Reset
+                      {t('overlay.reset')}
                     </button>
                   </div>
                 </div>
@@ -2269,19 +2296,19 @@ export function OverlayPrompter() {
                   {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
                 </div>
                 <div className="overlay-compact-status-row">
-                  <span className="overlay-compact-speed-display" aria-label="Current speed">
-                    {normalizedSpeed.toFixed(1)}x
+                  <span className="overlay-compact-speed-display" aria-label={t('overlay.currentSpeedAria')}>
+                    {normalizedSpeed.toFixed(normalizedSpeed % 0.1 === 0 ? 1 : 2)}x
                   </span>
                   <div className="overlay-compact-status-divider" />
-                  <div className="overlay-compact-dim-group" role="group" aria-label="Reading ruler intensity">
-                    <span className="overlay-compact-dim-label">DIM</span>
+                  <div className="overlay-compact-dim-group" role="group" aria-label={t('overlay.rulerIntensityAria')}>
+                    <span className="overlay-compact-dim-label">{t('overlay.dim')}</span>
                     <div className="overlay-compact-dim-dots">
                       {[1, 2, 3].map((level) => (
                         <button
                           key={level}
                           type="button"
                           className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
-                          aria-label={`Dim intensity level ${level}`}
+                          aria-label={t('overlay.dimLevelAria', { level })}
                           aria-pressed={showReadingRuler && dimLevel === level}
                           onClick={() => {
                             const store = useAppStore.getState();
@@ -2303,19 +2330,19 @@ export function OverlayPrompter() {
                     <button
                       type="button"
                       className="overlay-compact-font-btn"
-                      onClick={() => commitFontScale(overlayFontScale - fontScaleStep)}
-                      aria-label="Decrease font size"
+                      onClick={() => changeFontScaleBy(-1)}
+                      aria-label={t('overlay.decreaseFontSize')}
                     >
-                      A−
+                      {t('overlay.fontAminus')}
                     </button>
                     <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
                     <button
                       type="button"
                       className="overlay-compact-font-btn"
-                      onClick={() => commitFontScale(overlayFontScale + fontScaleStep)}
-                      aria-label="Increase font size"
+                      onClick={() => changeFontScaleBy(1)}
+                      aria-label={t('overlay.increaseFontSize')}
                     >
-                      A+
+                      {t('overlay.fontAplus')}
                     </button>
                   </div>
                 </div>

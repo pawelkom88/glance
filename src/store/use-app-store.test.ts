@@ -10,12 +10,15 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('../lib/tauri', () => ({
   clearLastActiveSessionId: vi.fn(),
+  closeOverlayWindow: vi.fn(),
   createFolder: vi.fn(),
   createSession: vi.fn(),
   createSessionFromMarkdown: vi.fn(),
   deleteFolder: vi.fn(),
   deleteSession: vi.fn(),
   duplicateSession: vi.fn(),
+  emitLanguageChanged: vi.fn().mockResolvedValue(undefined),
+  emitThemeChanged: vi.fn().mockResolvedValue(undefined),
   exportSessionToPath: vi.fn(),
   getLastActiveSessionId: vi.fn(),
   listFolders: vi.fn(),
@@ -39,6 +42,7 @@ const tauriMock = tauriBridge as unknown as {
   deleteFolder: ReturnType<typeof vi.fn>;
   deleteSession: ReturnType<typeof vi.fn>;
   duplicateSession: ReturnType<typeof vi.fn>;
+  emitLanguageChanged: ReturnType<typeof vi.fn>;
   exportSessionToPath: ReturnType<typeof vi.fn>;
   getLastActiveSessionId: ReturnType<typeof vi.fn>;
   listFolders: ReturnType<typeof vi.fn>;
@@ -53,6 +57,17 @@ const tauriMock = tauriBridge as unknown as {
 
 const defaultMarkdown = '# Intro\n\n- Start here';
 
+function setNavigatorLanguages(primary: string, languages: readonly string[] = [primary]): void {
+  Object.defineProperty(window.navigator, 'language', {
+    value: primary,
+    configurable: true
+  });
+  Object.defineProperty(window.navigator, 'languages', {
+    value: [...languages],
+    configurable: true
+  });
+}
+
 function resetStore() {
   useAppStore.setState({
     sessions: [],
@@ -64,11 +79,16 @@ function resetStore() {
     parseWarnings: parseMarkdown(defaultMarkdown).warnings,
     playbackState: 'paused',
     scrollPosition: 0,
-    scrollSpeed: 42,
+    scrollSpeed: 1.0,
+    speedStep: 0.1,
     overlayFontScale: 1,
     showReadingRuler: true,
     themeMode: 'system',
     resolvedTheme: 'light',
+    language: 'en',
+    resolvedLanguage: 'en',
+    dimLevel: 1,
+    isControlsCollapsed: false,
     shortcutWarning: null,
     toastMessage: null,
     initialized: false,
@@ -79,6 +99,7 @@ function resetStore() {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
+  setNavigatorLanguages('en-US', ['en-US']);
   tauriRuntime = true;
   resetStore();
 
@@ -102,7 +123,7 @@ beforeEach(() => {
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
       lastOpenedAt: '2024-01-01T00:00:00Z',
-      scroll: { position: 0, speed: 42, running: false },
+      scroll: { position: 0, speed: 1.0, running: false },
       overlay: { fontScale: 1, showReadingRuler: true }
     }
   }));
@@ -176,7 +197,7 @@ describe('useAppStore session lifecycle behavior', () => {
       markdown: '# Existing\n\nText',
       parseWarnings: parsed.warnings,
       scrollPosition: 120,
-      scrollSpeed: 50,
+      scrollSpeed: 1.2,
       playbackState: 'running'
     });
 
@@ -190,7 +211,7 @@ describe('useAppStore session lifecycle behavior', () => {
     expect(state.markdown).toBe(defaultMarkdown);
     expect(state.playbackState).toBe('paused');
     expect(state.scrollPosition).toBe(0);
-    expect(state.scrollSpeed).toBe(42);
+    expect(state.scrollSpeed).toBe(1.0);
   });
 
   it('returns false and does not save when no active session exists', async () => {
@@ -202,12 +223,12 @@ describe('useAppStore session lifecycle behavior', () => {
     expect(tauriMock.saveSession).not.toHaveBeenCalled();
   });
 
-  it('clamps scroll speed between 10 and 140', () => {
-    useAppStore.getState().setScrollSpeed(200);
-    expect(useAppStore.getState().scrollSpeed).toBe(140);
+  it('clamps scroll speed between 0.2 and 3.3', () => {
+    useAppStore.getState().setScrollSpeed(10.0);
+    expect(useAppStore.getState().scrollSpeed).toBe(3.3);
 
-    useAppStore.getState().setScrollSpeed(5);
-    expect(useAppStore.getState().scrollSpeed).toBe(10);
+    useAppStore.getState().setScrollSpeed(0.1);
+    expect(useAppStore.getState().scrollSpeed).toBe(0.2);
   });
 
   it('clamps and rounds overlay font scale', () => {
@@ -218,7 +239,7 @@ describe('useAppStore session lifecycle behavior', () => {
     expect(useAppStore.getState().overlayFontScale).toBe(1.33);
 
     useAppStore.getState().setOverlayFontScale(9);
-    expect(useAppStore.getState().overlayFontScale).toBe(1.4);
+    expect(useAppStore.getState().overlayFontScale).toBe(1.8);
   });
 
   it('does not change scroll position for invalid section indexes', () => {
@@ -287,7 +308,7 @@ describe('useAppStore session lifecycle behavior', () => {
         createdAt: '',
         updatedAt: '',
         lastOpenedAt: '',
-        scroll: { position: 0, speed: 42, running: false },
+        scroll: { position: 0, speed: 1.0, running: false },
         overlay: { fontScale: 1, showReadingRuler: true }
       }
     });
@@ -327,7 +348,7 @@ describe('useAppStore session lifecycle behavior', () => {
         createdAt: '',
         updatedAt: '',
         lastOpenedAt: '',
-        scroll: { position: 0, speed: 42, running: false },
+        scroll: { position: 0, speed: 1.0, running: false },
         overlay: { fontScale: 1, showReadingRuler: true }
       }
     });
@@ -376,7 +397,7 @@ describe('useAppStore session lifecycle behavior', () => {
         createdAt: '',
         updatedAt: '',
         lastOpenedAt: '',
-        scroll: { position: 220, speed: 73, running: true },
+        scroll: { position: 220, speed: 1.5, running: true },
         overlay: { fontScale: 1.33, showReadingRuler: false }
       }
     });
@@ -385,7 +406,7 @@ describe('useAppStore session lifecycle behavior', () => {
 
     const state = useAppStore.getState();
     expect(state.scrollPosition).toBe(220);
-    expect(state.scrollSpeed).toBe(73);
+    expect(state.scrollSpeed).toBe(1.5);
     expect(state.playbackState).toBe('running');
     expect(state.overlayFontScale).toBe(1.33);
     expect(state.showReadingRuler).toBe(false);
@@ -427,6 +448,53 @@ describe('useAppStore session lifecycle behavior', () => {
     });
   });
 
+  it('hydrates language from storage and falls back to system locale on first launch', () => {
+    window.localStorage.setItem('glance-language-v1', 'fr');
+    useAppStore.setState({ language: 'en', resolvedLanguage: 'en' });
+
+    useAppStore.getState().hydrateLanguageFromStorage();
+    expect(useAppStore.getState().language).toBe('fr');
+    expect(useAppStore.getState().resolvedLanguage).toBe('fr');
+
+    window.localStorage.removeItem('glance-language-v1');
+    setNavigatorLanguages('fr-CA', ['fr-CA', 'en-US']);
+    useAppStore.setState({ language: 'en', resolvedLanguage: 'en' });
+
+    useAppStore.getState().hydrateLanguageFromStorage();
+    expect(useAppStore.getState().language).toBe('fr');
+    expect(useAppStore.getState().resolvedLanguage).toBe('fr');
+    expect(window.localStorage.getItem('glance-language-v1')).toBe('fr');
+
+    window.localStorage.removeItem('glance-language-v1');
+    setNavigatorLanguages('es-ES', ['es-ES', 'en-US']);
+    useAppStore.setState({ language: 'en', resolvedLanguage: 'en' });
+
+    useAppStore.getState().hydrateLanguageFromStorage();
+    expect(useAppStore.getState().language).toBe('es');
+    expect(useAppStore.getState().resolvedLanguage).toBe('es');
+    expect(window.localStorage.getItem('glance-language-v1')).toBe('es');
+  });
+
+  it('falls back to english when stored language is unsupported', () => {
+    window.localStorage.setItem('glance-language-v1', 'it');
+    useAppStore.setState({ language: 'fr', resolvedLanguage: 'fr' });
+
+    useAppStore.getState().hydrateLanguageFromStorage();
+
+    expect(useAppStore.getState().language).toBe('en');
+    expect(useAppStore.getState().resolvedLanguage).toBe('en');
+    expect(window.localStorage.getItem('glance-language-v1')).toBe('en');
+  });
+
+  it('emits language changed event when setLanguage is called with emit=true', () => {
+    useAppStore.getState().setLanguage('pl');
+    expect(tauriMock.emitLanguageChanged).toHaveBeenCalledWith('pl');
+
+    vi.clearAllMocks();
+    useAppStore.getState().setLanguage('de', false);
+    expect(tauriMock.emitLanguageChanged).not.toHaveBeenCalled();
+  });
+
   it('persists reading ruler preference and updates active session meta', () => {
     useAppStore.setState({
       overlayFontScale: 1.22,
@@ -436,7 +504,7 @@ describe('useAppStore session lifecycle behavior', () => {
         createdAt: '',
         updatedAt: '',
         lastOpenedAt: '',
-        scroll: { position: 0, speed: 42, running: false },
+        scroll: { position: 0, speed: 1.0, running: false },
         overlay: { fontScale: 1.22, showReadingRuler: true }
       }
     });
@@ -450,16 +518,30 @@ describe('useAppStore session lifecycle behavior', () => {
     });
   });
 
-  it('formats speed-change toast text with two decimal precision', () => {
-    useAppStore.setState({ scrollSpeed: 42 });
+  it('formats speed-change toast text with appropriate precision', () => {
+    useAppStore.setState({ scrollSpeed: 1.0, speedStep: 0.1 });
+    useAppStore.getState().changeScrollSpeedBy(1);
+    expect(useAppStore.getState().scrollSpeed).toBe(1.1);
+    expect(useAppStore.getState().toastMessage?.message).toBe('Speed 1.1x');
+
+    useAppStore.setState({ scrollSpeed: 1.0, speedStep: 0.05 });
+    useAppStore.getState().changeScrollSpeedBy(1);
+    expect(useAppStore.getState().scrollSpeed).toBe(1.05);
+    expect(useAppStore.getState().toastMessage?.message).toBe('Speed 1.05x');
+  });
+
+  it('respects configured speedStep for increment/decrement', () => {
+    useAppStore.setState({ scrollSpeed: 1.0, speedStep: 0.05 });
 
     useAppStore.getState().changeScrollSpeedBy(1);
+    expect(useAppStore.getState().scrollSpeed).toBe(1.05);
 
-    expect(useAppStore.getState().scrollSpeed).toBe(43);
-    expect(useAppStore.getState().toastMessage).toEqual({
-      message: 'Speed 1.02x',
-      variant: 'info'
-    });
+    useAppStore.getState().changeScrollSpeedBy(-2);
+    expect(useAppStore.getState().scrollSpeed).toBe(0.95);
+
+    useAppStore.getState().setSpeedStep(0.5);
+    useAppStore.getState().changeScrollSpeedBy(1);
+    expect(useAppStore.getState().scrollSpeed).toBe(1.45);
   });
 
   it('shows shortcut warning in browser preview and when shortcut registration fails', async () => {

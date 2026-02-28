@@ -7,6 +7,7 @@ import {
   primaryMonitor as runtimePrimaryMonitor
 } from '@tauri-apps/api/window';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import type { AppLanguage } from '../i18n/types';
 import type { ShortcutBinding } from './shortcuts';
 import type {
   DetectedMonitor,
@@ -706,12 +707,24 @@ interface ThemeChangedPayload {
   readonly mode: ThemeMode;
 }
 
+interface LanguageChangedPayload {
+  readonly language: AppLanguage;
+}
+
 export async function emitThemeChanged(mode: ThemeMode): Promise<void> {
   if (!inTauri()) {
     return;
   }
 
   await emit<ThemeChangedPayload>('glance-theme-changed', { mode });
+}
+
+export async function emitLanguageChanged(language: AppLanguage): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await emit<LanguageChangedPayload>('glance-language-changed', { language });
 }
 
 export async function emitAppReady(): Promise<void> {
@@ -731,6 +744,22 @@ export async function listenForThemeChanged(
 
   const unlisten = await listen<ThemeChangedPayload>('glance-theme-changed', (event) => {
     onThemeChanged(event.payload);
+  });
+
+  return () => {
+    unlisten();
+  };
+}
+
+export async function listenForLanguageChanged(
+  onLanguageChanged: (payload: LanguageChangedPayload) => void
+): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen<LanguageChangedPayload>('glance-language-changed', (event) => {
+    onLanguageChanged(event.payload);
   });
 
   return () => {

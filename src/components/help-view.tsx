@@ -3,23 +3,25 @@ import { open as openFileDialog, ask } from '@tauri-apps/plugin-dialog';
 import { loadShortcutConfig } from '../lib/shortcuts';
 import { openSessionsFolder, readTextFile } from '../lib/tauri';
 import { useAppStore } from '../store/use-app-store';
+import { useI18n } from '../i18n/use-i18n';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 
 interface HelpViewProps {
   onRestoreSuccess?: () => void;
 }
 
-function toSuggestedSessionName(path: string): string {
+function toSuggestedSessionName(path: string, fallbackName: string): string {
   const filename = path.split(/[\\/]/).pop() ?? '';
   const cleaned = filename
     .replace(/\.(md|markdown|txt)$/i, '')
     .replace(/\.bak\.\d+$/i, '')
     .replace(/\.bak$/i, '')
     .trim();
-  return cleaned || 'Restored Session';
+  return cleaned || fallbackName;
 }
 
 export function HelpView({ onRestoreSuccess }: HelpViewProps) {
+  const { t } = useI18n();
   const modifier = typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl';
   const shortcutConfig = loadShortcutConfig();
   const playPauseShortcut = shortcutConfig['toggle-play'];
@@ -44,9 +46,9 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   const handleRestore = async () => {
     try {
       const selected = await openFileDialog({
-        title: 'Select Session File to Restore',
+        title: t('help.restoreDialogTitle'),
         multiple: false,
-        filters: [{ name: 'Markdown / Backup', extensions: ['md', 'markdown', 'txt', 'bak', '1', '2', '3', '4', '5'] }]
+        filters: [{ name: t('help.restoreDialogFilterName'), extensions: ['md', 'markdown', 'txt', 'bak', '1', '2', '3', '4', '5'] }]
       });
 
       if (!selected || Array.isArray(selected)) {
@@ -54,12 +56,12 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
       }
 
       const confirmed = await ask(
-        'This will replace the content currently open in your editor with the selected file.',
+        t('help.restoreDialogPrompt'),
         {
-          title: 'Restore this session?',
+          title: t('help.restoreConfirmTitle'),
           kind: 'warning',
-          okLabel: 'Restore',
-          cancelLabel: 'Cancel'
+          okLabel: t('help.restoreConfirmOk'),
+          cancelLabel: t('help.restoreConfirmCancel')
         }
       );
 
@@ -75,18 +77,18 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
           return;
         }
       } else {
-        const suggestedName = toSuggestedSessionName(selected);
+        const suggestedName = toSuggestedSessionName(selected, t('help.fallbackRestoredSessionName'));
         await importMarkdown(suggestedName, restoredMarkdown, false);
       }
 
-      showToast('Session restored successfully', 'success');
+      showToast(t('help.restoreSuccess'), 'success');
 
       // Navigate to editor so user can see their restored content immediately
       if (onRestoreSuccess) {
         onRestoreSuccess();
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to restore session';
+      const message = error instanceof Error ? error.message : t('help.restoreFailure');
       showToast(message, 'error');
     }
   };
@@ -94,40 +96,40 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   return (
     <section className="help-pane">
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <h2 className="help-heading">Help</h2>
+        <h2 className="help-heading">{t('help.heading')}</h2>
       </header>
 
       {/* Keyboard Shortcuts card */}
       <div>
-        <div className="setting-group-label">Keyboard Shortcuts (Current)</div>
-        <p className="help-group-note">Defaults can be restored in Settings &gt; Shortcuts.</p>
-        <div className="help-shortcut-card" aria-label="Keyboard shortcuts">
+        <div className="setting-group-label">{t('help.keyboardShortcutsCurrent')}</div>
+        <p className="help-group-note">{t('help.shortcutsDefaultsNote')}</p>
+        <div className="help-shortcut-card" aria-label={t('help.keyboardShortcutsAria')}>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Play / Pause</span>
+            <span className="hsr-action">{t('help.shortcutPlayPause')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={playPauseShortcut} />
           </div>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Restart</span>
+            <span className="hsr-action">{t('help.shortcutRestart')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={restartShortcut} />
           </div>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Jump to section</span>
+            <span className="hsr-action">{t('help.shortcutJumpToSection')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={[jumpStartShortcut, jumpEndShortcut]} alternativeSeparator="…" />
           </div>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Adjust speed</span>
+            <span className="hsr-action">{t('help.shortcutAdjustSpeed')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={[speedUpShortcut, speedDownShortcut]} />
           </div>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Font size</span>
+            <span className="hsr-action">{t('help.shortcutFontSize')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={[`${modifier}+Plus`, `${modifier}+Minus`]} />
           </div>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Snap to center</span>
+            <span className="hsr-action">{t('help.shortcutSnapToCenter')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={snapShortcut} />
           </div>
           <div className="help-shortcut-row">
-            <span className="hsr-action">Close prompter</span>
+            <span className="hsr-action">{t('help.shortcutClosePrompter')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={['Esc', `${modifier}+W`]} />
           </div>
         </div>
@@ -135,35 +137,35 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
 
       {/* 5-Step Call Flow card */}
       <div>
-        <div className="setting-group-label">5-Step Call Flow</div>
-        <div className="help-flow-card" aria-label="5-step call flow">
+        <div className="setting-group-label">{t('help.callFlowTitle')}</div>
+        <div className="help-flow-card" aria-label={t('help.callFlowAria')}>
           <div className="flow-step">
             <div className="flow-step-num">1</div>
-            <div className="flow-step-text">Create a session in <strong>Sessions</strong>.</div>
+            <div className="flow-step-text">{t('help.callFlowStep1')}</div>
           </div>
           <div className="flow-step">
             <div className="flow-step-num">2</div>
-            <div className="flow-step-text">Write one <strong># heading</strong> per call phase.</div>
+            <div className="flow-step-text">{t('help.callFlowStep2')}</div>
           </div>
           <div className="flow-step">
             <div className="flow-step-num">3</div>
-            <div className="flow-step-text">Launch the <strong>Prompter</strong>.</div>
+            <div className="flow-step-text">{t('help.callFlowStep3')}</div>
           </div>
           <div className="flow-step">
             <div className="flow-step-num">4</div>
-            <div className="flow-step-text">Press <strong>Play</strong> and set your pace.</div>
+            <div className="flow-step-text">{t('help.callFlowStep4')}</div>
           </div>
           <div className="flow-step">
             <div className="flow-step-num">5</div>
-            <div className="flow-step-text">Jump <strong>sections</strong> as the conversation shifts.</div>
+            <div className="flow-step-text">{t('help.callFlowStep5')}</div>
           </div>
         </div>
       </div>
 
       {/* Local Storage section */}
       <div>
-        <div className="setting-group-label">Local Storage</div>
-        <div className="help-storage-card" aria-label="Local storage information">
+        <div className="setting-group-label">{t('help.localStorageTitle')}</div>
+        <div className="help-storage-card" aria-label={t('help.localStorageAria')}>
           <div className="storage-card-section recovery-section">
             <div className="storage-icon-circle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -172,16 +174,14 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
               </svg>
             </div>
             <div className="storage-section-content">
-              <div className="storage-section-title">Session Recovery</div>
-              <p className="storage-section-description">
-                Load script content from a markdown or backup file into the current editor session.
-              </p>
+              <div className="storage-section-title">{t('help.sessionRecoveryTitle')}</div>
+              <p className="storage-section-description">{t('help.sessionRecoveryDescription')}</p>
               <button
                 type="button"
                 className="btn-restore-backup"
                 onClick={() => void handleRestore()}
               >
-                Restore Session
+                {t('help.restoreSession')}
               </button>
             </div>
           </div>
@@ -195,16 +195,20 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
               </svg>
             </div>
             <div className="storage-section-content">
-              <div className="storage-section-title secondary">Manual Storage</div>
+              <div className="storage-section-title secondary">{t('help.manualStorageTitle')}</div>
               <p className="storage-section-description">
-                Access your raw data files directly {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'in Finder' : 'on disk'}.
+                {typeof navigator !== 'undefined' && navigator.platform.includes('Mac')
+                  ? t('help.manualStorageDescriptionMac')
+                  : t('help.manualStorageDescriptionOther')}
               </p>
               <button
                 type="button"
                 className="btn-open-folder"
                 onClick={() => void openSessionsFolder()}
               >
-                {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'Show in Finder' : 'Open Local Folder'}
+                {typeof navigator !== 'undefined' && navigator.platform.includes('Mac')
+                  ? t('help.showInFinder')
+                  : t('help.openLocalFolder')}
               </button>
             </div>
           </div>
@@ -218,8 +222,8 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" />
           </svg>
         </div>
-        <p className="help-footer-text" role="note" aria-label="Local privacy notice">
-          <strong>Local by default.</strong> No account, no cloud sync, no remote storage.
+        <p className="help-footer-text" role="note" aria-label={t('help.privacyNoteAria')}>
+          <strong>{t('help.privacyNoteLead')}</strong> {t('help.privacyNoteTail')}
         </p>
         <a
           href="https://buymeacoffee.com/ordo"
@@ -256,7 +260,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
             <line x1="10" y1="1" x2="10" y2="4"></line>
             <line x1="14" y1="1" x2="14" y2="4"></line>
           </svg>
-          Buy me a coffee
+          {t('help.buyMeACoffee')}
         </a>
       </div>
     </section>

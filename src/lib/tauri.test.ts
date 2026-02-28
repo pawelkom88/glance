@@ -1,8 +1,11 @@
 import { availableMonitors, currentMonitor, primaryMonitor } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
+import { emit, listen } from '@tauri-apps/api/event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  emitLanguageChanged,
   getMonitors,
+  listenForLanguageChanged,
   listMonitors,
   moveMainToMonitor,
   moveOverlayToMonitor,
@@ -12,10 +15,17 @@ import {
   showMainWindow
 } from './tauri';
 
+vi.mock('@tauri-apps/api/event', () => ({
+  emit: vi.fn(),
+  listen: vi.fn()
+}));
+
 const invokeMock = invoke as unknown as ReturnType<typeof vi.fn>;
 const availableMonitorsMock = availableMonitors as unknown as ReturnType<typeof vi.fn>;
 const currentMonitorMock = currentMonitor as unknown as ReturnType<typeof vi.fn>;
 const primaryMonitorMock = primaryMonitor as unknown as ReturnType<typeof vi.fn>;
+const emitMock = emit as unknown as ReturnType<typeof vi.fn>;
+const listenMock = listen as unknown as ReturnType<typeof vi.fn>;
 
 const overlayMonitorKey = 'glance-overlay-last-monitor-v2';
 const overlayLayoutKey = 'glance-overlay-layout-v2';
@@ -36,6 +46,8 @@ describe('tauri monitor bridge behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    emitMock.mockResolvedValue(undefined);
+    listenMock.mockResolvedValue(() => undefined);
   });
 
   it('listMonitors merges runtime and backend sources without duplicates', async () => {
@@ -221,5 +233,24 @@ describe('tauri monitor bridge behavior', () => {
     expect(invokeMock).toHaveBeenCalledWith('show_overlay_window');
     expect(invokeMock).toHaveBeenCalledWith('set_overlay_always_on_top', { enabled: true });
     expect(window.localStorage.getItem(overlayMonitorKey)).toBe('resolved-overlay-monitor');
+  });
+
+  it('emits and listens for language-changed events', async () => {
+    const detach = vi.fn();
+    listenMock.mockResolvedValue(detach);
+    const callback = vi.fn();
+
+    await emitLanguageChanged('fr');
+    expect(emitMock).toHaveBeenCalledWith('glance-language-changed', { language: 'fr' });
+
+    const unlisten = await listenForLanguageChanged(callback);
+    expect(listenMock).toHaveBeenCalledWith('glance-language-changed', expect.any(Function));
+
+    const listener = listenMock.mock.calls[0]?.[1] as ((event: { payload: { language: 'en' | 'fr' | 'es' } }) => void);
+    listener({ payload: { language: 'en' } });
+    expect(callback).toHaveBeenCalledWith({ language: 'en' });
+
+    unlisten();
+    expect(detach).toHaveBeenCalled();
   });
 });

@@ -14,6 +14,7 @@ import {
   emitThemeChanged,
   getLastMainMonitorName,
   hideMainWindow,
+  listenForLanguageChanged,
   listenForThemeChanged,
   listenForMainWindowShown,
   moveWindowToMonitor,
@@ -21,6 +22,7 @@ import {
   parseMonitorPreferenceKey
 } from './lib/tauri';
 import { useAppStore } from './store/use-app-store';
+import { useI18n } from './i18n/use-i18n';
 import type { ToastVariant } from './types';
 
 type MainTab = 'library' | 'editor' | 'settings' | 'help';
@@ -62,13 +64,13 @@ function HelpIcon() {
 
 const tabs: ReadonlyArray<{
   readonly id: MainTab;
-  readonly label: string;
+  readonly labelKey: 'tabLibrary' | 'tabEditor' | 'tabSettings' | 'tabHelp';
   readonly icon: () => ReactElement;
 }> = [
-    { id: 'library', label: 'Session Library', icon: LibraryIcon },
-    { id: 'editor', label: 'Session Editor', icon: EditorIcon },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-    { id: 'help', label: 'Help', icon: HelpIcon }
+    { id: 'library', labelKey: 'tabLibrary', icon: LibraryIcon },
+    { id: 'editor', labelKey: 'tabEditor', icon: EditorIcon },
+    { id: 'settings', labelKey: 'tabSettings', icon: SettingsIcon },
+    { id: 'help', labelKey: 'tabHelp', icon: HelpIcon }
   ];
 
 function isOverlayRoute(): boolean {
@@ -127,6 +129,7 @@ function BannerIcon({ variant }: { variant: ToastVariant }) {
 }
 
 export default function App() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<MainTab>('library');
   const [isOverlay] = useState<boolean>(isOverlayRoute);
   const [isTabSwitchAnimating, setIsTabSwitchAnimating] = useState(false);
@@ -168,6 +171,7 @@ export default function App() {
   const themeMode = useAppStore((state) => state.themeMode);
   const resolvedTheme = useAppStore((state) => state.resolvedTheme);
   const hydrateThemeFromStorage = useAppStore((state) => state.hydrateThemeFromStorage);
+  const hydrateLanguageFromStorage = useAppStore((state) => state.hydrateLanguageFromStorage);
   const syncSystemTheme = useAppStore((state) => state.syncSystemTheme);
 
   const sections = useMemo(() => parseMarkdown(markdown).sections, [markdown]);
@@ -273,6 +277,11 @@ export default function App() {
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'glance-theme-mode-v1') {
         hydrateThemeFromStorage();
+        return;
+      }
+
+      if (event.key === 'glance-language-v1') {
+        hydrateLanguageFromStorage();
       }
     };
 
@@ -280,7 +289,7 @@ export default function App() {
     return () => {
       window.removeEventListener('storage', onStorage);
     };
-  }, [hydrateThemeFromStorage]);
+  }, [hydrateLanguageFromStorage, hydrateThemeFromStorage]);
 
   useEffect(() => {
     let didCancel = false;
@@ -311,8 +320,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let didCancel = false;
+    let unlisten: (() => void) | null = null;
+
+    void (async () => {
+      unlisten = await listenForLanguageChanged(({ language: nextLanguage }) => {
+        if (didCancel) {
+          return;
+        }
+
+        const state = useAppStore.getState();
+        if (state.language !== nextLanguage) {
+          state.setLanguage(nextLanguage, false);
+          return;
+        }
+
+        state.hydrateLanguageFromStorage();
+      });
+    })();
+
+    return () => {
+      didCancel = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
     void emitThemeChanged(themeMode);
   }, [themeMode]);
+
 
   useEffect(() => {
     if (!activeSessionId) {
@@ -512,21 +548,21 @@ export default function App() {
           onExportMarkdown={() => {
             void (async () => {
               if (!activeSessionId) {
-                showToast('Open a session before exporting', 'warning');
+                showToast(t('editor.exportErrorNoSessionToast'), 'warning');
                 return;
               }
 
               if (!isTauri()) {
-                showToast('Export is available in the desktop app runtime', 'info');
+                showToast(t('editor.exportErrorDesktopOnlyToast'), 'info');
                 return;
               }
 
               const selectedSession = sessions.find((session) => session.id === activeSessionId);
-              const defaultPath = toExportFilename(selectedSession?.title ?? 'session');
+              const defaultFilename = toExportFilename(selectedSession?.title ?? t('library.exportFilenameFallback'));
               const selectedPath = await save({
-                title: 'Export Markdown Session',
-                defaultPath,
-                filters: [{ name: 'Markdown', extensions: ['md'] }]
+                title: t('editor.exportSessionTitle'),
+                defaultPath: defaultFilename,
+                filters: [{ name: t('editor.exportMarkdownFilter'), extensions: ['md'] }]
               });
 
               if (!selectedPath || Array.isArray(selectedPath)) {
@@ -540,7 +576,7 @@ export default function App() {
 
               const exportedPath = await exportSessionById(activeSessionId, selectedPath, false);
               if (exportedPath) {
-                showToast('Markdown exported', 'success');
+                showToast(t('editor.exportSuccessToast'), 'success');
               }
             })();
           }}
@@ -562,14 +598,14 @@ export default function App() {
                 setMainWindowTransition('idle');
               } catch (error) {
                 setMainWindowTransition('idle');
-                const message = error instanceof Error ? error.message : 'Failed to launch prompter';
+                const message = error instanceof Error ? error.message : t('editor.launchErrorToast');
                 showToast(message, 'error');
               }
             })();
           }}
           onCloseOverlay={() => {
             void closeOverlayWindow().catch((error) => {
-              const message = error instanceof Error ? error.message : 'Failed to close prompter';
+              const message = error instanceof Error ? error.message : t('editor.closeErrorToast');
               showToast(message, 'error');
             });
           }}
@@ -618,7 +654,7 @@ export default function App() {
 
   return (
     <main className={`app-shell main-window-transition-${mainWindowTransition}`}>
-      <aside className="sidebar" aria-label="Primary navigation">
+      <nav className="sidebar-nav" aria-label={t('app.primaryNavigation')}>
         <nav className="icon-nav">
           <div className="icon-nav-group">
             {tabs.slice(0, 2).map((tab) => (
@@ -626,14 +662,14 @@ export default function App() {
                 key={tab.id}
                 type="button"
                 className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
-                aria-label={tab.label}
-                title={tab.id === 'library' ? 'Sessions' : 'Scripts'}
+                aria-label={t(`app.${tab.labelKey}`)}
+                title={tab.id === 'library' ? t('app.sidebarSessionsTitle') : t('app.sidebarScriptsTitle')}
                 onClick={() => {
                   switchTab(tab.id);
                 }}
               >
                 <tab.icon />
-                <span className="sr-only">{tab.label}</span>
+                <span className="sr-only">{t(`app.${tab.labelKey}`)}</span>
               </button>
             ))}
           </div>
@@ -644,19 +680,19 @@ export default function App() {
                 key={tab.id}
                 type="button"
                 className={`nav-icon-button ${activeTab === tab.id ? 'active' : ''}`}
-                aria-label={tab.label}
-                title={tab.id === 'settings' ? 'Settings' : 'Help'}
+                aria-label={t(`app.${tab.labelKey}`)}
+                title={tab.id === 'settings' ? t('app.tabSettings') : t('app.tabHelp')}
                 onClick={() => {
                   switchTab(tab.id);
                 }}
               >
                 <tab.icon />
-                <span className="sr-only">{tab.label}</span>
+                <span className="sr-only">{t(`app.${tab.labelKey}`)}</span>
               </button>
             ))}
           </div>
         </nav>
-      </aside>
+      </nav>
 
       <section className="content-area">
         {toastMessage ? (
@@ -675,13 +711,13 @@ export default function App() {
                   <div className="banner-title">{toastMessage.message}</div>
                 </div>
               </div>
-              <button className="banner-dismiss" aria-label="Dismiss" onClick={() => { setIsToastClosing(true); }}>✕</button>
+              <button className="banner-dismiss" aria-label={t('app.dismissBanner')} onClick={() => { setIsToastClosing(true); }}>✕</button>
             </div>
           </div>
         ) : null}
 
         {!initialized ? (
-          <p className="startup-label">Loading local workspace…</p>
+          <p className="startup-label">{t('app.loading')}</p>
         ) : (
           <div key={activeTab} className={`panel-switch ${isTabSwitchAnimating ? 'is-switching' : ''}`}>
             {activePanel}
@@ -702,7 +738,7 @@ export default function App() {
 
           void selected.text().then((content) => {
             const suggestedName = selected.name.replace(/\.(md|markdown|txt)$/i, '');
-            return importMarkdown(suggestedName || 'Imported Session', content);
+            return importMarkdown(suggestedName || t('library.importedSessionName'), content);
           });
 
           event.target.value = '';

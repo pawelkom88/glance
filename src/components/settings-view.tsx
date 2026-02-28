@@ -2,6 +2,8 @@ import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, u
 import { isTauri } from '@tauri-apps/api/core';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { save } from '@tauri-apps/plugin-dialog';
+import { languageOptions, toLanguageOptionLabel } from '../i18n/languages';
+import { translateForLanguage, useI18n } from '../i18n/use-i18n';
 import {
   exportDiagnostics,
   getMonitors,
@@ -25,6 +27,7 @@ import {
   validateShortcutConfig
 } from '../lib/shortcuts';
 import { useAppStore } from '../store/use-app-store';
+import type { AppLanguage } from '../i18n/types';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 
@@ -57,11 +60,11 @@ function isWindowsPlatform(): boolean {
   return navigator.platform.toLowerCase().includes('win');
 }
 
-function singleMonitorDisplayMessage(): string {
+function singleMonitorDisplayMessage(t: (key: any) => string): string {
   if (isWindowsPlatform()) {
-    return 'Your primary display will be used.';
+    return t('settingsView.overlay.singleMonitorWindows');
   }
-  return 'Opening on your primary display.';
+  return t('settingsView.overlay.singleMonitorOther');
 }
 
 function normalizeShortcutKey(key: string, code: string): string | null {
@@ -176,9 +179,14 @@ export function SettingsView() {
   const showToast = useAppStore((state) => state.showToast);
   const themeMode = useAppStore((state) => state.themeMode);
   const setThemeMode = useAppStore((state) => state.setThemeMode);
+  const language = useAppStore((state) => state.language);
+  const setLanguage = useAppStore((state) => state.setLanguage);
   const showReadingRuler = useAppStore((state) => state.showReadingRuler);
   const setShowReadingRuler = useAppStore((state) => state.setShowReadingRuler);
+  const speedStep = useAppStore((state) => state.speedStep);
+  const setSpeedStep = useAppStore((state) => state.setSpeedStep);
   const setShortcutWarning = useAppStore((state) => state.setShortcutWarning);
+  const { t } = useI18n();
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
     () => new Map(shortcutDefinitions.map((definition) => [definition.action, definition])),
@@ -195,18 +203,22 @@ export function SettingsView() {
   );
   const canSwapDisplay = swapTargets.length > 0 && !displayLoadError;
   const shouldShowSingleDisplayMessage = !displayLoadError && runtimeMonitorCount === 1 && monitors.length === 1;
-  const singleDisplayMessage = useMemo(() => singleMonitorDisplayMessage(), []);
+  const singleDisplayMessage = useMemo(() => singleMonitorDisplayMessage(t), [t]);
   const selectedMonitorLabel = useMemo(() => {
     if (displayLoadError || monitors.length === 0) {
-      return 'Unable to detect displays. Please restart the app.';
+      return t('settingsView.overlay.detectError');
     }
 
     if (!activeMonitor) {
-      return 'Display unavailable';
+      return t('settingsView.overlay.unavailable');
     }
 
-    return `${activeMonitor.displayName} (${activeMonitor.logicalResolutionLabel})${activeMonitor.isPrimary ? ' • Primary' : ''}`;
-  }, [activeMonitor, displayLoadError, monitors.length]);
+    return `${activeMonitor.displayName} (${activeMonitor.logicalResolutionLabel})${activeMonitor.isPrimary ? ` • ${t('settingsView.overlay.primary')}` : ''}`;
+  }, [activeMonitor, displayLoadError, monitors.length, t]);
+  const selectedLanguageLabel = useMemo(() => {
+    const selectedOption = languageOptions.find((option) => option.code === language) ?? languageOptions[0];
+    return toLanguageOptionLabel(selectedOption);
+  }, [language]);
   const hasUnsavedShortcutChanges = useMemo(
     () => shortcutDefinitions.some((definition) => {
       return shortcutConfig[definition.action] !== savedShortcutConfig[definition.action];
@@ -372,7 +384,7 @@ export function SettingsView() {
     }
 
     if (shortcutUnavailable) {
-      const message = 'Global shortcuts are unavailable in browser preview.';
+      const message = t('settingsView.shortcuts.unavailableToast');
       setShortcutWarning(message);
       showToast(message, 'warning');
       return;
@@ -384,7 +396,7 @@ export function SettingsView() {
       setSavedShortcutConfig(nextConfig);
       setShortcutWarning(null);
       setShortcutErrors({});
-      showToast('Shortcuts updated', 'success');
+      showToast(t('settingsView.shortcuts.updatedToast'), 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Shortcut registration failed';
       setShortcutWarning(message);
@@ -426,7 +438,7 @@ export function SettingsView() {
 
     const targetMonitor = monitors.find((monitor) => monitor.key === monitorKey);
     if (!targetMonitor) {
-      showToast('Selected display is no longer available', 'error');
+      showToast(t('settingsView.overlay.unavailable'), 'error');
       return;
     }
 
@@ -452,17 +464,21 @@ export function SettingsView() {
       return null;
     }
     const shortcutError = shortcutErrors[definition.action];
-    const captureHint = 'Focus and press keys to record';
+    const captureHint = t('settingsView.shortcuts.captureHint');
+
+    const label = definition.label.includes('jumpSection')
+      ? t(definition.label as any, { n: parseInt(definition.action.replace('jump-', ''), 10) })
+      : t(definition.label as any);
 
     return (
       <div key={definition.action} className={`shortcut-row ${shortcutError ? 'has-error' : ''}`}>
-        <span className="shortcut-action-label">{definition.label}</span>
+        <span className="shortcut-action-label">{label}</span>
         <input
           id={`${idPrefix}-${definition.action}`}
           type="text"
           readOnly
           value={shortcutConfig[definition.action]}
-          placeholder="Press shortcut"
+          placeholder={t('settingsView.shortcuts.placeholder')}
           title={captureHint}
           className={shortcutError ? 'has-error' : ''}
           aria-invalid={Boolean(shortcutError)}
@@ -518,8 +534,8 @@ export function SettingsView() {
   return (
     <section className="panel settings-panel">
       <header className="panel-header settings-header">
-        <h2>Settings</h2>
-        <div className="tab-strip" role="tablist" aria-label="Settings tabs">
+        <h2>{t('settingsView.title')}</h2>
+        <div className="tab-strip" role="tablist" aria-label={t('settingsView.title')}>
           <button
             type="button"
             role="tab"
@@ -527,7 +543,7 @@ export function SettingsView() {
             className={`tab ${activeTab === 'general' ? 'active' : ''}`}
             onClick={() => handleTabChange('general')}
           >
-            General
+            {t('settingsView.tabs.general')}
           </button>
           <button
             type="button"
@@ -536,7 +552,7 @@ export function SettingsView() {
             className={`tab ${activeTab === 'shortcuts' ? 'active' : ''}`}
             onClick={() => handleTabChange('shortcuts')}
           >
-            Shortcuts
+            {t('settingsView.tabs.shortcuts')}
           </button>
           <button
             type="button"
@@ -545,26 +561,26 @@ export function SettingsView() {
             className={`tab ${activeTab === 'support' ? 'active' : ''}`}
             onClick={() => handleTabChange('support')}
           >
-            Support
+            {t('settingsView.tabs.support')}
           </button>
         </div>
       </header>
 
       <div className={`tab-content ${activeTab === 'general' ? 'visible' : ''}`}>
         <section className="settings-group" aria-labelledby="settings-appearance-label">
-          <h3 id="settings-appearance-label" className="settings-group-label">Appearance</h3>
+          <h3 id="settings-appearance-label" className="settings-group-label">{t('settingsView.appearance.title')}</h3>
           <div className="settings-card">
             <div className="setting-row setting-row-appearance">
               <div className="setting-copy">
-                <span className="setting-title">Theme</span>
-                <span className="setting-subtitle">Follow system, or set manually.</span>
+                <span className="setting-title">{t('settingsView.appearance.themeTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.appearance.themeSubtitle')}</span>
               </div>
-              <div className="theme-segmented" role="radiogroup" aria-label="Appearance">
+              <div className="theme-segmented" role="radiogroup" aria-label={t('settingsView.appearance.themeTitle')}>
                 {(['system', 'light', 'dark'] as const).map((mode) => {
                   const labels: Record<ThemeMode, string> = {
-                    system: 'System',
-                    light: 'Light',
-                    dark: 'Dark'
+                    system: t('settingsView.appearance.themeLabels.system'),
+                    light: t('settingsView.appearance.themeLabels.light'),
+                    dark: t('settingsView.appearance.themeLabels.dark')
                   };
                   const isSelected = themeMode === mode;
                   return (
@@ -579,7 +595,7 @@ export function SettingsView() {
                           return;
                         }
                         setThemeMode(mode);
-                        showToast(`Appearance set to ${labels[mode]}`, 'success');
+                        showToast(t('settingsView.appearance.themeToast', { mode: labels[mode] }), 'success');
                       }}
                       onKeyDown={(event) => {
                         if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
@@ -593,7 +609,7 @@ export function SettingsView() {
                         const nextIndex = (currentIndex + step + themeModes.length) % themeModes.length;
                         const nextMode = themeModes[nextIndex];
                         setThemeMode(nextMode);
-                        showToast(`Appearance set to ${labels[nextMode]}`, 'success');
+                        showToast(t('settingsView.appearance.themeToast', { mode: labels[nextMode] }), 'success');
                       }}
                     >
                       {labels[mode]}
@@ -605,19 +621,58 @@ export function SettingsView() {
 
             <div className="setting-row">
               <div className="setting-copy">
-                <span className="setting-title">Reading Ruler</span>
-                <span className="setting-subtitle">Show a focus band in the prompter overlay.</span>
+                <span className="setting-title">{t('settings.general.interfaceLanguageLabel')}</span>
+                <span className="setting-subtitle">{t('settings.general.interfaceLanguageHint')}</span>
+              </div>
+              <div className="setting-select-wrap">
+                <div className="setting-select-display">
+                  <span className="setting-select-value">{selectedLanguageLabel}</span>
+                  <span className="setting-select-chevron" aria-hidden="true" />
+                  <select
+                    className="setting-select-native"
+                    value={language}
+                    aria-label={t('settings.general.interfaceLanguageLabel')}
+                    onChange={(event) => {
+                      const nextLanguage = event.target.value as AppLanguage;
+                      if (nextLanguage === language) {
+                        return;
+                      }
+
+                      setLanguage(nextLanguage);
+                      showToast(
+                        translateForLanguage({
+                          language: nextLanguage,
+                          key: 'settings.general.interfaceLanguagePreferenceSaved'
+                        }),
+                        'success'
+                      );
+                    }}
+                  >
+                    {languageOptions.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {toLanguageOptionLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">{t('settingsView.appearance.readingRulerTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.appearance.readingRulerSubtitle')}</span>
               </div>
               <button
                 type="button"
                 className={`setting-switch ${showReadingRuler ? 'is-on' : ''}`}
                 role="switch"
                 aria-checked={showReadingRuler}
-                aria-label="Show reading ruler"
+                aria-label={t('settingsView.appearance.readingRulerAria')}
                 onClick={() => {
                   const next = !showReadingRuler;
                   setShowReadingRuler(next);
-                  showToast(next ? 'Reading ruler enabled' : 'Reading ruler disabled', 'success');
+                  showToast(next ? t('settingsView.appearance.readingRulerEnabledToast') : t('settingsView.appearance.readingRulerDisabledToast'), 'success');
                 }}
               >
                 <span className="setting-switch-thumb" />
@@ -627,19 +682,47 @@ export function SettingsView() {
         </section>
 
         <section className="settings-group" aria-labelledby="settings-overlay-label">
-          <h3 id="settings-overlay-label" className="settings-group-label">Overlay</h3>
+          <h3 id="settings-overlay-label" className="settings-group-label">{t('settingsView.overlay.title')}</h3>
           <div className="settings-card">
             <div className="setting-row">
               <div className="setting-copy">
-                <span className="setting-title">Always on Top</span>
-                <span className="setting-subtitle">Keeps prompter on the top layer of your screen.</span>
+                <span className="setting-title">{t('settingsView.overlay.speedStepTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.overlay.speedStepSubtitle')}</span>
+              </div>
+              <div className="theme-segmented">
+                {([0.05, 0.1, 0.2, 0.5] as const).map((value) => {
+                  const labels: Record<number, string> = {
+                    0.05: t('settingsView.overlay.speedStepLabels.fine'),
+                    0.1: t('settingsView.overlay.speedStepLabels.normal'),
+                    0.2: t('settingsView.overlay.speedStepLabels.large'),
+                    0.5: t('settingsView.overlay.speedStepLabels.jump')
+                  };
+                  const isSelected = speedStep === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`theme-segmented-option ${isSelected ? 'is-selected' : ''}`}
+                      onClick={() => setSpeedStep(value)}
+                    >
+                      {labels[value]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">{t('settingsView.overlay.alwaysOnTopTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.overlay.alwaysOnTopSubtitle')}</span>
               </div>
               <button
                 type="button"
                 className={`setting-switch ${alwaysOnTop ? 'is-on' : ''}`}
                 role="switch"
                 aria-checked={alwaysOnTop}
-                aria-label="Always on top"
+                aria-label={t('settingsView.overlay.alwaysOnTopAria')}
                 onClick={async () => {
                   const value = !alwaysOnTop;
                   setAlwaysOnTopState(value);
@@ -653,8 +736,8 @@ export function SettingsView() {
             {shouldShowDisplaySetting ? (
               <div className="setting-row setting-row-display">
                 <div className="setting-copy">
-                  <span className="setting-title">App Display</span>
-                  <span className="setting-subtitle">Where Glance opens.</span>
+                  <span className="setting-title">{t('settingsView.overlay.appDisplayTitle')}</span>
+                  <span className="setting-subtitle">{t('settingsView.overlay.appDisplaySubtitle')}</span>
                 </div>
                 {shouldShowSingleDisplayMessage ? (
                   <span className="display-static-message" role="status">{singleDisplayMessage}</span>
@@ -683,7 +766,7 @@ export function SettingsView() {
                     </button>
 
                     {isDisplayMenuOpen && canSwapDisplay ? (
-                      <div className="display-picker-menu" role="menu" aria-label="App display options">
+                      <div className="display-picker-menu" role="menu" aria-label={t('settingsView.overlay.pickerAria')}>
                         {swapTargets.map((monitor) => {
                           const isSelected = activeMonitorId === monitor.key;
                           return (
@@ -697,7 +780,7 @@ export function SettingsView() {
                                 void updateDisplay(monitor.key);
                               }}
                             >
-                              <span>{monitor.displayName} ({monitor.logicalResolutionLabel}){monitor.isPrimary ? ' • Primary' : ''}</span>
+                              <span>{monitor.displayName} ({monitor.logicalResolutionLabel}){monitor.isPrimary ? ` • ${t('settingsView.overlay.primary')}` : ''}</span>
                               <span className="display-picker-check" aria-hidden="true">{isSelected ? '✓' : ''}</span>
                             </button>
                           );
@@ -715,12 +798,12 @@ export function SettingsView() {
       <div className={`tab-content ${activeTab === 'shortcuts' ? 'visible' : ''}`}>
         <section className="shortcut-settings">
           <div className="settings-group" aria-labelledby="shortcuts-playback">
-            <h3 id="shortcuts-playback" className="settings-group-label">Playback Shortcuts</h3>
-            <p className="shortcut-edit-hint">Click a shortcut field, then press keys to record. Press Delete to clear.</p>
+            <h3 id="shortcuts-playback" className="settings-group-label">{t('settingsView.shortcuts.playbackTitle')}</h3>
+            <p className="shortcut-edit-hint">{t('settingsView.shortcuts.editHint')}</p>
             <div className="settings-card shortcut-group">
               {playbackActions.map((action) => renderShortcutInput(action))}
               <div className="shortcut-static-row">
-                <span className="shortcut-action-label">Jump to Section</span>
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.jumpToSection')}</span>
                 <ShortcutKeycaps shortcuts={['CmdOrCtrl+1', 'CmdOrCtrl+9']} alternativeSeparator="…" />
               </div>
               <div className="shortcut-navigation-actions">
@@ -730,13 +813,13 @@ export function SettingsView() {
                   aria-expanded={showAdvancedJumpMappings}
                   onClick={() => setShowAdvancedJumpMappings((previous) => !previous)}
                 >
-                  {showAdvancedJumpMappings ? 'Hide Advanced Jump Keys' : 'Customize Jump Keys'}
+                  {showAdvancedJumpMappings ? t('settingsView.shortcuts.hideAdvanced') : t('settingsView.shortcuts.showAdvanced')}
                 </button>
               </div>
 
               {showAdvancedJumpMappings ? (
                 <div className="shortcut-advanced-wrapper">
-                  <p className="shortcut-edit-hint shortcut-edit-hint-advanced">Advanced jump keys can also be edited the same way.</p>
+                  <p className="shortcut-edit-hint shortcut-edit-hint-advanced">{t('settingsView.shortcuts.advancedJumpHint')}</p>
                   {jumpActions.map((action) => renderShortcutInput(action, 'shortcut-advanced'))}
                 </div>
               ) : null}
@@ -744,34 +827,34 @@ export function SettingsView() {
           </div>
 
           <div className="settings-group" aria-labelledby="shortcuts-builtin">
-            <h3 id="shortcuts-builtin" className="settings-group-label">Built-In Controls</h3>
+            <h3 id="shortcuts-builtin" className="settings-group-label">{t('settingsView.shortcuts.builtinTitle')}</h3>
             <div className="settings-card shortcut-group shortcut-group-builtins">
               {globalActions.map((action) => renderShortcutInput(action))}
               <div className="shortcut-static-row">
-                <span className="shortcut-action-label">Close Prompter</span>
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.closePrompter')}</span>
                 <ShortcutKeycaps shortcuts={['Esc', 'CmdOrCtrl+W']} />
               </div>
               <div className="shortcut-static-row">
-                <span className="shortcut-action-label">Play / Pause</span>
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.playPause')}</span>
                 <ShortcutKeycaps shortcuts="Space" />
               </div>
               <div className="shortcut-static-row">
-                <span className="shortcut-action-label">Restart Script</span>
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.rewind')}</span>
                 <ShortcutKeycaps shortcuts="R" />
               </div>
               <div className="shortcut-static-row">
-                <span className="shortcut-action-label">Font Size</span>
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.fontSize')}</span>
                 <ShortcutKeycaps shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus', 'CmdOrCtrl+0']} />
               </div>
               <div className="shortcut-static-row">
-                <span className="shortcut-action-label">Change Speed</span>
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.changeSpeed')}</span>
                 <ShortcutKeycaps shortcuts={['Up', 'Down']} />
               </div>
             </div>
           </div>
         </section>
 
-        <div className="shortcut-action-bar" role="region" aria-label="Shortcut actions">
+        <div className="shortcut-action-bar" role="region" aria-label={t('settingsView.shortcuts.playbackTitle')}>
           <div className="shortcut-settings-actions">
             <button
               type="button"
@@ -782,7 +865,7 @@ export function SettingsView() {
                 void applyShortcutConfig(defaults);
               }}
             >
-              Restore defaults
+              {t('settingsView.shortcuts.restoreDefaults')}
             </button>
             <button
               type="button"
@@ -792,7 +875,7 @@ export function SettingsView() {
                 void applyShortcutConfig(shortcutConfig);
               }}
             >
-              Apply shortcuts
+              {t('settingsView.shortcuts.applyShortcuts')}
             </button>
           </div>
         </div>
@@ -800,12 +883,12 @@ export function SettingsView() {
 
       <div className={`tab-content support-settings ${activeTab === 'support' ? 'visible' : ''}`}>
         <section className="settings-group" aria-labelledby="support-diagnostics">
-          <h3 id="support-diagnostics" className="settings-group-label">Diagnostics</h3>
+          <h3 id="support-diagnostics" className="settings-group-label">{t('settingsView.diagnostics.title')}</h3>
           <div className="settings-card">
             <div className="setting-row">
               <div className="setting-copy">
-                <span className="setting-title">Diagnostic Bundle</span>
-                <span className="setting-subtitle">Zips local logs to your Desktop. Nothing sent automatically.</span>
+                <span className="setting-title">{t('settingsView.diagnostics.bundleTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.diagnostics.bundleSubtitle')}</span>
               </div>
               <button
                 type="button"
@@ -817,7 +900,7 @@ export function SettingsView() {
                   }
                   try {
                     const selectedPath = await save({
-                      title: 'Export Diagnostic Logs',
+                      title: t('settingsView.diagnostics.bundleTitle'),
                       defaultPath: 'Glance_Diagnostics.zip',
                       filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
                     });
@@ -827,26 +910,26 @@ export function SettingsView() {
                     }
 
                     await exportDiagnostics(selectedPath);
-                    showToast('Logs exported successfully', 'success');
+                    showToast(t('settingsView.diagnostics.toastSuccess'), 'success');
                   } catch (error) {
                     const message = error instanceof Error ? error.message : 'Export failed';
                     showToast(message, 'error');
                   }
                 }}
               >
-                Export Logs
+                {t('settingsView.diagnostics.exportButton')}
               </button>
             </div>
           </div>
         </section>
 
         <section className="settings-group" aria-labelledby="support-feedback">
-          <h3 id="support-feedback" className="settings-group-label">Feedback</h3>
+          <h3 id="support-feedback" className="settings-group-label">{t('settingsView.feedback.title')}</h3>
           <div className="settings-card">
             <div className="setting-row">
               <div className="setting-copy">
-                <span className="setting-title">Known Issues & Feedback</span>
-                <span className="setting-subtitle">Browse issues or request features on GitHub.</span>
+                <span className="setting-title">{t('settingsView.feedback.issuesTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.feedback.issuesSubtitle')}</span>
               </div>
               <button
                 type="button"
@@ -855,7 +938,7 @@ export function SettingsView() {
                   void openUrl('https://github.com/pawelkom88/glance/issues');
                 }}
               >
-                Open GitHub
+                {t('settingsView.feedback.openButton')}
               </button>
             </div>
           </div>

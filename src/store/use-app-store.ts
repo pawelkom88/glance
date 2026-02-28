@@ -10,6 +10,7 @@ import {
   deleteFolder,
   deleteSession,
   duplicateSession,
+  emitLanguageChanged,
   exportSessionToPath,
   getLastActiveSessionId,
   listFolders,
@@ -21,8 +22,16 @@ import {
   setLastActiveSessionId,
   saveSession
 } from '../lib/tauri';
+import { isAppLanguage } from '../i18n/languages';
+import { detectSystemLanguage, normalizeStoredLanguage, resolveLanguage } from '../i18n/resolve-language';
+import type { AppLanguage, ResolvedLanguage as AppResolvedLanguage } from '../i18n/types';
 import { loadShortcutConfig, toShortcutBindings } from '../lib/shortcuts';
 import { SAMPLE_SESSION_MARKDOWN } from '../lib/sample-session';
+import {
+  DEFAULT_SPEED_STEP,
+  MAX_SPEED_MULTIPLIER,
+  MIN_SPEED_MULTIPLIER
+} from '../constants';
 import type {
   ParseWarning,
   ResolvedTheme,
@@ -51,6 +60,9 @@ interface AppStoreState {
   readonly showReadingRuler: boolean;
   readonly themeMode: ThemeMode;
   readonly resolvedTheme: ResolvedTheme;
+  readonly language: AppLanguage;
+  readonly resolvedLanguage: AppResolvedLanguage;
+  readonly speedStep: number;
   readonly dimLevel: number;
   readonly isControlsCollapsed: boolean;
   readonly shortcutWarning: string | null;
@@ -82,6 +94,9 @@ interface AppStoreState {
   readonly setIsControlsCollapsed: (value: boolean) => void;
   readonly setThemeMode: (mode: ThemeMode) => void;
   readonly hydrateThemeFromStorage: () => void;
+  readonly setLanguage: (language: AppLanguage, emit?: boolean) => void;
+  readonly hydrateLanguageFromStorage: () => void;
+  readonly setSpeedStep: (value: number) => void;
   readonly syncSystemTheme: () => void;
   readonly jumpToSectionByIndex: (index: number) => void;
   readonly setShortcutWarning: (value: string | null) => void;
@@ -96,6 +111,8 @@ function readLocalOnboardingState(): boolean {
 
 const themeModeStorageKey = 'glance-theme-mode-v1';
 const showReadingRulerStorageKey = 'glance-show-reading-ruler-v1';
+const speedStepStorageKey = 'glance-speed-step-v1';
+const languageStorageKey = 'glance-language-v1';
 
 function readThemeMode(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -134,6 +151,34 @@ function writeThemeMode(mode: ThemeMode): void {
   window.localStorage.setItem(themeModeStorageKey, mode);
 }
 
+function readLanguageFromStorage(): AppLanguage | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(languageStorageKey);
+  return normalizeStoredLanguage(raw);
+}
+
+function writeLanguageToStorage(language: AppLanguage): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(languageStorageKey, language);
+}
+
+function readLanguage(): AppLanguage {
+  const storedLanguage = readLanguageFromStorage();
+  if (storedLanguage) {
+    return storedLanguage;
+  }
+
+  const detectedLanguage = detectSystemLanguage();
+  writeLanguageToStorage(detectedLanguage);
+  return detectedLanguage;
+}
+
 function readShowReadingRuler(): boolean {
   if (typeof window === 'undefined') {
     return true;
@@ -155,6 +200,28 @@ function writeShowReadingRuler(value: boolean): void {
   window.localStorage.setItem(showReadingRulerStorageKey, value ? 'true' : 'false');
 }
 
+function readSpeedStep(): number {
+  if (typeof window === 'undefined') {
+    return DEFAULT_SPEED_STEP;
+  }
+
+  const raw = window.localStorage.getItem(speedStepStorageKey);
+  if (raw === null) {
+    return DEFAULT_SPEED_STEP;
+  }
+
+  const parsed = parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : DEFAULT_SPEED_STEP;
+}
+
+function writeSpeedStep(value: number): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(speedStepStorageKey, value.toString());
+}
+
 function writeLocalOnboardingState(completed: boolean): void {
   window.localStorage.setItem('glance-onboarding-completed', completed ? 'true' : 'false');
 }
@@ -164,7 +231,7 @@ function readOverlayPersistentState() {
   if (!saved) {
     return {
       position: 0,
-      speed: 42,
+      speed: 1.0,
       running: false,
       fontScale: 1,
       showReadingRuler: true,
@@ -177,7 +244,7 @@ function readOverlayPersistentState() {
     const parsed = JSON.parse(saved);
     return {
       position: Number.isFinite(parsed.position) ? parsed.position : 0,
-      speed: Number.isFinite(parsed.speed) ? parsed.speed : 42,
+      speed: Number.isFinite(parsed.speed) ? parsed.speed : 1.0,
       running: Boolean(parsed.running),
       fontScale: Number.isFinite(parsed.fontScale) ? parsed.fontScale : 1,
       showReadingRuler: typeof parsed.showReadingRuler === 'boolean' ? parsed.showReadingRuler : true,
@@ -187,7 +254,7 @@ function readOverlayPersistentState() {
   } catch {
     return {
       position: 0,
-      speed: 42,
+      speed: 1.0,
       running: false,
       fontScale: 1,
       showReadingRuler: true,
@@ -244,7 +311,7 @@ function normalizeFontScale(value: number | undefined): number {
     return 1;
   }
 
-  return Math.max(0.85, Math.min(1.4, Number(value.toFixed(2))));
+  return Math.max(0.85, Math.min(1.8, Number(value.toFixed(2))));
 }
 
 function persistOverlayState(state: AppStoreState): void {
@@ -267,7 +334,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
   const storedOverlayState = typeof window === 'undefined'
     ? {
       position: 0,
-      speed: 42,
+      speed: 1.0,
+      speedStep: DEFAULT_SPEED_STEP,
       running: false,
       fontScale: 1,
       showReadingRuler: true,
@@ -279,6 +347,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
   const initialParsed = parseMarkdown('# Intro\n\n- Start here');
   const initialThemeMode = readThemeMode();
   const initialResolvedTheme = resolveTheme(initialThemeMode);
+  const initialLanguage = readLanguage();
+  const initialResolvedLanguage = resolveLanguage(initialLanguage);
 
   return {
     sessions: [],
@@ -297,6 +367,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     isControlsCollapsed: storedOverlayState.isControlsCollapsed,
     themeMode: initialThemeMode,
     resolvedTheme: initialResolvedTheme,
+    language: initialLanguage,
+    resolvedLanguage: initialResolvedLanguage,
+    speedStep: readSpeedStep(),
     shortcutWarning: null,
     toastMessage: null,
     initialized: false,
@@ -343,6 +416,26 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         await get().openSession(initialSession.id);
       } else {
         clearLastActiveSessionId();
+      }
+      if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (event) => {
+          if (event.key === speedStepStorageKey) {
+            const nextValue = readSpeedStep();
+            set({ speedStep: nextValue });
+          } else if (event.key === 'glance-theme-mode-v1') {
+            get().hydrateThemeFromStorage();
+          } else if (event.key === 'glance-show-reading-ruler-v1') {
+            const nextValue = readShowReadingRuler();
+            set({ showReadingRuler: nextValue });
+          } else if (event.key === 'glance-overlay-state-v1') {
+            const nextState = readOverlayPersistentState();
+            set({
+              scrollSpeed: nextState.speed,
+              overlayFontScale: nextState.fontScale,
+              showReadingRuler: nextState.showReadingRuler
+            });
+          }
+        });
       }
     },
 
@@ -470,7 +563,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
               parseWarnings: parsed.warnings,
               playbackState: 'paused',
               scrollPosition: 0,
-              scrollSpeed: 42,
+              scrollSpeed: 1.0,
               overlayFontScale: 1
             });
           }
@@ -549,7 +642,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           markdown: loaded.markdown,
           parseWarnings: parsed.warnings,
           scrollPosition: loaded.meta.scroll.position,
-          scrollSpeed: loaded.meta.scroll.speed,
+          scrollSpeed: Number.isFinite(loaded.meta.scroll.speed) ? loaded.meta.scroll.speed : 1.0,
           playbackState: loaded.meta.scroll.running ? 'running' : 'paused',
           overlayFontScale: normalizeFontScale(loaded.meta.overlay?.fontScale),
           showReadingRuler: loaded.meta.overlay?.showReadingRuler ?? readShowReadingRuler()
@@ -616,7 +709,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     setScrollSpeed: (value: number) => {
-      const normalized = Math.max(10, Math.min(140, value));
+      const normalized = Math.max(MIN_SPEED_MULTIPLIER, Math.min(MAX_SPEED_MULTIPLIER, value));
 
       set((state) => {
         const next = { scrollSpeed: normalized };
@@ -627,10 +720,18 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     changeScrollSpeedBy: (delta: number) => {
-      const currentSpeed = get().scrollSpeed;
-      const next = Math.max(10, Math.min(140, currentSpeed + delta));
-      get().setScrollSpeed(next);
-      get().showToast(`Speed ${(next / 42).toFixed(2)}x`, 'info');
+      set((state) => {
+        const nextMultiplier = state.scrollSpeed + (delta * state.speedStep);
+        const clamped = Math.max(MIN_SPEED_MULTIPLIER, Math.min(MAX_SPEED_MULTIPLIER, nextMultiplier));
+        const rounded = Number(clamped.toFixed(2));
+
+        const next = { scrollSpeed: rounded };
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
+
+        get().showToast(`Speed ${rounded}x`, 'info');
+        return next;
+      });
     },
 
     setOverlayFontScale: (value: number) => {
@@ -719,6 +820,40 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         themeMode: nextMode,
         resolvedTheme: nextResolvedTheme
       });
+    },
+
+    setLanguage: (language: AppLanguage, emit = true) => {
+      const normalizedLanguage: AppLanguage = isAppLanguage(language) ? language : 'en';
+      const nextResolvedLanguage = resolveLanguage(normalizedLanguage);
+      writeLanguageToStorage(normalizedLanguage);
+      if (emit) {
+        void emitLanguageChanged(normalizedLanguage);
+      }
+      set({
+        language: normalizedLanguage,
+        resolvedLanguage: nextResolvedLanguage
+      });
+    },
+
+    hydrateLanguageFromStorage: () => {
+      const nextLanguage = readLanguage();
+      const nextResolvedLanguage = resolveLanguage(nextLanguage);
+      const state = get();
+
+      if (state.language === nextLanguage && state.resolvedLanguage === nextResolvedLanguage) {
+        return;
+      }
+
+      set({
+        language: nextLanguage,
+        resolvedLanguage: nextResolvedLanguage
+      });
+    },
+
+    setSpeedStep: (value: number) => {
+      writeSpeedStep(value);
+      set({ speedStep: value });
+      persistOverlayState(get());
     },
 
     syncSystemTheme: () => {

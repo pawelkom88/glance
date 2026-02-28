@@ -69,6 +69,8 @@ function resetStore() {
   useAppStore.setState({
     themeMode: 'system',
     resolvedTheme: 'light',
+    language: 'en',
+    resolvedLanguage: 'en',
     showReadingRuler: true,
     toastMessage: null,
     shortcutWarning: null
@@ -107,6 +109,25 @@ describe('SettingsView behavior', () => {
     expect(useAppStore.getState().themeMode).toBe('light');
     expect(useAppStore.getState().toastMessage).toEqual({
       message: 'Appearance set to Light',
+      variant: 'success'
+    });
+  });
+
+  it('renders interface language dropdown and persists selected language', async () => {
+    const user = userEvent.setup();
+    render(<SettingsView />);
+
+    const languageSelect = screen.getByRole('combobox', { name: 'Interface Language' });
+    expect((languageSelect as HTMLSelectElement).value).toBe('en');
+
+    await user.selectOptions(languageSelect, 'es');
+
+    expect(useAppStore.getState().language).toBe('es');
+    expect(useAppStore.getState().resolvedLanguage).toBe('es');
+    expect(window.localStorage.getItem('glance-language-v1')).toBe('es');
+    expect(screen.getByText('Idioma de la interfaz')).toBeTruthy();
+    expect(useAppStore.getState().toastMessage).toEqual({
+      message: 'Se guardó la preferencia del idioma de la interfaz.',
       variant: 'success'
     });
   });

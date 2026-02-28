@@ -29,22 +29,22 @@ export interface ShortcutDefinition {
 }
 
 export const shortcutDefinitions: readonly ShortcutDefinition[] = [
-  { action: 'toggle-overlay', label: 'Toggle Prompter (Global)' },
-  { action: 'snap-to-center', label: 'Snap To Center' },
-  { action: 'toggle-play', label: 'Play/Pause' },
-  { action: 'start-over', label: 'Rewind' },
-  { action: 'speed-up', label: 'Speed Up' },
-  { action: 'speed-down', label: 'Speed Down' },
-  { action: 'jump-1', label: 'Jump Section 1' },
-  { action: 'jump-2', label: 'Jump Section 2' },
-  { action: 'jump-3', label: 'Jump Section 3' },
-  { action: 'jump-4', label: 'Jump Section 4' },
-  { action: 'jump-5', label: 'Jump Section 5' },
-  { action: 'jump-6', label: 'Jump Section 6' },
-  { action: 'jump-7', label: 'Jump Section 7' },
-  { action: 'jump-8', label: 'Jump Section 8' },
-  { action: 'jump-9', label: 'Jump Section 9' },
-  { action: 'toggle-controls', label: 'Toggle Controls' }
+  { action: 'toggle-overlay', label: 'settingsView.shortcuts.togglePrompter' },
+  { action: 'snap-to-center', label: 'settingsView.shortcuts.snapToCenter' },
+  { action: 'toggle-play', label: 'settingsView.shortcuts.playPause' },
+  { action: 'start-over', label: 'settingsView.shortcuts.rewind' },
+  { action: 'speed-up', label: 'settingsView.shortcuts.speedUp' },
+  { action: 'speed-down', label: 'settingsView.shortcuts.speedDown' },
+  { action: 'jump-1', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-2', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-3', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-4', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-5', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-6', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-7', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-8', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'jump-9', label: 'settingsView.shortcuts.jumpSection' },
+  { action: 'toggle-controls', label: 'settingsView.shortcuts.toggleControls' }
 ];
 
 const storageKey = `glance-shortcuts-${navigator.platform.toLowerCase()}`;

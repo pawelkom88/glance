@@ -1,6 +1,8 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { loadSession } from '../lib/tauri';
+import { TranslationKey } from '../i18n/types';
+import { useI18n } from '../i18n/use-i18n';
 import type { SessionFolder, SessionSummary, ToastVariant } from '../types';
 
 const UNFILED_FOLDER_ID = '__unfiled__';
@@ -18,16 +20,21 @@ const INTERACTION_MODEL_LAST_SHOWN_KEY = 'glance-sessions-interaction-v2-last-sh
 const DEFAULT_FOLDER_NAME_STORAGE_KEY = 'glance-default-folder-name-v1';
 const DEFAULT_FOLDER_HIDDEN_STORAGE_KEY = 'glance-default-folder-hidden-v1';
 
-type SortMode = 'updated-desc' | 'updated-asc' | 'name-asc' | 'name-desc' | 'word-desc' | 'word-asc';
+type SortMode = 'updated-newest' | 'updated-oldest' | 'name-az' | 'name-za' | 'word-high' | 'word-low';
 type FolderFilter = 'all' | 'none' | string;
 
-const SORT_OPTIONS: ReadonlyArray<{ readonly value: SortMode; readonly label: string }> = [
-  { value: 'updated-desc', label: 'Date Modified (Newest)' },
-  { value: 'updated-asc', label: 'Date Modified (Oldest)' },
-  { value: 'name-asc', label: 'Name (A-Z)' },
-  { value: 'name-desc', label: 'Name (Z-A)' },
-  { value: 'word-desc', label: 'Word Count (High-Low)' },
-  { value: 'word-asc', label: 'Word Count (Low-High)' }
+interface SortOption {
+  readonly value: SortMode;
+  readonly labelKey: TranslationKey;
+}
+
+const SORT_OPTIONS: readonly SortOption[] = [
+  { value: 'updated-newest', labelKey: 'library.sortUpdatedNewest' },
+  { value: 'updated-oldest', labelKey: 'library.sortUpdatedOldest' },
+  { value: 'name-az', labelKey: 'library.sortNameAz' },
+  { value: 'name-za', labelKey: 'library.sortNameZa' },
+  { value: 'word-high', labelKey: 'library.sortWordHighLow' },
+  { value: 'word-low', labelKey: 'library.sortWordLowHigh' }
 ];
 
 interface LibraryViewProps {
@@ -95,42 +102,7 @@ interface DragPreviewElements {
   readonly card: HTMLDivElement;
 }
 
-function defaultSessionName(): string {
-  const now = new Date();
-  const day = now.getDate();
-  const month = now.toLocaleDateString('en-GB', { month: 'short' });
-  const year = now.getFullYear();
-  return `Session ${day} ${month} ${year}`;
-}
-
-function formatUpdatedLabel(updatedAt: string): string {
-  const updated = new Date(updatedAt);
-  if (Number.isNaN(updated.getTime())) {
-    return 'Updated recently';
-  }
-
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfUpdatedDay = new Date(updated.getFullYear(), updated.getMonth(), updated.getDate());
-  const dayDiff = Math.floor((startOfToday.getTime() - startOfUpdatedDay.getTime()) / 86_400_000);
-  const timeLabel = updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-
-  if (dayDiff <= 0) {
-    return `Updated today at ${timeLabel}`;
-  }
-
-  if (dayDiff === 1) {
-    return `Updated yesterday at ${timeLabel}`;
-  }
-
-  if (dayDiff < 7) {
-    const weekday = updated.toLocaleDateString([], { weekday: 'long' });
-    return `Updated ${weekday} at ${timeLabel}`;
-  }
-
-  const fullDate = updated.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  return `Updated ${fullDate}`;
-}
+// Helper functions moved inside LibraryView to access i18n context correctly.
 
 function countWords(markdown: string): number {
   if (!markdown.trim()) {
@@ -345,8 +317,46 @@ export function LibraryView(props: LibraryViewProps) {
     onImport,
     showToast
   } = props;
+  const { t, language } = useI18n();
 
-  const [draftSessionName, setDraftSessionName] = useState(defaultSessionName());
+  const getDefaultSessionName = () => {
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.toLocaleDateString(language, { month: 'short' });
+    const year = now.getFullYear();
+    return t('library.defaultSessionName', { day, month, year });
+  };
+
+  const getFormatUpdatedLabel = (updatedAt: string) => {
+    const updated = new Date(updatedAt);
+    if (Number.isNaN(updated.getTime())) {
+      return t('library.updatedRecently');
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfUpdatedDay = new Date(updated.getFullYear(), updated.getMonth(), updated.getDate());
+    const dayDiff = Math.floor((startOfToday.getTime() - startOfUpdatedDay.getTime()) / 86_400_000);
+    const timeLabel = updated.toLocaleTimeString(language, { hour: 'numeric', minute: '2-digit' });
+
+    if (dayDiff <= 0) {
+      return t('library.updatedTodayAt', { time: timeLabel });
+    }
+
+    if (dayDiff === 1) {
+      return t('library.updatedYesterdayAt', { time: timeLabel });
+    }
+
+    if (dayDiff < 7) {
+      const weekday = updated.toLocaleDateString(language, { weekday: 'long' });
+      return t('library.updatedWeekdayAt', { weekday, time: timeLabel });
+    }
+
+    const fullDate = updated.toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' });
+    return t('library.updatedOn', { date: fullDate });
+  };
+
+  const [draftSessionName, setDraftSessionName] = useState(() => getDefaultSessionName());
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -360,7 +370,7 @@ export function LibraryView(props: LibraryViewProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showListControls, setShowListControls] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>('updated-desc');
+  const [sortMode, setSortMode] = useState<SortMode>('updated-newest');
   const [folderFilter, setFolderFilter] = useState<FolderFilter>('all');
   const [showRecentlyEditedOnly, setShowRecentlyEditedOnly] = useState(false);
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(new Set());
@@ -755,10 +765,10 @@ export function LibraryView(props: LibraryViewProps) {
 
     startTransition(() => {
       setNewSessionFolderId('none');
-      setDraftSessionName(defaultSessionName());
+      setDraftSessionName(getDefaultSessionName());
       setIsCreatingSession(true);
     });
-  }, [createSessionRequestToken, folders, hasCustomFolders]);
+  }, [createSessionRequestToken, folders, hasCustomFolders, getDefaultSessionName]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') {
@@ -937,23 +947,23 @@ export function LibraryView(props: LibraryViewProps) {
 
     const sorted = [...filtered];
     sorted.sort((left, right) => {
-      if (sortMode === 'name-asc') {
+      if (sortMode === 'name-az') {
         return left.title.localeCompare(right.title, undefined, { sensitivity: 'base' });
       }
 
-      if (sortMode === 'name-desc') {
+      if (sortMode === 'name-za') {
         return right.title.localeCompare(left.title, undefined, { sensitivity: 'base' });
       }
 
-      if (sortMode === 'updated-asc') {
+      if (sortMode === 'updated-oldest') {
         return left.updatedAt.localeCompare(right.updatedAt);
       }
 
-      if (sortMode === 'word-desc') {
+      if (sortMode === 'word-high') {
         return (wordCountBySessionId[right.id] ?? 0) - (wordCountBySessionId[left.id] ?? 0);
       }
 
-      if (sortMode === 'word-asc') {
+      if (sortMode === 'word-low') {
         return (wordCountBySessionId[left.id] ?? 0) - (wordCountBySessionId[right.id] ?? 0);
       }
 
@@ -965,20 +975,23 @@ export function LibraryView(props: LibraryViewProps) {
 
   const visibleSessionIds = useMemo(() => visibleSessions.map((session) => session.id), [visibleSessions]);
   const selectedSortLabel = useMemo(
-    () => SORT_OPTIONS.find((option) => option.value === sortMode)?.label ?? SORT_OPTIONS[0].label,
-    [sortMode]
+    () => {
+      const selected = SORT_OPTIONS.find((option) => option.value === sortMode) ?? SORT_OPTIONS[0];
+      return t(selected.labelKey);
+    },
+    [sortMode, t]
   );
   const selectedFolderLabel = useMemo(() => {
     if (folderFilter === 'all') {
-      return 'All folders';
+      return t('library.allFolders');
     }
 
     if (folderFilter === 'none') {
       return defaultFolderName;
     }
 
-    return folders.find((folder) => folder.id === folderFilter)?.name ?? 'All folders';
-  }, [defaultFolderName, folderFilter, folders]);
+    return folders.find((folder) => folder.id === folderFilter)?.name ?? t('library.allFolders');
+  }, [defaultFolderName, folderFilter, folders, t]);
   const selectedBulkMoveFolderLabel = useMemo(() => {
     if (bulkMoveFolderId === 'none') {
       return defaultFolderName;
@@ -1210,7 +1223,7 @@ export function LibraryView(props: LibraryViewProps) {
     if (groupId === UNFILED_FOLDER_ID) {
       return defaultFolderName;
     }
-    return folders.find((folder) => folder.id === groupId)?.name ?? 'folder';
+    return folders.find((folder) => folder.id === groupId)?.name ?? t('library.defaultFolderFallback');
   };
 
   const openMoveMenuForSession = (
@@ -1239,13 +1252,19 @@ export function LibraryView(props: LibraryViewProps) {
 
     const movedCount = await onMoveSessions([input.sessionId], folderIdFromGroupId(input.destinationGroupId));
     if (movedCount > 0) {
-      showToast(`"${input.sessionTitle}" moved to ${folderLabelForGroupId(input.destinationGroupId)}`, 'success');
+      showToast(
+        t('library.sessionMovedToast', {
+          title: input.sessionTitle,
+          folder: folderLabelForGroupId(input.destinationGroupId)
+        }),
+        'success'
+      );
       acknowledgeInteractionModel();
       setRecentlyMovedSessionId(input.sessionId);
       return true;
     }
 
-    showToast("Couldn't move session. Try again.", 'error');
+    showToast(t('library.sessionMoveFailedToast'), 'error');
     return false;
   };
 
@@ -1258,7 +1277,7 @@ export function LibraryView(props: LibraryViewProps) {
 
     startTransition(() => {
       setNewSessionFolderId('none');
-      setDraftSessionName(defaultSessionName());
+      setDraftSessionName(getDefaultSessionName());
       setIsCreatingSession(true);
     });
   };
@@ -1270,7 +1289,7 @@ export function LibraryView(props: LibraryViewProps) {
     }
 
     onCreate(name, newSessionFolderId === 'none' ? null : newSessionFolderId);
-    setDraftSessionName(defaultSessionName());
+    setDraftSessionName(getDefaultSessionName());
     setIsCreatingSession(false);
     setNewSessionFolderId('none');
   };
@@ -1291,7 +1310,7 @@ export function LibraryView(props: LibraryViewProps) {
     idsToDelete.forEach((id) => {
       onDelete(id, false);
     });
-    showToast(`${idsToDelete.length} sessions deleted`, 'success');
+    showToast(t('library.sessionsDeletedToast', { count: idsToDelete.length }), 'success');
     setShowBulkDeleteConfirm(false);
     setSelectedSessionIds(new Set());
     setIsSelectionMode(false);
@@ -1307,12 +1326,18 @@ export function LibraryView(props: LibraryViewProps) {
 
     const movedCount = await onMoveSessions(idsToMove, targetFolderId);
     const targetLabel = targetFolderId
-      ? folders.find((folder) => folder.id === targetFolderId)?.name ?? 'folder'
+      ? folders.find((folder) => folder.id === targetFolderId)?.name ?? t('library.defaultFolderFallback')
       : defaultFolderName;
     if (movedCount > 0) {
-      showToast(`Moved ${idsToMove.length} sessions to ${targetLabel}`, 'success');
+      showToast(
+        t('library.sessionsMovedToast', {
+          count: idsToMove.length,
+          folder: targetLabel
+        }),
+        'success'
+      );
     } else {
-      showToast("Couldn't move selected sessions. Try again.", 'error');
+      showToast(t('library.selectedMoveFailedToast'), 'error');
     }
 
     setShowBulkMoveDialog(false);
@@ -1642,7 +1667,7 @@ export function LibraryView(props: LibraryViewProps) {
   return (
     <section className="panel library-panel sessions-pane">
       <header className="sessions-header">
-        <h2 className="sessions-title">Sessions</h2>
+        <h2 className="sessions-title">{t('library.headerSessions')}</h2>
 
         <div className="sessions-header-actions">
           {!isSelectionMode ? (
@@ -1650,10 +1675,10 @@ export function LibraryView(props: LibraryViewProps) {
               <button
                 type="button"
                 className="sessions-import-button"
-                aria-label="Import Markdown"
+                aria-label={t('library.importMarkdownAria')}
                 onClick={onImport}
               >
-                <span>↓ Import</span>
+                <span>{t('library.importButton')}</span>
               </button>
 
               <button
@@ -1669,7 +1694,7 @@ export function LibraryView(props: LibraryViewProps) {
                   startCreateSessionFlow();
                 }}
               >
-                <span>+ New Session</span>
+                <span>{t('library.newSessionButton')}</span>
               </button>
 
               {hasMultipleSessions ? (
@@ -1677,7 +1702,7 @@ export function LibraryView(props: LibraryViewProps) {
                   <button
                     type="button"
                     className={`sessions-inline-icon-button ${showSearch ? 'is-active' : ''}`}
-                    aria-label="Search sessions"
+                    aria-label={t('library.searchSessionsAria')}
                     aria-pressed={showSearch}
                     onClick={() => {
                       setShowSearch((previous) => !previous);
@@ -1694,7 +1719,7 @@ export function LibraryView(props: LibraryViewProps) {
                     <button
                       type="button"
                       className={`sessions-inline-icon-button ${showListControls ? 'is-active' : ''}`}
-                      aria-label="Sort and filter sessions"
+                      aria-label={t('library.sortFilterSessionsAria')}
                       aria-pressed={showListControls}
                       aria-expanded={showListControls}
                       onClick={() => setShowListControls((previous) => !previous)}
@@ -1705,7 +1730,7 @@ export function LibraryView(props: LibraryViewProps) {
                     <button
                       type="button"
                       className="sessions-inline-icon-button sessions-new-folder-button"
-                      aria-label="Create new folder"
+                      aria-label={t('library.createNewFolderAria')}
                       onClick={() => {
                         setShowFolderComposer(true);
                         setShowListControls(false);
@@ -1715,9 +1740,9 @@ export function LibraryView(props: LibraryViewProps) {
                     </button>
 
                     {showListControls ? (
-                      <div className="sessions-list-controls-popover" role="dialog" aria-label="Session list controls">
+                      <div className="sessions-list-controls-popover" role="dialog" aria-label={t('library.sessionListControlsAria')}>
                         <section className="sessions-control-section">
-                          <h3 className="sessions-control-label">Sort</h3>
+                          <h3 className="sessions-control-label">{t('library.sortLabel')}</h3>
                           <div className="sessions-control-display-row">
                             <span className="sessions-control-value">{selectedSortLabel}</span>
                             <span className="sessions-control-check" aria-hidden="true">
@@ -1726,19 +1751,19 @@ export function LibraryView(props: LibraryViewProps) {
                             <select
                               id="sessions-sort-select"
                               className="sessions-control-native-select"
-                              aria-label="Sort sessions"
+                              aria-label={t('library.sortSessionsAria')}
                               value={sortMode}
                               onChange={(event) => setSortMode(event.target.value as SortMode)}
                             >
                               {SORT_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
                               ))}
                             </select>
                           </div>
                         </section>
 
                         <section className="sessions-control-section">
-                          <h3 className="sessions-control-label">Folder</h3>
+                          <h3 className="sessions-control-label">{t('library.folderLabel')}</h3>
                           <div className="sessions-control-display-row">
                             <span className="sessions-control-value">{selectedFolderLabel}</span>
                             <span className="sessions-control-check" aria-hidden="true">
@@ -1747,11 +1772,11 @@ export function LibraryView(props: LibraryViewProps) {
                             <select
                               id="sessions-folder-filter"
                               className="sessions-control-native-select"
-                              aria-label="Filter folders"
+                              aria-label={t('library.filterFoldersAria')}
                               value={folderFilter}
                               onChange={(event) => setFolderFilter(event.target.value)}
                             >
-                              <option value="all">All folders</option>
+                              <option value="all">{t('library.allFolders')}</option>
                               <option value="none">{defaultFolderName}</option>
                               {folders.map((folder) => (
                                 <option key={folder.id} value={folder.id}>{folder.name}</option>
@@ -1761,7 +1786,7 @@ export function LibraryView(props: LibraryViewProps) {
                         </section>
 
                         <label className="sessions-toggle-row" htmlFor="sessions-recent-only">
-                          <span className="sessions-toggle-label">Recently edited only <br />(7 days)</span>
+                          <span className="sessions-toggle-label">{t('library.recentlyEditedOnly')} <br />{t('library.recentlyEditedOnlyWindow')}</span>
                           <input
                             id="sessions-recent-only"
                             className="sessions-toggle-switch"
@@ -1779,7 +1804,7 @@ export function LibraryView(props: LibraryViewProps) {
                     className="sessions-select-mode-button tertiary-button"
                     onClick={() => setIsSelectionMode(true)}
                   >
-                    Select
+                    {t('library.select')}
                   </button>
                 </>
               ) : null}
@@ -1793,7 +1818,7 @@ export function LibraryView(props: LibraryViewProps) {
                 setSelectedSessionIds(new Set());
               }}
             >
-              Cancel
+              {t('library.cancel')}
             </button>
           )}
         </div>
@@ -1801,13 +1826,13 @@ export function LibraryView(props: LibraryViewProps) {
 
       {hasMultipleSessions && showSearch ? (
         <div className="sessions-search-row">
-          <label className="sr-only" htmlFor="sessions-search-field">Search sessions</label>
+          <label className="sr-only" htmlFor="sessions-search-field">{t('library.searchSessionsLabel')}</label>
           <input
             ref={searchInputRef}
             id="sessions-search-field"
             type="search"
             className="sessions-search-input"
-            placeholder="Search titles and script content"
+            placeholder={t('library.searchPlaceholder')}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
@@ -1841,7 +1866,7 @@ export function LibraryView(props: LibraryViewProps) {
             }
           }}
         >
-          {isAllSelected ? 'Deselect All' : 'Select All'}
+          {isAllSelected ? t('library.deselectAll') : t('library.selectAll')}
         </span>
       </div>
 
@@ -1857,12 +1882,12 @@ export function LibraryView(props: LibraryViewProps) {
             className="confirm-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="New session folder selection"
+            aria-label={t('library.newSessionFolderSelectionAria')}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3>Where should this session live?</h3>
-            <p>Choose a folder before naming your session.</p>
-            <label className="move-sheet-label" htmlFor="new-session-folder-select">Folder</label>
+            <h3>{t('library.whereSessionLiveTitle')}</h3>
+            <p>{t('library.chooseFolderBeforeNaming')}</p>
+            <label className="move-sheet-label" htmlFor="new-session-folder-select">{t('library.folderLabel')}</label>
             <div className="move-sheet-select-wrap">
               <div className="move-sheet-select-display">
                 <span className="move-sheet-select-value">{selectedNewSessionFolderLabel}</span>
@@ -1870,7 +1895,7 @@ export function LibraryView(props: LibraryViewProps) {
                 <select
                   id="new-session-folder-select"
                   className="move-sheet-select-native"
-                  aria-label="Session folder"
+                  aria-label={t('library.sessionFolderAria')}
                   value={newSessionFolderId}
                   onChange={(event) => setNewSessionFolderId(event.target.value)}
                 >
@@ -1890,7 +1915,7 @@ export function LibraryView(props: LibraryViewProps) {
                   setNewSessionFolderId('none');
                 }}
               >
-                Cancel
+                {t('library.cancel')}
               </button>
               <button
                 type="button"
@@ -1898,12 +1923,12 @@ export function LibraryView(props: LibraryViewProps) {
                 onClick={() => {
                   setShowNewSessionFolderDialog(false);
                   startTransition(() => {
-                    setDraftSessionName(defaultSessionName());
+                    setDraftSessionName(getDefaultSessionName());
                     setIsCreatingSession(true);
                   });
                 }}
               >
-                Continue
+                {t('library.continue')}
               </button>
             </div>
           </div>
@@ -1926,17 +1951,17 @@ export function LibraryView(props: LibraryViewProps) {
               createFromDraft();
             }}
           >
-            <div className="modal-title">New Session</div>
-            <div className="modal-subtitle">Give your session a name. You can rename it at any time.</div>
+            <div className="modal-title">{t('library.newSessionTitle')}</div>
+            <div className="modal-subtitle">{t('library.newSessionSubtitle')}</div>
             <input
               ref={sessionComposerInputRef}
               type="text"
               className="modal-input"
               value={draftSessionName}
               maxLength={60}
-              placeholder="e.g. Q2 Sales Call, Podcast Intro..."
+              placeholder={t('library.newSessionPlaceholder')}
               onChange={(event) => setDraftSessionName(event.target.value)}
-              aria-label="Session name"
+              aria-label={t('library.sessionNameAria')}
             />
             <div className={`modal-char-count${draftSessionName.length >= 50 ? ' warn' : ''}`}>
               {draftSessionName.length} / 60
@@ -1950,10 +1975,10 @@ export function LibraryView(props: LibraryViewProps) {
                   setNewSessionFolderId('none');
                 }}
               >
-                Cancel
+                {t('library.cancel')}
               </button>
               <button type="submit" className="modal-btn-create primary-button" disabled={draftSessionName.trim().length === 0}>
-                Create
+                {t('library.create')}
               </button>
             </div>
           </form>
@@ -1970,24 +1995,24 @@ export function LibraryView(props: LibraryViewProps) {
               createFolderFromDraft();
             }}
           >
-            <div className="modal-title">New Folder</div>
-            <div className="modal-subtitle">Organize your sessions in a folder.</div>
+            <div className="modal-title">{t('library.newFolderTitle')}</div>
+            <div className="modal-subtitle">{t('library.newFolderSubtitle')}</div>
             <input
               ref={folderComposerInputRef}
               type="text"
               className="modal-input"
               value={draftFolderName}
               maxLength={60}
-              placeholder="e.g. Client Calls"
+              placeholder={t('library.newFolderPlaceholder')}
               onChange={(event) => setDraftFolderName(event.target.value)}
-              aria-label="Folder name"
+              aria-label={t('library.folderNameAria')}
             />
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel cancel-button" onClick={() => setShowFolderComposer(false)}>
-                Cancel
+                {t('library.cancel')}
               </button>
               <button type="submit" className="modal-btn-create primary-button" disabled={draftFolderName.trim().length === 0}>
-                Create
+                {t('library.create')}
               </button>
             </div>
           </form>
@@ -2010,28 +2035,28 @@ export function LibraryView(props: LibraryViewProps) {
                 if (typeof window !== 'undefined') {
                   window.localStorage.setItem(DEFAULT_FOLDER_NAME_STORAGE_KEY, trimmed);
                 }
-                showToast('Folder renamed', 'success');
+                showToast(t('library.folderRenamedToast'), 'success');
               } else {
                 onRenameFolder(resolvedFolderRenameCandidate.id, trimmed);
               }
               setFolderRenameCandidateId(null);
             }}
           >
-            <div className="modal-title">Rename Folder</div>
+            <div className="modal-title">{t('library.renameFolderTitle')}</div>
             <input
               type="text"
               className="modal-input"
               value={folderRenameDraft}
               maxLength={60}
               onChange={(event) => setFolderRenameDraft(event.target.value)}
-              aria-label="Rename folder"
+              aria-label={t('library.renameFolderAria')}
             />
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel cancel-button" onClick={() => setFolderRenameCandidateId(null)}>
-                Cancel
+                {t('library.cancel')}
               </button>
               <button type="submit" className="modal-btn-create primary-button" disabled={folderRenameDraft.trim().length === 0}>
-                Save
+                {t('library.save')}
               </button>
             </div>
           </form>
@@ -2048,17 +2073,17 @@ export function LibraryView(props: LibraryViewProps) {
               key={group.id}
               className={`session-folder-group ${showDropTarget ? 'is-drop-target' : ''}`}
               data-group-id={group.id}
-              aria-label={`${group.label} folder`}
+              aria-label={t('library.folderGroupAria', { label: group.label })}
             >
               {index === 0 && showInteractionCoachmark && !isSelectionMode ? (
                 <div className="session-interaction-coach session-interaction-coach-inline" role="status">
-                  <span>Tip: Double-click a session to open it. Drag to move.</span>
+                  <span>{t('library.coachmarkTip')}</span>
                   <button
                     type="button"
                     className="session-interaction-coach-dismiss"
                     onClick={dismissInteractionCoachmark}
                   >
-                    Got it
+                    {t('library.gotIt')}
                   </button>
                 </div>
               ) : null}
@@ -2081,7 +2106,7 @@ export function LibraryView(props: LibraryViewProps) {
                   <span className="session-folder-label">{group.label}</span>
                   <span className="session-folder-count">{group.sessions.length}</span>
                   {showDropTarget ? (
-                    <span className="session-folder-drop-hint" aria-hidden="true">Drop here</span>
+                    <span className="session-folder-drop-hint" aria-hidden="true">{t('library.dropHere')}</span>
                   ) : null}
                 </button>
 
@@ -2094,14 +2119,14 @@ export function LibraryView(props: LibraryViewProps) {
                       setFolderRenameDraft(group.label);
                     }}
                   >
-                    Rename
+                    {t('library.rename')}
                   </button>
                   <button
                     type="button"
                     className="session-folder-action danger"
                     onClick={() => setFolderDeleteCandidateId(group.id)}
                   >
-                    Delete
+                    {t('library.delete')}
                   </button>
                 </div>
               </div>
@@ -2224,7 +2249,7 @@ export function LibraryView(props: LibraryViewProps) {
                         </div>
                         <div className="session-info">
                           <strong>{renderHighlightedText(session.title, searchQuery)}</strong>
-                          <span>{formatUpdatedLabel(session.updatedAt)} · {wordCount} words</span>
+                          <span>{getFormatUpdatedLabel(session.updatedAt)} · {wordCount} words</span>
                           {snippet ? (
                             <p className="session-search-snippet">
                               {renderHighlightedText(snippet, searchQuery)}
@@ -2237,7 +2262,7 @@ export function LibraryView(props: LibraryViewProps) {
                               <button
                                 type="button"
                                 className="row-menu-button"
-                                aria-label={`Delete ${session.title}`}
+                                aria-label={t('library.deleteSessionAria', { title: session.title })}
                                 disabled={isSelectionMode}
                                 onClick={(event) => {
                                   event.stopPropagation();
@@ -2253,7 +2278,7 @@ export function LibraryView(props: LibraryViewProps) {
                     );
                   }) : (
                     <div className="empty-state session-folder-empty-state" role="status">
-                      <p className="sessions-empty-copy">No sessions in this folder.</p>
+                      <p className="sessions-empty-copy">{t('library.noSessionsInFolder')}</p>
                     </div>
                   )}
                 </div>
@@ -2267,8 +2292,8 @@ export function LibraryView(props: LibraryViewProps) {
             <p className="sessions-empty-icon" aria-hidden="true">📄</p>
             <p className="sessions-empty-copy">
               {searchQuery.trim().length > 0
-                ? 'No sessions match your search.'
-                : 'No sessions yet. Create one to get started.'}
+                ? t('library.noSessionsMatchSearch')
+                : t('library.noSessionsYetGetStarted')}
             </p>
           </div>
         ) : null}
@@ -2298,11 +2323,11 @@ export function LibraryView(props: LibraryViewProps) {
                 setMoveMenu(null);
               }}
             >
-              Move to {option.label}
+              {t('library.moveTo', { label: option.label })}
             </button>
           )) : (
             <div className="session-move-context-empty" role="status">
-              No destination folders
+              {t('library.noDestinationFolders')}
             </div>
           )}
         </div>
@@ -2314,14 +2339,14 @@ export function LibraryView(props: LibraryViewProps) {
             className="confirm-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="Delete session confirmation"
+            aria-label={t('library.deleteConfirmationSub')}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3>Delete "{deleteCandidate.title}" ?</h3>
-            <p>This cannot be undone.</p>
+            <h3>{t('library.deleteSessionTitle', { title: deleteCandidate.title })}</h3>
+            <p>{t('library.deleteConfirmationSub')}</p>
             <div className="confirm-actions">
               <button type="button" className="cancel-button" onClick={() => setDeleteCandidateId(null)}>
-                Cancel
+                {t('library.cancel')}
               </button>
               <button
                 type="button"
@@ -2331,7 +2356,7 @@ export function LibraryView(props: LibraryViewProps) {
                   setDeleteCandidateId(null);
                 }}
               >
-                Delete
+                {t('library.delete')}
               </button>
             </div>
           </div>
@@ -2341,17 +2366,17 @@ export function LibraryView(props: LibraryViewProps) {
       {resolvedFolderDeleteCandidate ? (
         <div className="confirm-backdrop" onClick={() => setFolderDeleteCandidateId(null)}>
           <div className="confirm-sheet" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <h3>Delete folder "{resolvedFolderDeleteCandidate.name}" ?</h3>
+            <h3>{t('library.deleteFolderTitle', { name: resolvedFolderDeleteCandidate.name })}</h3>
             <p>
               {resolvedFolderDeleteCandidate.id === UNFILED_FOLDER_ID
-                ? 'Unfiled can only be removed when empty. It will reappear automatically if a session has no folder.'
+                ? t('library.deleteFolderConfirmationUnfiled')
                 : sessions.some((session) => session.folderId === resolvedFolderDeleteCandidate.id)
-                  ? `Sessions in this folder will be moved to ${defaultFolderName}.`
-                  : 'This folder is empty and will be removed.'}
+                  ? t('library.deleteFolderConfirmationWithSessions', { folder: defaultFolderName })
+                  : t('library.deleteFolderConfirmationEmpty')}
             </p>
             <div className="confirm-actions">
               <button type="button" className="cancel-button" onClick={() => setFolderDeleteCandidateId(null)}>
-                Cancel
+                {t('library.cancel')}
               </button>
               <button
                 type="button"
@@ -2363,14 +2388,14 @@ export function LibraryView(props: LibraryViewProps) {
                     if (typeof window !== 'undefined') {
                       window.localStorage.setItem(DEFAULT_FOLDER_HIDDEN_STORAGE_KEY, '1');
                     }
-                    showToast('Folder deleted', 'success');
+                    showToast(t('library.folderDeletedToast'), 'success');
                   } else {
                     onDeleteFolder(resolvedFolderDeleteCandidate.id);
                   }
                   setFolderDeleteCandidateId(null);
                 }}
               >
-                Delete Folder
+                {t('library.delete')}
               </button>
             </div>
           </div>
@@ -2379,7 +2404,7 @@ export function LibraryView(props: LibraryViewProps) {
 
       <div className={`bottom-action-bar ${isSelectionMode ? 'is-visible' : ''}`}>
         <div className={`selection-count ${selectionCount > 0 ? 'is-visible' : ''}`}>
-          {selectionCount} sessions selected
+          {t('library.sessionsSelected', { count: selectionCount })}
         </div>
         <div className="bulk-action-buttons">
           {canMoveSessions ? (
@@ -2389,7 +2414,7 @@ export function LibraryView(props: LibraryViewProps) {
               disabled={selectionCount === 0}
               onClick={() => setShowBulkMoveDialog(true)}
             >
-              Move {selectionCount}
+              {t('library.moveCount', { count: selectionCount })}
             </button>
           ) : null}
           <button
@@ -2399,7 +2424,7 @@ export function LibraryView(props: LibraryViewProps) {
             onClick={() => setShowBulkDeleteConfirm(true)}
           >
             <TrashIcon />
-            Delete {selectionCount}
+            {t('library.deleteCount', { count: selectionCount })}
           </button>
         </div>
       </div>
@@ -2407,14 +2432,14 @@ export function LibraryView(props: LibraryViewProps) {
       {showBulkDeleteConfirm ? (
         <div className="confirm-backdrop" onClick={() => setShowBulkDeleteConfirm(false)}>
           <div className="confirm-sheet" onClick={(event) => event.stopPropagation()}>
-            <h3>Delete {selectionCount} sessions ?</h3>
-            <p>This cannot be undone. All selected recordings and scripts will be permanently removed.</p>
+            <h3>{t('library.bulkDeleteTitle', { count: selectionCount })}</h3>
+            <p>{t('library.bulkDeleteConfirmation')}</p>
             <div className="confirm-actions">
               <button type="button" className="cancel-button" onClick={() => setShowBulkDeleteConfirm(false)}>
-                Cancel
+                {t('library.cancel')}
               </button>
               <button type="button" className="danger-button" onClick={handleBulkDelete}>
-                Delete
+                {t('library.delete')}
               </button>
             </div>
           </div>
@@ -2424,9 +2449,9 @@ export function LibraryView(props: LibraryViewProps) {
       {canMoveSessions && showBulkMoveDialog ? (
         <div className="confirm-backdrop" onClick={() => setShowBulkMoveDialog(false)}>
           <div className="confirm-sheet" onClick={(event) => event.stopPropagation()}>
-            <h3>Move {selectionCount} sessions</h3>
-            <p>Select a destination folder.</p>
-            <label className="move-sheet-label" htmlFor="bulk-move-folder-select">Destination</label>
+            <h3>{t('library.bulkMoveTitle', { count: selectionCount })}</h3>
+            <p>{t('library.bulkMoveSelectFolder')}</p>
+            <label className="move-sheet-label" htmlFor="bulk-move-folder-select">{t('library.folderLabel')}</label>
             <div className="move-sheet-select-wrap">
               <div className="move-sheet-select-display">
                 <span className="move-sheet-select-value">{selectedBulkMoveFolderLabel}</span>
@@ -2446,10 +2471,10 @@ export function LibraryView(props: LibraryViewProps) {
             </div>
             <div className="confirm-actions">
               <button type="button" className="cancel-button" onClick={() => setShowBulkMoveDialog(false)}>
-                Cancel
+                {t('library.cancel')}
               </button>
               <button type="button" className="primary-button" onClick={handleBulkMove}>
-                Move
+                {t('library.moveCount', { count: selectionCount })}
               </button>
             </div>
           </div>
