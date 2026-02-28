@@ -31,6 +31,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   const speedUpShortcut = shortcutConfig['speed-up'];
   const speedDownShortcut = shortcutConfig['speed-down'];
   const snapShortcut = shortcutConfig['snap-to-center'];
+  const hideOverlayShortcut = shortcutConfig['hide-overlay'];
 
   const showToast = useAppStore((state) => state.showToast);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
@@ -127,6 +128,10 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
           <div className="help-shortcut-row">
             <span className="hsr-action">{t('help.shortcutSnapToCenter')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={snapShortcut} />
+          </div>
+          <div className="help-shortcut-row">
+            <span className="hsr-action">{t('help.shortcutTogglePrompter')}</span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={hideOverlayShortcut} />
           </div>
           <div className="help-shortcut-row">
             <span className="hsr-action">{t('help.shortcutClosePrompter')}</span>

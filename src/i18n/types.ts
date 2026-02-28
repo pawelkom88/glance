@@ -66,6 +66,7 @@ export interface TranslationCatalog {
     readonly shortcutAdjustSpeed: string;
     readonly shortcutFontSize: string;
     readonly shortcutSnapToCenter: string;
+    readonly shortcutTogglePrompter: string;
     readonly shortcutClosePrompter: string;
     readonly callFlowTitle: string;
     readonly callFlowAria: string;

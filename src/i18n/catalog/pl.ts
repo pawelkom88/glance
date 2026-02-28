@@ -68,6 +68,7 @@ export const plCatalog: TranslationCatalog = {
         shortcutAdjustSpeed: 'Dostosuj prędkość',
         shortcutFontSize: 'Wielkość czcionki',
         shortcutSnapToCenter: 'Wyrównaj do środka',
+        shortcutTogglePrompter: 'Przełącz prompter',
         shortcutClosePrompter: 'Zamknij prompter',
         callFlowTitle: '5-etapowy proces rozmowy',
         callFlowAria: '5-etapowy proces rozmowy',

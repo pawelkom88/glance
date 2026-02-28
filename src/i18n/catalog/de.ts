@@ -58,6 +58,7 @@ export const deCatalog: TranslationCatalog = {
         shortcutAdjustSpeed: 'Geschwindigkeit anpassen',
         shortcutFontSize: 'Schriftgröße',
         shortcutSnapToCenter: 'An der Mitte ausrichten',
+        shortcutTogglePrompter: 'Prompter umschalten',
         shortcutClosePrompter: 'Prompter schließen',
         callFlowTitle: '5-Schritte-Anrufablauf',
         callFlowAria: '5-Schritte-Anrufablauf',

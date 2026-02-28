@@ -58,6 +58,7 @@ export const frCatalog: TranslationCatalog = {
     shortcutAdjustSpeed: 'Ajuster la vitesse',
     shortcutFontSize: 'Taille de police',
     shortcutSnapToCenter: 'Centrer',
+    shortcutTogglePrompter: 'Basculer le prompteur',
     shortcutClosePrompter: 'Fermer le prompteur',
     callFlowTitle: 'Flux d’appel en 5 étapes',
     callFlowAria: "Flux d'appel en 5 étapes",

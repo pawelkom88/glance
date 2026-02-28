@@ -58,6 +58,7 @@ export const enCatalog: TranslationCatalog = {
     shortcutAdjustSpeed: 'Adjust speed',
     shortcutFontSize: 'Font size',
     shortcutSnapToCenter: 'Snap to center',
+    shortcutTogglePrompter: 'Toggle prompter',
     shortcutClosePrompter: 'Close prompter',
     callFlowTitle: '5-Step Call Flow',
     callFlowAria: '5-step call flow',

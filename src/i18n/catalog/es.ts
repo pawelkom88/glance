@@ -58,6 +58,7 @@ export const esCatalog: TranslationCatalog = {
     shortcutAdjustSpeed: 'Ajustar velocidad',
     shortcutFontSize: 'Tamaño de fuente',
     shortcutSnapToCenter: 'Centrar',
+    shortcutTogglePrompter: 'Alternar prompter',
     shortcutClosePrompter: 'Cerrar prompter',
     callFlowTitle: 'Flujo de llamada en 5 pasos',
     callFlowAria: 'Flujo de llamada en 5 pasos',
