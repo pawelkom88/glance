@@ -1144,13 +1144,16 @@
 
     .video-overlay {
       position: absolute;
-      top: 5.8%;
+      top: 5%;
       left: 11.8%;
       width: 76.4%;
-      height: auto;
+      aspect-ratio: 16 / 10;
       border-radius: 20px;
       overflow: visible;
       background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: transform 1.2s var(--easing), opacity 1.2s var(--easing);
       transform: rotateY(-12deg) rotateX(4deg) scale(0.96);
       opacity: 0;
@@ -1162,9 +1165,55 @@
     }
 
     .video-overlay video {
-      width: 100%;
-      height: auto;
+      width: auto;
+      height: 100%;
+      max-width: 100%;
       display: block;
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .video-play-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(7, 9, 14, 0.2);
+      border: 0;
+      cursor: pointer;
+      z-index: 3;
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .video-play-overlay:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.85);
+      outline-offset: -2px;
+    }
+
+    .video-overlay.is-playing .video-play-overlay {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .video-play-overlay-icon {
+      width: 82px;
+      height: 82px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(10, 12, 18, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 20px 46px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    .video-play-overlay-icon svg {
+      width: 28px;
+      height: 28px;
+      fill: #fff;
+      margin-left: 3px;
     }
 
     .video-camera-dot {
@@ -2559,10 +2608,17 @@
         <img src="glance-mockup.png" alt="MacBook Mockup" class="mockup-frame">
         <div class="video-overlay">
           <div class="video-camera-dot"></div>
-          <video autoplay loop muted playsinline poster="poster.webp">
-            <source src="GLANCE.webm" type="video/webm">
-            <source src="GLANCE.mp4" type="video/mp4">
+          <video loop playsinline controls poster="poster.webp">
+            <source src="glance-apple-promo-final.webm" type="video/webm">
+            <source src="glance-apple-promo-final.mp4" type="video/mp4">
           </video>
+          <button class="video-play-overlay" type="button" aria-label="Play demo video">
+            <span class="video-play-overlay-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M8 5.5v13l10-6.5z"></path>
+              </svg>
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -3311,6 +3367,30 @@
       }, { threshold: 0.1 });
       observer.observe(heroVisual);
     }
+
+    const heroVideoOverlay = document.querySelector('.video-overlay');
+    const heroVideo = heroVideoOverlay?.querySelector('video');
+    const heroVideoPlayButton = heroVideoOverlay?.querySelector('.video-play-overlay');
+
+    heroVideoPlayButton?.addEventListener('click', async () => {
+      if (!heroVideo || !heroVideoOverlay) return;
+      heroVideo.muted = false;
+      heroVideo.volume = 0.5;
+      try {
+        await heroVideo.play();
+        heroVideoOverlay.classList.add('is-playing');
+      } catch (_error) {
+        // Keep overlay visible when autoplay policy blocks playback.
+      }
+    });
+
+    heroVideo?.addEventListener('play', () => {
+      heroVideoOverlay?.classList.add('is-playing');
+    });
+
+    heroVideo?.addEventListener('pause', () => {
+      heroVideoOverlay?.classList.remove('is-playing');
+    });
 
     // Release & Architecture Logic
     document.addEventListener("DOMContentLoaded", async () => {
