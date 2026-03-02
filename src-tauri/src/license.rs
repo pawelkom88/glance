@@ -8,7 +8,9 @@ const PRODUCT_ID_ENV: &str = "GLANCE_IAP_PRODUCT_ID";
 const WINDOWS_STORE_ADDON_ID_ENV: &str = "GLANCE_WINDOWS_STORE_ADDON_STORE_ID";
 const TRIAL_DAYS_ENV: &str = "GLANCE_TRIAL_DAYS";
 /// Tolerance (seconds) for backwards clock drift before we treat it as tampering.
+#[allow(dead_code)]
 const CLOCK_SKEW_TOLERANCE_SECS: i64 = 300;
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -22,7 +24,9 @@ pub enum LicenseState {
 /// frontend can distinguish network unavailability from a true store fault.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "message", rename_all = "PascalCase")]
+#[allow(dead_code)]
 pub enum StoreError {
+
     /// No network connection available when attempting a store operation.
     Offline(String),
     /// The store API returned an application-level error.
@@ -145,7 +149,8 @@ fn env_flag_enabled(name: &str) -> bool {
 
 #[cfg(target_os = "macos")]
 mod platform {
-    use super::{LicenseConfig, LicenseStatus};
+    use super::{AppHandle, LicenseConfig, LicenseStatus};
+
     use serde::Serialize;
     use std::ffi::{c_char, CStr, CString};
 
@@ -283,8 +288,10 @@ mod platform {
     use windows::Win32::System::Registry::{
         RegCloseKey, RegCreateKeyExW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW, HKEY,
         HKEY_CURRENT_USER, KEY_READ, KEY_SET_VALUE, REG_BINARY, REG_OPTION_NON_VOLATILE,
-        REG_SAM_FLAGS,
+        REG_SAM_FLAGS, REG_VALUE_TYPE,
     };
+
+
 
     const REGISTRY_VALUE_NAME: &str = "LicenseStateV1";
 
@@ -329,7 +336,8 @@ mod platform {
         // Open the Paddle checkout URL. 
         // In a real app, this might come from config or env var.
         let checkout_url = "https://buy.paddle.com/product/12345";
-        app.shell().open(checkout_url, None).map_err(|error| error.to_string())?;
+        tauri_plugin_opener::OpenerExt::open_external(app, checkout_url, None).map_err(|error| error.to_string())?;
+
         
         // Return false to indicate that the purchase flow is manual (via browser).
         Ok(false)
@@ -404,7 +412,8 @@ mod platform {
         let key = open_registry_key(path.as_str(), KEY_READ)?;
 
         let value_name = to_wide(REGISTRY_VALUE_NAME);
-        let mut value_type = 0u32;
+        let mut value_type = REG_VALUE_TYPE::default();
+
         let mut data_len = 0u32;
         let status = unsafe {
             RegQueryValueExW(
@@ -414,6 +423,8 @@ mod platform {
                 Some(&mut value_type),
                 None,
                 Some(&mut data_len),
+
+
             )
         };
 
@@ -424,7 +435,8 @@ mod platform {
             return Ok(None);
         }
 
-        if value_type != REG_BINARY.0 {
+        if value_type != REG_BINARY {
+
             unsafe {
                 RegCloseKey(key);
             }
@@ -440,6 +452,8 @@ mod platform {
                 Some(&mut value_type),
                 Some(buffer.as_mut_ptr()),
                 Some(&mut data_len),
+
+
             )
         };
 
@@ -488,9 +502,9 @@ mod platform {
                 windows::core::PCWSTR(value_name.as_ptr()),
                 0,
                 REG_BINARY,
-                Some(encoded.as_ptr()),
-                encoded.len() as u32,
+                Some(&encoded),
             )
+
         };
 
         unsafe {
