@@ -320,6 +320,7 @@ mod platform {
 
 
 
+    /* LEGACY TRIAL LOGIC (Commmented out for Microsoft Store Upfront model)
     #[allow(dead_code)]
     const REGISTRY_VALUE_NAME: &str = "LicenseStateV1";
 
@@ -340,6 +341,7 @@ mod platform {
         last_seen_unix: i64,
         purchased: bool,
     }
+    */
 
     pub fn check_status(_config: &LicenseConfig) -> Result<LicenseStatus, String> {
         // MICROSOFT STORE: Always return Purchased since the app is an upfront paid purchase
@@ -363,6 +365,7 @@ mod platform {
         Ok(None)
     }
 
+    /* LEGACY TRIAL AND REGISTRY HELPERS
     #[allow(dead_code)]
     fn derive_status(trial_days: i64, record: &RuntimeRecord) -> LicenseStatus {
         if record.purchased {
@@ -418,8 +421,6 @@ mod platform {
                 Some(&mut value_type),
                 None,
                 Some(&mut data_len),
-
-
             )
         };
 
@@ -431,7 +432,6 @@ mod platform {
         }
 
         if value_type != REG_BINARY {
-
             unsafe {
                 let _ = RegCloseKey(key);
             }
@@ -447,8 +447,6 @@ mod platform {
                 Some(&mut value_type),
                 Some(buffer.as_mut_ptr()),
                 Some(&mut data_len),
-
-
             )
         };
 
@@ -500,7 +498,6 @@ mod platform {
                 REG_BINARY,
                 Some(&encoded),
             )
-
         };
 
         unsafe {
@@ -617,6 +614,7 @@ mod platform {
             .chain(iter::once(0))
             .collect()
     }
+    */
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]

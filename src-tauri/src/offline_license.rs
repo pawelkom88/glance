@@ -1,3 +1,4 @@
+/* LEGACY OFFLINE LICENSE VERIFICATION (Commented out for Microsoft Store Upfront model)
 use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 use serde::{Deserialize, Serialize};
 use base64::Engine;
@@ -61,3 +62,5 @@ pub fn verify_license_key(b64_key: &str) -> std::result::Result<(), String> {
         
     Ok(())
 }
+*/
+
