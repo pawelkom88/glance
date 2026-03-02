@@ -1097,14 +1097,29 @@ export function OverlayPrompter() {
       return;
     }
 
-    const targetLine = sectionStartLineIndexes[index];
-    if (typeof targetLine !== 'number' || !Number.isFinite(targetLine)) {
+    const targetLineIndex = sectionStartLineIndexes[index];
+    if (typeof targetLineIndex !== 'number' || !Number.isFinite(targetLineIndex)) {
       return;
     }
 
-    const targetY = linePositions.positions[targetLine] ?? 0;
+    // Prefer DOM measurement over computed linePositions because the real CSS
+    // typography (Lora 28px × 1.70 line-height, 32px paragraph margins, 64px
+    // heading top margins) does not match the estimated scaledLineHeight values
+    // used by linePositions.
+    const node = lineRefs.current[targetLineIndex];
+    if (node) {
+      // node.offsetTop is relative to its offset parent (.overlay-lines), and
+      // already includes paddingTop (= lanePadding). We subtract lanePadding so
+      // the heading lands exactly at the reading ruler when translateY(-pos) is applied.
+      const effectivePadding = Math.max(0, lanePadding + firstLineLaneNudge);
+      setScrollPosition(Math.max(0, node.offsetTop - effectivePadding));
+      return;
+    }
+
+    // Fallback to linePositions if the DOM ref isn't available yet.
+    const targetY = linePositions.positions[targetLineIndex] ?? 0;
     setScrollPosition(targetY);
-  }, [linePositions.positions, sectionStartLineIndexes, setScrollPosition]);
+  }, [firstLineLaneNudge, lanePadding, linePositions.positions, sectionStartLineIndexes, setScrollPosition]);
 
   const commitFontScale = useCallback((nextValue: number) => {
     const normalized = normalizeFontScale(nextValue);
@@ -2109,367 +2124,367 @@ export function OverlayPrompter() {
   return (
     <>
       <main
-      ref={overlayRootRef}
-      className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''} ${isOverlayFocused ? '' : 'overlay-unfocused'}`}
-      role="application"
-      aria-label={t('overlay.mainAria')}
-      tabIndex={-1}
-      style={overlayVars}
-      onMouseDownCapture={handleRootMouseDownCapture}
-      onPointerDownCapture={() => {
-        overlayRootRef.current?.focus({ preventScroll: true });
-      }}
-      onMouseDown={handleDragMouseDown}
-    >
-      <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label={t('overlay.sizeAria')}>
-        {overlaySize.width} × {overlaySize.height}
-      </div>
-      <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
-        {!isCompactTopBar ? (
-          <div className="overlay-left-sidebar-layout">
-            <div className="overlay-left-utility-cluster">
-              {renderTopActions()}
-            </div>
-            <div className="overlay-left-context-cluster">
-              <span className="overlay-section-counter">
-                {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
-              </span>
-            </div>
-            <div className="overlay-left-nav-cluster">
-              <div className="overlay-section-rail" aria-label={t('overlay.currentSection')}>
-                <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? t('overlay.currentSection')}>
-                  {showSectionTitlesInRail
-                    ? (currentSection?.title ?? t('overlay.waitingForHeadings'))
-                    : (currentSectionIndex + 1)}
+        ref={overlayRootRef}
+        className={`overlay-root overlay-sidebar-collapsed ${isOpening ? 'overlay-opening' : ''} ${isClosing ? 'overlay-closing' : ''} ${isOverlayFocused ? '' : 'overlay-unfocused'}`}
+        role="application"
+        aria-label={t('overlay.mainAria')}
+        tabIndex={-1}
+        style={overlayVars}
+        onMouseDownCapture={handleRootMouseDownCapture}
+        onPointerDownCapture={() => {
+          overlayRootRef.current?.focus({ preventScroll: true });
+        }}
+        onMouseDown={handleDragMouseDown}
+      >
+        <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label={t('overlay.sizeAria')}>
+          {overlaySize.width} × {overlaySize.height}
+        </div>
+        <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
+          {!isCompactTopBar ? (
+            <div className="overlay-left-sidebar-layout">
+              <div className="overlay-left-utility-cluster">
+                {renderTopActions()}
+              </div>
+              <div className="overlay-left-context-cluster">
+                <span className="overlay-section-counter">
+                  {sections.length > 0 ? `${currentSectionIndex + 1}/${sections.length}` : '0/0'}
                 </span>
-
-                {nextSection ? (
-                  <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-                    {showSectionTitlesInRail ? t('overlay.nextSection', { title: nextSection.title }) : (currentSectionIndex + 2)}
+              </div>
+              <div className="overlay-left-nav-cluster">
+                <div className="overlay-section-rail" aria-label={t('overlay.currentSection')}>
+                  <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? t('overlay.currentSection')}>
+                    {showSectionTitlesInRail
+                      ? (currentSection?.title ?? t('overlay.waitingForHeadings'))
+                      : (currentSectionIndex + 1)}
                   </span>
-                ) : null}
+
+                  {nextSection ? (
+                    <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
+                      {showSectionTitlesInRail ? t('overlay.nextSection', { title: nextSection.title }) : (currentSectionIndex + 2)}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {isFontMenuOpen ? (
-          <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label={t('overlay.fontSizeSettings')}>
-            <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
-              <button
-                type="button"
-                className="overlay-font-stepper-button"
-                data-font-focus="true"
-                onClick={() => changeFontScaleBy(-1)}
-                aria-label={t('overlay.decreaseFontSize')}
-              >
-                −
-              </button>
-              <span className="overlay-font-stepper-divider" aria-hidden="true" />
-              <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
-              <span className="overlay-font-stepper-divider" aria-hidden="true" />
-              <button
-                type="button"
-                className="overlay-font-stepper-button"
-                onClick={() => changeFontScaleBy(1)}
-                aria-label={t('overlay.increaseFontSize')}
-              >
-                +
-              </button>
+          {isFontMenuOpen ? (
+            <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label={t('overlay.fontSizeSettings')}>
+              <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
+                <button
+                  type="button"
+                  className="overlay-font-stepper-button"
+                  data-font-focus="true"
+                  onClick={() => changeFontScaleBy(-1)}
+                  aria-label={t('overlay.decreaseFontSize')}
+                >
+                  −
+                </button>
+                <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
+                <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="overlay-font-stepper-button"
+                  onClick={() => changeFontScaleBy(1)}
+                  aria-label={t('overlay.increaseFontSize')}
+                >
+                  +
+                </button>
+              </div>
+              <div className="overlay-font-slider-row">
+                <span className="overlay-font-label-small" aria-hidden="true">A</span>
+                <input
+                  className="overlay-font-slider"
+                  type="range"
+                  min={minFontScale}
+                  max={maxFontScale}
+                  step={fontScaleStep}
+                  value={overlayFontScale}
+                  onChange={(event) => commitFontScale(Number(event.target.value))}
+                  aria-label={t('overlay.fontSize')}
+                />
+                <span className="overlay-font-label-large" aria-hidden="true">A</span>
+              </div>
+              <div className="overlay-font-footer overlay-font-footer-row">
+                <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
+                <button
+                  type="button"
+                  className="overlay-popover-link overlay-font-reset"
+                  onClick={() => commitFontScale(1)}
+                >
+                  {t('overlay.reset')}
+                </button>
+              </div>
             </div>
-            <div className="overlay-font-slider-row">
-              <span className="overlay-font-label-small" aria-hidden="true">A</span>
-              <input
-                className="overlay-font-slider"
-                type="range"
-                min={minFontScale}
-                max={maxFontScale}
-                step={fontScaleStep}
-                value={overlayFontScale}
-                onChange={(event) => commitFontScale(Number(event.target.value))}
-                aria-label={t('overlay.fontSize')}
-              />
-              <span className="overlay-font-label-large" aria-hidden="true">A</span>
+          ) : null}
+
+          {isJumpMenuOpen ? (
+            <div
+              ref={jumpMenuRef}
+              className="overlay-popover overlay-jump-popover"
+              role="menu"
+              aria-label={t('overlay.jumpToSection')}
+              onKeyDown={handleJumpMenuKeyDown}
+            >
+              {sections.map((section, index) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  role="menuitem"
+                  data-jump-item="true"
+                  className={`overlay-jump-item ${index === currentSectionIndex ? 'is-current' : ''}`}
+                  onClick={() => {
+                    jumpToSection(index);
+                    closeJumpMenu(true);
+                  }}
+                >
+                  <span className="overlay-jump-title">{section.title}</span>
+                  {index < 9 ? (
+                    <ShortcutKeycaps shortcuts={`CmdOrCtrl+${index + 1}`} keycapClassName="overlay-jump-keycap" />
+                  ) : null}
+                </button>
+              ))}
             </div>
-            <div className="overlay-font-footer overlay-font-footer-row">
-              <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
-              <button
-                type="button"
-                className="overlay-popover-link overlay-font-reset"
-                onClick={() => commitFontScale(1)}
-              >
-                {t('overlay.reset')}
-              </button>
-            </div>
-          </div>
-        ) : null}
+          ) : null}
+        </aside>
 
-        {isJumpMenuOpen ? (
-          <div
-            ref={jumpMenuRef}
-            className="overlay-popover overlay-jump-popover"
-            role="menu"
-            aria-label={t('overlay.jumpToSection')}
-            onKeyDown={handleJumpMenuKeyDown}
-          >
-            {sections.map((section, index) => (
-              <button
-                key={section.id}
-                type="button"
-                role="menuitem"
-                data-jump-item="true"
-                className={`overlay-jump-item ${index === currentSectionIndex ? 'is-current' : ''}`}
-                onClick={() => {
-                  jumpToSection(index);
-                  closeJumpMenu(true);
-                }}
-              >
-                <span className="overlay-jump-title">{section.title}</span>
-                {index < 9 ? (
-                  <ShortcutKeycaps shortcuts={`CmdOrCtrl+${index + 1}`} keycapClassName="overlay-jump-keycap" />
-                ) : null}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </aside>
-
-      <section
-        className={`overlay-content ${showReadingRuler ? '' : 'overlay-content-no-ruler'}`.trim()}
-        aria-live="polite"
-        ref={contentRef}
-        data-overlay-no-drag="true"
-        data-dim-level={showReadingRuler ? dimLevel : 0}
-        style={{
-          '--spotlight-top': `${rulerStyle.top}px`,
-          '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
-        } as CSSProperties}
-      >
-        {showReadingRuler ? (
-          <div
-            className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
-            aria-hidden="true"
-            style={{ top: `${rulerStyle.top}px` }}
-          />
-        ) : null}
-
-        <div
-          className="overlay-lines"
+        <section
+          className={`overlay-content ${showReadingRuler ? '' : 'overlay-content-no-ruler'}`.trim()}
+          aria-live="polite"
+          ref={contentRef}
+          data-overlay-no-drag="true"
+          data-dim-level={showReadingRuler ? dimLevel : 0}
           style={{
-            transform: `translateY(${-scrollPosition}px)`,
-            paddingTop: `${lanePadding}px`,
-            paddingBottom: `${lanePadding}px`
-          }}
+            '--spotlight-top': `${rulerStyle.top}px`,
+            '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
+          } as CSSProperties}
         >
-          {lines.map((line, index) => {
-            if (line.kind === 'empty') {
-              return null;
-            }
+          {showReadingRuler ? (
+            <div
+              className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
+              aria-hidden="true"
+              style={{ top: `${rulerStyle.top}px` }}
+            />
+          ) : null}
 
-            if (line.kind === 'heading') {
+          <div
+            className="overlay-lines"
+            style={{
+              transform: `translateY(${-scrollPosition}px)`,
+              paddingTop: `${lanePadding}px`,
+              paddingBottom: `${lanePadding}px`
+            }}
+          >
+            {lines.map((line, index) => {
+              if (line.kind === 'empty') {
+                return null;
+              }
+
+              if (line.kind === 'heading') {
+                return (
+                  <div
+                    key={line.id}
+                    ref={(node) => {
+                      lineRefs.current[index] = node;
+                    }}
+                    className="script-section-title"
+                  >
+                    {line.text}
+                  </div>
+                );
+              }
+
+              const renderInlineContent = () => {
+                if (line.segments?.length) {
+                  return line.segments.map((segment) => {
+                    if (segment.kind === 'strong') {
+                      return <strong key={segment.id}>{segment.text}</strong>;
+                    }
+                    if (segment.kind === 'emphasis') {
+                      return <em key={segment.id}>{segment.text}</em>;
+                    }
+                    if (segment.kind === 'cue') {
+                      return (
+                        <span key={segment.id} className="overlay-cue-chip">
+                          {segment.text}
+                        </span>
+                      );
+                    }
+                    return <span key={segment.id}>{segment.text}</span>;
+                  });
+                }
+                return line.text || '\u00A0';
+              };
+
               return (
-                <div
+                <p
                   key={line.id}
                   ref={(node) => {
                     lineRefs.current[index] = node;
                   }}
-                  className="script-section-title"
+                  className="script-p"
                 >
-                  {line.text}
-                </div>
+                  {line.kind === 'bullet' ? <span className="overlay-bullet-marker">•</span> : null}
+                  {renderInlineContent()}
+                </p>
               );
-            }
+            })}
+          </div>
+        </section>
 
-            const renderInlineContent = () => {
-              if (line.segments?.length) {
-                return line.segments.map((segment) => {
-                  if (segment.kind === 'strong') {
-                    return <strong key={segment.id}>{segment.text}</strong>;
-                  }
-                  if (segment.kind === 'emphasis') {
-                    return <em key={segment.id}>{segment.text}</em>;
-                  }
-                  if (segment.kind === 'cue') {
-                    return (
-                      <span key={segment.id} className="overlay-cue-chip">
-                        {segment.text}
-                      </span>
-                    );
-                  }
-                  return <span key={segment.id}>{segment.text}</span>;
-                });
-              }
-              return line.text || '\u00A0';
-            };
-
-            return (
-              <p
-                key={line.id}
-                ref={(node) => {
-                  lineRefs.current[index] = node;
-                }}
-                className="script-p"
-              >
-                {line.kind === 'bullet' ? <span className="overlay-bullet-marker">•</span> : null}
-                {renderInlineContent()}
-              </p>
-            );
-          })}
-        </div>
-      </section>
-
-      <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
-        {isCompactTopBar ? (
-          <div className={`overlay-compact-dock ${isControlsCollapsed ? 'is-collapsed' : ''}`}>
-            <div className="overlay-compact-context-bar">
-              <div className="overlay-compact-context-main">
-                {renderSectionRail()}
-              </div>
-              <div className="overlay-compact-utility-cluster">
-                {renderTopActions()}
-              </div>
-            </div>
-
-            <div
-              id="overlay-controls-area"
-              className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
-            >
-              <div className="overlay-compact-control-bar">
-                {renderPlaybackControls('', true)}
-                <div className="overlay-compact-speed-row">
-                  {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
+        <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
+          {isCompactTopBar ? (
+            <div className={`overlay-compact-dock ${isControlsCollapsed ? 'is-collapsed' : ''}`}>
+              <div className="overlay-compact-context-bar">
+                <div className="overlay-compact-context-main">
+                  {renderSectionRail()}
                 </div>
-                <div className="overlay-compact-status-row">
-                  <span className="overlay-compact-speed-display" aria-label={t('overlay.currentSpeedAria')}>
-                    {normalizedSpeed.toFixed(normalizedSpeed % 0.1 === 0 ? 1 : 2)}x
-                  </span>
-                  <div className="overlay-compact-status-divider" />
-                  <div className="overlay-compact-dim-group" role="group" aria-label={t('overlay.rulerIntensityAria')}>
-                    <span className="overlay-compact-dim-label">{t('overlay.dim')}</span>
-                    <div className="overlay-compact-dim-dots">
-                      {[1, 2, 3].map((level) => (
-                        <button
-                          key={level}
-                          type="button"
-                          className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
-                          aria-label={t('overlay.dimLevelAria', { level })}
-                          aria-pressed={showReadingRuler && dimLevel === level}
-                          onClick={() => {
-                            const store = useAppStore.getState();
-                            if (showReadingRuler && dimLevel === level) {
-                              store.setShowReadingRuler(false);
-                            } else {
-                              store.setShowReadingRuler(true);
-                              setDimLevel(level);
-                            }
-                          }}
-                        >
-                          <span className="overlay-compact-dim-dot" />
-                        </button>
-                      ))}
+                <div className="overlay-compact-utility-cluster">
+                  {renderTopActions()}
+                </div>
+              </div>
+
+              <div
+                id="overlay-controls-area"
+                className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
+              >
+                <div className="overlay-compact-control-bar">
+                  {renderPlaybackControls('', true)}
+                  <div className="overlay-compact-speed-row">
+                    {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
+                  </div>
+                  <div className="overlay-compact-status-row">
+                    <span className="overlay-compact-speed-display" aria-label={t('overlay.currentSpeedAria')}>
+                      {normalizedSpeed.toFixed(normalizedSpeed % 0.1 === 0 ? 1 : 2)}x
+                    </span>
+                    <div className="overlay-compact-status-divider" />
+                    <div className="overlay-compact-dim-group" role="group" aria-label={t('overlay.rulerIntensityAria')}>
+                      <span className="overlay-compact-dim-label">{t('overlay.dim')}</span>
+                      <div className="overlay-compact-dim-dots">
+                        {[1, 2, 3].map((level) => (
+                          <button
+                            key={level}
+                            type="button"
+                            className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
+                            aria-label={t('overlay.dimLevelAria', { level })}
+                            aria-pressed={showReadingRuler && dimLevel === level}
+                            onClick={() => {
+                              const store = useAppStore.getState();
+                              if (showReadingRuler && dimLevel === level) {
+                                store.setShowReadingRuler(false);
+                              } else {
+                                store.setShowReadingRuler(true);
+                                setDimLevel(level);
+                              }
+                            }}
+                          >
+                            <span className="overlay-compact-dim-dot" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="overlay-compact-status-divider" />
+                    <div className="overlay-compact-font-group">
+                      <button
+                        type="button"
+                        className="overlay-compact-font-btn"
+                        onClick={() => changeFontScaleBy(-1)}
+                        aria-label={t('overlay.decreaseFontSize')}
+                      >
+                        {t('overlay.fontAminus')}
+                      </button>
+                      <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
+                      <button
+                        type="button"
+                        className="overlay-compact-font-btn"
+                        onClick={() => changeFontScaleBy(1)}
+                        aria-label={t('overlay.increaseFontSize')}
+                      >
+                        {t('overlay.fontAplus')}
+                      </button>
                     </div>
                   </div>
-                  <div className="overlay-compact-status-divider" />
-                  <div className="overlay-compact-font-group">
-                    <button
-                      type="button"
-                      className="overlay-compact-font-btn"
-                      onClick={() => changeFontScaleBy(-1)}
-                      aria-label={t('overlay.decreaseFontSize')}
-                    >
-                      {t('overlay.fontAminus')}
-                    </button>
-                    <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
-                    <button
-                      type="button"
-                      className="overlay-compact-font-btn"
-                      onClick={() => changeFontScaleBy(1)}
-                      aria-label={t('overlay.increaseFontSize')}
-                    >
-                      {t('overlay.fontAplus')}
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ) : null}
-        {!isCompactTopBar ? renderPlaybackControls('overlay-controls-desktop', false) : null}
-      </aside>
+          ) : null}
+          {!isCompactTopBar ? renderPlaybackControls('overlay-controls-desktop', false) : null}
+        </aside>
 
-      {isCompactTopBar && isFontMenuOpen && compactFontPopoverStyle
-        ? createPortal(
-          <div
-            ref={fontMenuRef}
-            className="overlay-popover overlay-font-popover overlay-font-popover-compact overlay-font-popover-compact-portal"
-            style={compactFontPopoverStyle}
-            role="dialog"
-            aria-label={t('overlay.fontSizeSettings')}
-          >
-            <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
-              <button
-                type="button"
-                className="overlay-font-stepper-button"
-                data-font-focus="true"
-                onClick={(e) => {
-                  changeFontScaleBy(-1);
-                  e.currentTarget.blur();
-                  overlayRootRef.current?.focus({ preventScroll: true });
-                }}
-                aria-label={t('overlay.decreaseFontSize')}
-              >
-                −
-              </button>
-              <span className="overlay-font-stepper-divider" aria-hidden="true" />
-              <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
-              <span className="overlay-font-stepper-divider" aria-hidden="true" />
-              <button
-                type="button"
-                className="overlay-font-stepper-button"
-                onClick={(e) => {
-                  changeFontScaleBy(1);
-                  e.currentTarget.blur();
-                  overlayRootRef.current?.focus({ preventScroll: true });
-                }}
-                aria-label={t('overlay.increaseFontSize')}
-              >
-                +
-              </button>
-            </div>
-            <div className="overlay-font-slider-row">
-              <span className="overlay-font-label-small" aria-hidden="true">A</span>
-              <input
-                className="overlay-font-slider"
-                type="range"
-                min={minFontScale}
-                max={maxFontScale}
-                step={fontScaleStep}
-                value={overlayFontScale}
-                onChange={(event) => commitFontScale(Number(event.target.value))}
-                onPointerUp={(e) => {
-                  e.currentTarget.blur();
-                  overlayRootRef.current?.focus({ preventScroll: true });
-                }}
-                aria-label={t('overlay.fontSize')}
-              />
-              <span className="overlay-font-label-large" aria-hidden="true">A</span>
-            </div>
-            <div className="overlay-font-footer overlay-font-footer-row">
-              <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
-              <button
-                type="button"
-                className="overlay-popover-link overlay-font-reset"
-                onClick={() => commitFontScale(1)}
-              >
-                {t('overlay.reset')}
-              </button>
-            </div>
-          </div>,
-          document.body
-        )
-        : null}
+        {isCompactTopBar && isFontMenuOpen && compactFontPopoverStyle
+          ? createPortal(
+            <div
+              ref={fontMenuRef}
+              className="overlay-popover overlay-font-popover overlay-font-popover-compact overlay-font-popover-compact-portal"
+              style={compactFontPopoverStyle}
+              role="dialog"
+              aria-label={t('overlay.fontSizeSettings')}
+            >
+              <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
+                <button
+                  type="button"
+                  className="overlay-font-stepper-button"
+                  data-font-focus="true"
+                  onClick={(e) => {
+                    changeFontScaleBy(-1);
+                    e.currentTarget.blur();
+                    overlayRootRef.current?.focus({ preventScroll: true });
+                  }}
+                  aria-label={t('overlay.decreaseFontSize')}
+                >
+                  −
+                </button>
+                <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
+                <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="overlay-font-stepper-button"
+                  onClick={(e) => {
+                    changeFontScaleBy(1);
+                    e.currentTarget.blur();
+                    overlayRootRef.current?.focus({ preventScroll: true });
+                  }}
+                  aria-label={t('overlay.increaseFontSize')}
+                >
+                  +
+                </button>
+              </div>
+              <div className="overlay-font-slider-row">
+                <span className="overlay-font-label-small" aria-hidden="true">A</span>
+                <input
+                  className="overlay-font-slider"
+                  type="range"
+                  min={minFontScale}
+                  max={maxFontScale}
+                  step={fontScaleStep}
+                  value={overlayFontScale}
+                  onChange={(event) => commitFontScale(Number(event.target.value))}
+                  onPointerUp={(e) => {
+                    e.currentTarget.blur();
+                    overlayRootRef.current?.focus({ preventScroll: true });
+                  }}
+                  aria-label={t('overlay.fontSize')}
+                />
+                <span className="overlay-font-label-large" aria-hidden="true">A</span>
+              </div>
+              <div className="overlay-font-footer overlay-font-footer-row">
+                <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
+                <button
+                  type="button"
+                  className="overlay-popover-link overlay-font-reset"
+                  onClick={() => commitFontScale(1)}
+                >
+                  {t('overlay.reset')}
+                </button>
+              </div>
+            </div>,
+            document.body
+          )
+          : null}
 
-      {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer', true) : null}
+        {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer', true) : null}
       </main>
       {!isOverlayFocused
         ? createPortal(

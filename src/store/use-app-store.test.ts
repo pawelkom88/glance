@@ -252,6 +252,30 @@ describe('useAppStore session lifecycle behavior', () => {
     expect(useAppStore.getState().scrollPosition).toBe(77);
   });
 
+  it('jumps to section using display line positions, not raw markdown line index', () => {
+    // markdown line 0: "# One", line 1: "", line 2: "Some text", line 3: "", line 4: "# Two"
+    const markdown = '# One\n\nSome text\n\n# Two\n\nMore text';
+    useAppStore.setState({ markdown, scrollPosition: 0, overlayFontScale: 1 });
+
+    // Jump to section 0 (#  One) — first display line, so position = 0
+    useAppStore.getState().jumpToSectionByIndex(0);
+    expect(useAppStore.getState().scrollPosition).toBe(0);
+
+    // Jump to section 1 (# Two)
+    useAppStore.getState().jumpToSectionByIndex(1);
+    const positionOfTwo = useAppStore.getState().scrollPosition;
+
+    // Must be > 0 (there is content before # Two)
+    expect(positionOfTwo).toBeGreaterThan(0);
+
+    // Must NOT equal the old wrong value: lineIndex=4, so old code gave 4*54=216
+    expect(positionOfTwo).not.toBe(4 * 54);
+
+    // Correct: scaledLineHeight=54, gap=10 at fontScale=1
+    // Display lines before "# Two": heading(64) + empty(37) + "Some text"(64) + empty(37) = 202
+    expect(positionOfTwo).toBe(202);
+  });
+
   it('shows an error toast when tauri call fails', async () => {
     tauriMock.createSession.mockRejectedValue(new Error('create failed'));
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { isTauri } from '@tauri-apps/api/core';
 import { startTransition } from 'react';
-import { parseMarkdown } from '../lib/markdown';
+import { markdownToDisplayLines, parseMarkdown } from '../lib/markdown';
 import {
   clearLastActiveSessionId,
   createFolder,
@@ -871,14 +871,34 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     jumpToSectionByIndex: (index: number) => {
-      const parsed = parseMarkdown(get().markdown);
+      const state = get();
+      const parsed = parseMarkdown(state.markdown);
       const target = parsed.sections[index];
       if (!target) {
         return;
       }
 
-      const lineHeight = 54;
-      get().setScrollPosition(target.lineIndex * lineHeight);
+      const lines = markdownToDisplayLines(state.markdown);
+      const headingId = `heading-${target.lineIndex}`;
+      const displayLineIndex = lines.findIndex((line) => line.id === headingId);
+      if (displayLineIndex < 0) {
+        return;
+      }
+
+      const baseLineHeight = 54;
+      const overlayLineGapPx = 10;
+      const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * state.overlayFontScale));
+      let y = 0;
+      for (let i = 0; i < displayLineIndex; i++) {
+        const line = lines[i];
+        if (line?.kind === 'empty') {
+          y += Math.round(scaledLineHeight * 0.5) + overlayLineGapPx;
+        } else {
+          y += scaledLineHeight + overlayLineGapPx;
+        }
+      }
+
+      get().setScrollPosition(y);
     },
 
     setShortcutWarning: (value: string | null) => {
