@@ -2,6 +2,7 @@ use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 use serde::{Deserialize, Serialize};
 use base64::Engine;
 
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
 pub struct LicensePayload {
     pub id: String,
@@ -9,8 +10,10 @@ pub struct LicensePayload {
     pub signature: String,
 }
 
+#[allow(dead_code)]
 const PUBLIC_KEY_HEX: &str = "7ab5a3751fa1e2bcc7ff4438b25994ae1f76baf8eaeea82516d35e77e742899b";
 
+#[allow(dead_code)]
 pub fn verify_license_key(b64_key: &str) -> std::result::Result<(), String> {
     // 1. Decode Base64 string
     let json_bytes = base64::engine::general_purpose::STANDARD_NO_PAD

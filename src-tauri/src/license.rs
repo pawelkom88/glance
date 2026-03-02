@@ -52,9 +52,11 @@ pub struct StoreProductInfo {
 
 #[derive(Debug, Clone)]
 struct LicenseConfig {
+    #[allow(dead_code)]
     bundle_id: String,
     product_id: String,
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+    #[allow(dead_code)]
     windows_store_addon_id: String,
     trial_days: i64,
     dev_bypass_enabled: bool,
@@ -303,13 +305,12 @@ mod platform {
 
 #[cfg(target_os = "windows")]
 mod platform {
-    use super::{LicenseConfig, LicenseState, LicenseStatus, CLOCK_SKEW_TOLERANCE_SECS};
+    use super::{LicenseConfig, LicenseState, LicenseStatus};
     use base64::Engine;
     use serde::{Deserialize, Serialize};
     use sha2::{Digest, Sha256};
     use std::iter;
     use std::os::windows::ffi::OsStrExt;
-    use tauri_plugin_opener::OpenerExt;
 
     use windows::Win32::System::Registry::{
         RegCloseKey, RegCreateKeyExW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW, HKEY,
@@ -319,8 +320,10 @@ mod platform {
 
 
 
+    #[allow(dead_code)]
     const REGISTRY_VALUE_NAME: &str = "LicenseStateV1";
 
+    #[allow(dead_code)]
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     struct RegistryRecord {
@@ -330,6 +333,7 @@ mod platform {
         checksum: String,
     }
 
+    #[allow(dead_code)]
     #[derive(Debug, Clone)]
     struct RuntimeRecord {
         trial_started_unix: i64,
@@ -359,6 +363,7 @@ mod platform {
         Ok(None)
     }
 
+    #[allow(dead_code)]
     fn derive_status(trial_days: i64, record: &RuntimeRecord) -> LicenseStatus {
         if record.purchased {
             return LicenseStatus {
@@ -381,6 +386,7 @@ mod platform {
         }
     }
 
+    #[allow(dead_code)]
     fn load_or_initialize_record(
         config: &LicenseConfig,
         now_unix: i64,
@@ -395,6 +401,7 @@ mod platform {
         }
     }
 
+    #[allow(dead_code)]
     fn load_record(config: &LicenseConfig) -> Result<Option<RuntimeRecord>, String> {
         let path = registry_subkey_path(config);
         let key = open_registry_key(path.as_str(), KEY_READ)?;
@@ -418,7 +425,7 @@ mod platform {
 
         if status.0 != 0 {
             unsafe {
-                RegCloseKey(key);
+                let _ = RegCloseKey(key);
             }
             return Ok(None);
         }
@@ -426,7 +433,7 @@ mod platform {
         if value_type != REG_BINARY {
 
             unsafe {
-                RegCloseKey(key);
+                let _ = RegCloseKey(key);
             }
             return Ok(None);
         }
@@ -446,7 +453,7 @@ mod platform {
         };
 
         unsafe {
-            RegCloseKey(key);
+            let _ = RegCloseKey(key);
         }
 
         if second_status.0 != 0 {
@@ -468,6 +475,7 @@ mod platform {
         }))
     }
 
+    #[allow(dead_code)]
     fn save_record(config: &LicenseConfig, record: &RuntimeRecord) -> Result<(), String> {
         let path = registry_subkey_path(config);
         let key = open_registry_key(path.as_str(), KEY_SET_VALUE)?;
@@ -496,7 +504,7 @@ mod platform {
         };
 
         unsafe {
-            RegCloseKey(key);
+            let _ = RegCloseKey(key);
         }
 
         if status.0 != 0 {
@@ -509,10 +517,12 @@ mod platform {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn registry_subkey_path(config: &LicenseConfig) -> String {
         format!("Software\\{}\\License", config.bundle_id)
     }
 
+    #[allow(dead_code)]
     fn open_registry_key(path: &str, access: REG_SAM_FLAGS) -> Result<HKEY, String> {
         let mut key = HKEY::default();
         let path_wide = to_wide(path);
@@ -555,6 +565,7 @@ mod platform {
         Ok(key)
     }
 
+    #[allow(dead_code)]
     fn encode_registry_blob(config: &LicenseConfig, input: &[u8]) -> Vec<u8> {
         let key = obfuscation_key(config);
         let encrypted = xor_with_key(input, key.as_slice());
@@ -563,6 +574,7 @@ mod platform {
             .into_bytes()
     }
 
+    #[allow(dead_code)]
     fn decode_registry_blob(config: &LicenseConfig, input: &[u8]) -> Result<Vec<u8>, String> {
         let encoded = std::str::from_utf8(input).map_err(|error| error.to_string())?;
         let encrypted = base64::engine::general_purpose::STANDARD_NO_PAD
@@ -572,6 +584,7 @@ mod platform {
         Ok(xor_with_key(encrypted.as_slice(), key.as_slice()))
     }
 
+    #[allow(dead_code)]
     fn xor_with_key(input: &[u8], key: &[u8]) -> Vec<u8> {
         input
             .iter()
@@ -580,12 +593,14 @@ mod platform {
             .collect()
     }
 
+    #[allow(dead_code)]
     fn obfuscation_key(config: &LicenseConfig) -> Vec<u8> {
         let username = std::env::var("USERNAME").unwrap_or_else(|_| String::from("unknown"));
         let source = format!("{}:{}:glance-license-v1", config.bundle_id, username);
         Sha256::digest(source.as_bytes()).to_vec()
     }
 
+    #[allow(dead_code)]
     fn checksum_for(config: &LicenseConfig, record: &RegistryRecord) -> String {
         let material = format!(
             "{}:{}:{}:{}:checksum-v1",
@@ -595,6 +610,7 @@ mod platform {
         base64::engine::general_purpose::STANDARD_NO_PAD.encode(digest)
     }
 
+    #[allow(dead_code)]
     fn to_wide(value: &str) -> Vec<u16> {
         std::ffi::OsStr::new(value)
             .encode_wide()
