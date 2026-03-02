@@ -4,6 +4,7 @@ use tauri::AppHandle;
 const DEFAULT_PRODUCT_ID: &str = "com.yourapp.unlock";
 const DEFAULT_TRIAL_DAYS: i64 = 7;
 const LICENSE_BYPASS_ENV: &str = "GLANCE_LICENSE_DEV_BYPASS";
+const LICENSE_DEV_STATE_ENV: &str = "GLANCE_LICENSE_DEV_STATE";
 const PRODUCT_ID_ENV: &str = "GLANCE_IAP_PRODUCT_ID";
 const WINDOWS_STORE_ADDON_ID_ENV: &str = "GLANCE_WINDOWS_STORE_ADDON_STORE_ID";
 const TRIAL_DAYS_ENV: &str = "GLANCE_TRIAL_DAYS";
@@ -103,6 +104,10 @@ pub fn check_status(app: AppHandle) -> Result<LicenseStatus, String> {
         });
     }
 
+    if let Some(status) = check_dev_state_override(&config) {
+        return Ok(status);
+    }
+
     platform::check_status(&config)
 }
 
@@ -135,6 +140,26 @@ pub fn get_unlock_product(app: AppHandle) -> Result<StoreProductInfo, String> {
 
     let price_display = platform::get_price_display(&config)?;
     Ok(config.with_product_price(price_display))
+}
+
+fn check_dev_state_override(config: &LicenseConfig) -> Option<LicenseStatus> {
+    let raw = std::env::var(LICENSE_DEV_STATE_ENV).ok()?;
+    let normalized = raw.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "trial" => Some(LicenseStatus {
+            state: LicenseState::Trial,
+            days_remaining: Some(config.trial_days),
+        }),
+        "expired" => Some(LicenseStatus {
+            state: LicenseState::Expired,
+            days_remaining: None,
+        }),
+        "purchased" => Some(LicenseStatus {
+            state: LicenseState::Purchased,
+            days_remaining: None,
+        }),
+        _ => None,
+    }
 }
 
 fn env_flag_enabled(name: &str) -> bool {
@@ -370,7 +395,7 @@ mod platform {
 
     pub fn get_price_display(_config: &LicenseConfig) -> Result<Option<String>, String> {
         // Since we use an external checkout, we return a static price or placeholder.
-        Ok(Some(String::from("$14.99")))
+        Ok(Some(String::from("$7.99")))
     }
 
     fn derive_status(trial_days: i64, record: &RuntimeRecord) -> LicenseStatus {
