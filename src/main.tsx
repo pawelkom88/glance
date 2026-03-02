@@ -20,14 +20,14 @@ function AppBootstrap() {
 
   if (isOverlayWindow) {
     return (
-      <LicenseGate>
+      <LicenseGate showTrialBanner={false}>
         <App />
       </LicenseGate>
     );
   }
 
   return (
-    <LicenseGate>
+    <LicenseGate showTrialBanner={true}>
       <div className="app-bootstrap">
         <App />
         {isSplashVisible ? <SplashScreen onReady={hideSplash} isAppReady={isAppReady} /> : null}

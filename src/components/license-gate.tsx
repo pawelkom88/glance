@@ -4,9 +4,10 @@ import { Paywall } from './paywall';
 
 interface LicenseGateProps {
   readonly children: ReactNode;
+  readonly showTrialBanner?: boolean;
 }
 
-export function LicenseGate({ children }: LicenseGateProps) {
+export function LicenseGate({ children, showTrialBanner = true }: LicenseGateProps) {
   const {
     loading,
     status,
@@ -44,12 +45,13 @@ export function LicenseGate({ children }: LicenseGateProps) {
     const daysText = status.daysRemaining === 1
       ? '1 day left in your trial'
       : `${status.daysRemaining ?? 0} days left in your trial`;
-    const showBanner = (status.daysRemaining ?? 0) <= 3;
+    const isCloseToExpiry = (status.daysRemaining ?? 0) <= 3;
+    const shouldDisplayBanner = showTrialBanner && isCloseToExpiry;
 
     return (
       <>
         {/* 1.2 — Proactive "Buy Now" trial banner — only shown in last 3 days */}
-        {showBanner && <div className="license-trial-banner" role="status" aria-live="polite">
+        {shouldDisplayBanner && <div className="license-trial-banner" role="status" aria-live="polite">
           <span className="license-trial-banner__text">{daysText}</span>
           <button
             type="button"
