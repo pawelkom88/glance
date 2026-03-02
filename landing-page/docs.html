@@ -156,7 +156,7 @@
             max-width: 800px;
             margin: 52px auto 0;
             min-height: calc(100vh - 52px);
-            padding: 80px 24px 120px;
+            padding: 80px 24px 20px;
         }
 
 
@@ -195,7 +195,7 @@
         h2 {
             font-family: 'Commissioner', sans-serif;
             font-size: var(--fs-h2);
-            margin-bottom: 24px;
+            margin-bottom: 14px;
             letter-spacing: -0.03em;
             font-weight: 700;
         }
@@ -204,7 +204,6 @@
             font-family: 'Commissioner', sans-serif;
             font-size: 20px;
             margin-top: 40px;
-            margin-bottom: 16px;
             font-weight: 600;
             letter-spacing: -0.01em;
         }
@@ -317,7 +316,6 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-top: 48px;
         }
 
         .install-steps {
@@ -378,14 +376,12 @@
         }
 
         .shortcut-label {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.9);
         }
 
         .shortcut-desc {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
         }
 
         .key-combo {
@@ -411,7 +407,6 @@
 
         /* ─── FOOTER ─── */
         footer {
-            margin-top: 120px;
             padding: 60px 0;
             border-top: 1px solid var(--border);
             text-align: center;
@@ -450,7 +445,7 @@
         /* ─── RESPONSIVE ─── */
         @media (max-width: 1024px) {
             main {
-                padding: 60px 40px 100px;
+                padding: 60px 40px 0;
             }
         }
 
@@ -499,7 +494,7 @@
         <main>
             <header>
                 <h1>User Guide & Documentation</h1>
-                <p>Learn how to present with confidence. From installation to advanced section-jump workflows.</p>
+                <p>Learn how to present with confidence. From installation to section-jump workflows.</p>
             </header>
 
             <section id="introduction">
@@ -508,16 +503,11 @@
                     professionals who need to maintain perfect eye contact during high-stakes Zoom, Teams, or Google
                     Meet calls.</p>
 
-                <div class="image-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    <span>Main Application Interface</span>
-                    <p>Suggested Image: A high-resolution screen capture of the Glance overlay on top of a Zoom meeting
-                        window.</p>
-                </div>
+                <img style="margin-bottom: 30px;box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);border: 1px solid var(--border);border-radius: 15px"
+                    width="100%" src="docs-zoom-call.webp" alt="Glance in a Zoom call" />
+
+                <img style="box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);border: 1px solid var(--border);border-radius: 15px"
+                    width="100%" src="docs-prompter.webp" alt="Prompter with controls" />
 
                 <div class="hint">
                     <strong>Privacy First</strong>
@@ -538,11 +528,10 @@
                             <p>3. Open the app, then go to <strong>System Settings</strong> → <strong>Privacy &
                                     Security</strong> and confirm under Security.</p>
                         </div>
-                        <div class="image-placeholder" style="aspect-ratio: 4/3;">
-                            <span>macOS Drag & Drop</span>
-                            <p>Suggested Image: The standard macOS DMG installation window with the app icon and
-                                applications folder arrow.</p>
-                        </div>
+
+                        <img style="box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);border: 1px solid var(--border);border-radius: 15px"
+                            width="100%" src="docs-installation-mac-os.webp" alt="macOS Drag & Drop to install">
+
                     </div>
                     <div class="install-col">
                         <h3>Windows</h3>
@@ -568,17 +557,16 @@
                 <ol>
                     <li><strong>Prepare your script:</strong> Paste your text directly or drop a Markdown file into the
                         editor.</li>
-                    <li><strong>Adjust the window:</strong> Position the overlay near your camera to maintain eye
-                        contact.</li>
-                    <li><strong>Start the prompt:</strong> Enter "Prompter Mode" to begin the smooth, transparent
-                        scroll.</li>
+                    <li><strong>Automatic Positioning:</strong> The prompter launches at the top center under your
+                        camera. You can adjust the height or collapse controls to fit your setup.</li>
+                    <li><strong>Control your flow:</strong> Adjust speed and font size on the fly, or hide the
+                        prompter instantly using keyboard shortcuts.</li>
                 </ol>
 
-                <div class="image-placeholder">
-                    <span>First Script Setup</span>
-                    <p>Suggested Image: A close-up of the editor window with a sample script loaded and the 'Prompter'
-                        button highlighted.</p>
-                </div>
+
+                <video controls>
+                    <source src="Session-editor.webp" type="video/mp4">
+                </video>
             </section>
 
             <section id="scripts">
@@ -590,25 +578,12 @@
                     <li><strong>Markdown Import:</strong> Load <code>.md</code> files to keep your styling and headings
                         intact.</li>
                 </ul>
-            </section>
 
-            <section id="prompter-editor">
-                <h2>Prompter vs. Editor</h2>
-                <p>Glance toggles between two specialized views:</p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div
-                        style="background: #fbfbfb; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
-                        <strong>Editor Mode</strong>
-                        <p style="font-size: 13px; margin-top: 8px;">A clean, distraction-free environment for writing
-                            and formatting your script.</p>
-                    </div>
-                    <div
-                        style="background: #fbfbfb; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
-                        <strong>Prompter Mode</strong>
-                        <p style="font-size: 13px; margin-top: 8px;">The transparent overlay that sits on top of your
-                            windows while the text scrolls.</p>
-                    </div>
-                </div>
+
+                <video controls>
+                    <source src="Session-editor.webp" type="video/mp4">
+                </video>
+
             </section>
 
             <section id="shortcuts" class="shortcut-section">
@@ -664,17 +639,16 @@
 
             <section id="markdown-jumps">
                 <h2>Power Tip: Section Jumps</h2>
-                <p>In high-stakes calls, conversations are rarely linear. If you use Markdown headings (<code>#</code>,
+                <p>In high-stakes calls, conversations are rarely linear. If you use Markdown headings
+                    <br />(<code>#</code>,
                     <code>##</code>), Glance automatically creates valid jump points.
                 </p>
                 <p>Press <strong>Ctrl + [Number]</strong> to jump instantly to that section. Perfect for jumping back to
                     a specific talking point during a Q&A session.</p>
 
-                <div class="image-placeholder">
-                    <span>Section Navigation UI</span>
-                    <p>Suggested Image: A screenshot showing the section jump indicator or the headings map within the
-                        prompter mode.</p>
-                </div>
+                <video controls>
+                    <source src="Session-editor.webp" type="video/mp4">
+                </video>
             </section>
 
             <section id="local-first">
