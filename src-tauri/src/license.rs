@@ -284,7 +284,8 @@ mod platform {
     use sha2::{Digest, Sha256};
     use std::iter;
     use std::os::windows::ffi::OsStrExt;
-    use tauri_plugin_shell::ShellExt;
+    use tauri_plugin_opener::OpenerExt;
+
     use windows::Win32::System::Registry::{
         RegCloseKey, RegCreateKeyExW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW, HKEY,
         HKEY_CURRENT_USER, KEY_READ, KEY_SET_VALUE, REG_BINARY, REG_OPTION_NON_VOLATILE,
@@ -336,7 +337,8 @@ mod platform {
         // Open the Paddle checkout URL. 
         // In a real app, this might come from config or env var.
         let checkout_url = "https://buy.paddle.com/product/12345";
-        tauri_plugin_opener::OpenerExt::open_external(app, checkout_url, None).map_err(|error| error.to_string())?;
+        app.opener().open_external(checkout_url, None).map_err(|e| e.to_string())?;
+
 
         
         // Return false to indicate that the purchase flow is manual (via browser).

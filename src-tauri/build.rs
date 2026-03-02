@@ -1,6 +1,5 @@
-use std::env;
-use std::path::PathBuf;
-use std::process::Command;
+#[cfg(target_os = "macos")]
+use std::{env, path::PathBuf, process::Command};
 
 fn main() {
     #[cfg(target_os = "macos")]
@@ -74,13 +73,19 @@ fn compile_macos_license_bridge() {
     println!("cargo:rustc-link-search=native={}/usr/lib/swift", sdk_path);
     
     // Also search in the toolchain's swift directory where static compatibility libs live
-    let toolchain_path = Command::new("xcode-select")
-        .arg("-p")
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_else(|_| String::from("/Library/Developer/CommandLineTools"));
-    
-    println!("cargo:rustc-link-search=native={}/usr/lib/swift/macosx", toolchain_path);
+    if let Ok(output) = Command::new("xcode-select").arg("-p").output() {
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        println!("cargo:rustc-link-search=native={}/usr/lib/swift/macosx", path);
+        println!("cargo:rustc-link-search=native={}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", path);
+    }
+
+    if let Ok(output) = Command::new("xcrun").arg("--find").arg("swiftc").output() {
+        let swiftc_path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if let Some(toolchain_usr) = PathBuf::from(swiftc_path).parent().and_then(|p| p.parent()) {
+            println!("cargo:rustc-link-search=native={}/lib/swift/macosx", toolchain_usr.display());
+        }
+    }
+
 
     // Explicitly link Swift runtime and compatibility libraries
     println!("cargo:rustc-link-lib=swiftCore");
