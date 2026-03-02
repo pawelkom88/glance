@@ -49,7 +49,7 @@ fn compile_macos_license_bridge() {
         .arg("-emit-library")
         .arg("-static")
         .arg("-sdk")
-        .arg(sdk_path)
+        .arg(&sdk_path)
         .arg("-module-cache-path")
         .arg(module_cache)
         .arg("-target")
@@ -69,4 +69,25 @@ fn compile_macos_license_bridge() {
     println!("cargo:rustc-link-lib=framework=StoreKit");
     println!("cargo:rustc-link-lib=framework=Security");
     println!("cargo:rustc-link-lib=framework=Foundation");
+    // Add Swift library search paths to avoid linker errors like missing swiftCompatibility56
+    println!("cargo:rustc-link-search=native=/usr/lib/swift");
+    println!("cargo:rustc-link-search=native={}/usr/lib/swift", sdk_path);
+    
+    // Also search in the toolchain's swift directory where static compatibility libs live
+    let toolchain_path = Command::new("xcode-select")
+        .arg("-p")
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_else(|_| String::from("/Library/Developer/CommandLineTools"));
+    
+    println!("cargo:rustc-link-search=native={}/usr/lib/swift/macosx", toolchain_path);
+
+    // Explicitly link Swift runtime and compatibility libraries
+    println!("cargo:rustc-link-lib=swiftCore");
+    println!("cargo:rustc-link-lib=swiftFoundation");
+    println!("cargo:rustc-link-lib=static=swiftCompatibility56");
+    println!("cargo:rustc-link-lib=static=swiftCompatibilityPacks");
+
+    // Add rpath for Swift libraries
+    println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
 }
