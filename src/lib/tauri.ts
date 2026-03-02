@@ -10,17 +10,19 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { AppLanguage } from '../i18n/types';
 import type { ShortcutBinding } from './shortcuts';
 import type {
+  AppLicenseStatus,
   DetectedMonitor,
   MonitorChangedPayload,
   MonitorInfo,
   OverlayBounds,
-  ThemeMode,
   SessionData,
   SessionFolder,
   SessionMeta,
   SessionSummary,
   ShortcutEventPayload,
-  ShowOverlayResult
+  ShowOverlayResult,
+  ThemeMode,
+  UnlockProductInfo
 } from '../types';
 
 interface OverlayLayoutEntry extends OverlayBounds {
@@ -342,6 +344,44 @@ export async function listSessions(): Promise<readonly SessionSummary[]> {
   }
 
   return invoke<SessionSummary[]>('list_sessions');
+}
+
+export async function checkLicenseStatus(): Promise<AppLicenseStatus> {
+  if (!inTauri()) {
+    return {
+      state: 'purchased',
+      daysRemaining: null
+    };
+  }
+
+  return invoke<AppLicenseStatus>('check_status');
+}
+
+export async function purchaseUnlock(): Promise<boolean> {
+  if (!inTauri()) {
+    return true;
+  }
+
+  return invoke<boolean>('purchase_unlock');
+}
+
+export async function restorePurchases(key?: string): Promise<boolean> {
+  if (!inTauri()) {
+    return true;
+  }
+
+  return invoke<boolean>('restore_purchases', { key: key ?? null });
+}
+
+export async function getUnlockProduct(): Promise<UnlockProductInfo> {
+  if (!inTauri()) {
+    return {
+      productId: 'dev-unlock',
+      priceDisplay: null
+    };
+  }
+
+  return invoke<UnlockProductInfo>('get_unlock_product');
 }
 
 export async function listFolders(): Promise<readonly SessionFolder[]> {
