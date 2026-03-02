@@ -6496,3 +6496,233 @@ body.is-session-dragging * {
     transform: translateY(0);
   }
 }
+
+.license-loading-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #f1f4fb 0%, #ffffff 48%, #eef2f9 100%);
+  color: #1f2b44;
+  font-weight: 600;
+}
+
+.license-trial-banner {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 1200;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(18, 24, 38, 0.9);
+  color: #f6f8ff;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 28px rgba(12, 18, 30, 0.3);
+}
+
+.license-paywall {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(0, 122, 255, 0.14), transparent 46%),
+    radial-gradient(circle at 86% 86%, rgba(18, 24, 38, 0.12), transparent 42%),
+    linear-gradient(165deg, #f4f7ff 0%, #ffffff 44%, #eef3fb 100%);
+}
+
+.license-paywall-card {
+  width: min(520px, 100%);
+  border-radius: 24px;
+  padding: clamp(28px, 5vw, 40px);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(18, 24, 38, 0.08);
+  box-shadow: 0 28px 74px rgba(12, 18, 30, 0.18);
+}
+
+.license-paywall-eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #4f5e7e;
+}
+
+.license-paywall-card h1 {
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(32px, 5vw, 42px);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: #141b2d;
+}
+
+.license-paywall-copy {
+  margin: 14px 0 0;
+  color: #2f3d57;
+  line-height: 1.45;
+}
+
+.license-paywall-price {
+  margin: 20px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2f4a;
+  min-height: 28px;
+}
+
+/* 3.1 — Price skeleton loader */
+.license-paywall-price-skeleton {
+  display: inline-block;
+  width: 120px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e5e9f0 25%, #f3f5f9 50%, #e5e9f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+@keyframes skeleton-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.license-paywall-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.license-paywall-primary,
+.license-paywall-secondary {
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.license-paywall-primary {
+  background: #0f62fe;
+  color: #ffffff;
+  min-width: 180px;
+}
+
+.license-paywall-primary:disabled,
+.license-paywall-secondary:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.license-paywall-secondary {
+  background: rgba(15, 98, 254, 0.12);
+  color: #0f62fe;
+}
+
+.license-paywall-error {
+  margin: 16px 0 0;
+  color: #b42318;
+  font-size: 13px;
+}
+
+/* 1.2 — Trial banner with Buy Now CTA */
+.license-trial-banner {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 999px;
+  background: rgba(18, 24, 38, 0.9);
+  color: #f6f8ff;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 28px rgba(12, 18, 30, 0.3);
+}
+
+.license-trial-banner__text {
+  flex-shrink: 0;
+}
+
+.license-trial-banner__cta {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: #0f62fe;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.license-trial-banner__cta:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-0.5px);
+}
+
+.license-trial-banner__cta:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Settings-level license section */
+.settings-license-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-license-buy-btn {
+  white-space: nowrap;
+}
+
+.settings-license-error {
+  padding: 0 16px 12px;
+  font-size: 12px;
+  color: #b42318;
+}
+
+@media (max-width: 640px) {
+  .license-trial-banner {
+    left: 12px;
+    right: 12px;
+    border-radius: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .license-paywall {
+    padding: 18px;
+  }
+
+  .license-paywall-actions {
+    flex-direction: column;
+  }
+
+  .license-paywall-primary,
+  .license-paywall-secondary {
+    width: 100%;
+  }
+
+  .settings-license-actions {
+    align-items: stretch;
+    width: 100%;
+  }
+}

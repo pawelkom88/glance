@@ -27,6 +27,7 @@ import {
   validateShortcutConfig
 } from '../lib/shortcuts';
 import { useAppStore } from '../store/use-app-store';
+import { useAppLicense } from '../hooks/useAppLicense';
 import type { AppLanguage } from '../i18n/types';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 import { ShortcutKeycaps } from './shortcut-keycaps';
@@ -187,6 +188,14 @@ export function SettingsView() {
   const setSpeedStep = useAppStore((state) => state.setSpeedStep);
   const setShortcutWarning = useAppStore((state) => state.setShortcutWarning);
   const { t } = useI18n();
+  const {
+    status: licenseStatus,
+    product: licenseProduct,
+    actionPending: licenseActionPending,
+    error: licenseError,
+    onPurchase: onLicensePurchase,
+    onRestore: onLicenseRestore
+  } = useAppLicense();
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
     () => new Map(shortcutDefinitions.map((definition) => [definition.action, definition])),
@@ -882,6 +891,53 @@ export function SettingsView() {
       </div>
 
       <div className={`tab-content support-settings ${activeTab === 'support' ? 'visible' : ''}`}>
+        {/* 1.2 — Proactive "Buy Now" in Settings, hidden when already purchased */}
+        {licenseStatus && licenseStatus.state !== 'purchased' ? (
+          <section className="settings-group" aria-labelledby="support-license">
+            <h3 id="support-license" className="settings-group-label">License</h3>
+            <div className="settings-card">
+              <div className="setting-row">
+                <div className="setting-copy">
+                  <span className="setting-title">
+                    {licenseStatus.state === 'trial'
+                      ? `Trial active — ${licenseStatus.daysRemaining ?? 0} day${licenseStatus.daysRemaining === 1 ? '' : 's'} remaining`
+                      : 'Trial expired'}
+                  </span>
+                  <span className="setting-subtitle">
+                    Unlock the full app forever with a one-time purchase.
+                  </span>
+                </div>
+                <div className="settings-license-actions">
+                  <button
+                    type="button"
+                    id="settings-buy-now-button"
+                    className="primary-button settings-license-buy-btn"
+                    disabled={licenseActionPending}
+                    onClick={() => { void onLicensePurchase(); }}
+                  >
+                    {licenseActionPending
+                      ? 'Processing…'
+                      : licenseProduct?.priceDisplay
+                        ? `Buy — ${licenseProduct.priceDisplay}`
+                        : 'Buy Now'}
+                  </button>
+                  <button
+                    type="button"
+                    id="settings-restore-button"
+                    className="cancel-button"
+                    disabled={licenseActionPending}
+                    onClick={() => { void onLicenseRestore(); }}
+                  >
+                    Restore Purchase
+                  </button>
+                </div>
+              </div>
+              {licenseError ? (
+                <p className="settings-license-error" role="alert">{licenseError}</p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         <section className="settings-group" aria-labelledby="support-diagnostics">
           <h3 id="support-diagnostics" className="settings-group-label">{t('settingsView.diagnostics.title')}</h3>
           <div className="settings-card">

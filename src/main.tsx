@@ -4,6 +4,7 @@ import '@fontsource-variable/inter';
 import '@fontsource-variable/commissioner';
 import '@fontsource-variable/commissioner/slnt.css';
 import App from './App';
+import { LicenseGate } from './components/license-gate';
 import { SplashScreen } from './components/SplashScreen';
 import { SplashProvider, useSplashContext } from './contexts/SplashContext';
 import './app.css';
@@ -18,14 +19,20 @@ function AppBootstrap() {
   }, []);
 
   if (isOverlayWindow) {
-    return <App />;
+    return (
+      <LicenseGate>
+        <App />
+      </LicenseGate>
+    );
   }
 
   return (
-    <div className="app-bootstrap">
-      <App />
-      {isSplashVisible ? <SplashScreen onReady={hideSplash} isAppReady={isAppReady} /> : null}
-    </div>
+    <LicenseGate>
+      <div className="app-bootstrap">
+        <App />
+        {isSplashVisible ? <SplashScreen onReady={hideSplash} isAppReady={isAppReady} /> : null}
+      </div>
+    </LicenseGate>
   );
 }
 
