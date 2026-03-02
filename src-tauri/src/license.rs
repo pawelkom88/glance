@@ -337,7 +337,7 @@ mod platform {
         // Open the Paddle checkout URL. 
         // In a real app, this might come from config or env var.
         let checkout_url = "https://buy.paddle.com/product/12345";
-        app.opener().open_external(checkout_url, None).map_err(|e| e.to_string())?;
+        app.opener().open_url(checkout_url, None::<&str>).map_err(|e: tauri_plugin_opener::Error| e.to_string())?;
 
 
         

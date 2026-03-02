@@ -1432,6 +1432,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "ed25519-dalek",
+ "hex",
  "serde",
  "serde_json",
  "sha2",
