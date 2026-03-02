@@ -12,9 +12,9 @@
     "test:critical": "vitest run --config vitest.behavior.config.ts src/test/behavior/critical && cargo test --manifest-path src-tauri/Cargo.toml runtime_",
     "i18n:audit": "node scripts/i18n-audit.mjs",
     "i18n:audit:strict": "node scripts/i18n-audit.mjs --strict",
-    "preview": "vite preview",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri-bypass:dev": "GLANCE_LICENSE_DEV_STATE=trial GLANCE_TRIAL_DAYS=1 tauri dev",
+    "tauri-expired:dev": "GLANCE_LICENSE_DEV_STATE=expired tauri dev",
+    "tauri-trial:dev": "GLANCE_LICENSE_DEV_BYPASS=1 tauri dev",
     "tauri:build": "tauri build",
     "build:mac": "tauri build --target aarch64-apple-darwin",
     "build:win": "tauri build --target x86_64-pc-windows-msvc"

@@ -28,8 +28,6 @@ export function LicenseGate({ children }: LicenseGateProps) {
   if (status.state === 'expired') {
     return (
       <Paywall
-        priceDisplay={product?.priceDisplay ?? null}
-        priceLoading={product === null}
         pending={actionPending}
         error={error}
         onPurchase={() => {
@@ -46,11 +44,12 @@ export function LicenseGate({ children }: LicenseGateProps) {
     const daysText = status.daysRemaining === 1
       ? '1 day left in your trial'
       : `${status.daysRemaining ?? 0} days left in your trial`;
+    const showBanner = (status.daysRemaining ?? 0) <= 3;
 
     return (
       <>
-        {/* 1.2 — Proactive "Buy Now" trial banner */}
-        <div className="license-trial-banner" role="status" aria-live="polite">
+        {/* 1.2 — Proactive "Buy Now" trial banner — only shown in last 3 days */}
+        {showBanner && <div className="license-trial-banner" role="status" aria-live="polite">
           <span className="license-trial-banner__text">{daysText}</span>
           <button
             type="button"
@@ -61,7 +60,7 @@ export function LicenseGate({ children }: LicenseGateProps) {
           >
             {actionPending ? 'Processing…' : (product?.priceDisplay ? `Buy — ${product.priceDisplay}` : 'Buy Now')}
           </button>
-        </div>
+        </div>}
         {children}
       </>
     );

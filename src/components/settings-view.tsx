@@ -979,7 +979,7 @@ export function SettingsView() {
           </div>
         </section>
 
-        <section className="settings-group" aria-labelledby="support-feedback">
+        {/* <section className="settings-group" aria-labelledby="support-feedback">
           <h3 id="support-feedback" className="settings-group-label">{t('settingsView.feedback.title')}</h3>
           <div className="settings-card">
             <div className="setting-row">
@@ -998,7 +998,7 @@ export function SettingsView() {
               </button>
             </div>
           </div>
-        </section>
+        </section> */}
       </div>
     </section>
   );

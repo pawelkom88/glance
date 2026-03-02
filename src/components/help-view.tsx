@@ -221,7 +221,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
       </div>
 
       {/* Footer */}
-      <div className="help-footer">
+      {/* <div className="help-footer">
         <div className="help-footer-icon" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none">
             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="12" d="M95.958 22C121.031 42.867 149.785 42 158 42c-1.797 118.676-15 95-62.042 128C49 137 35.798 160.676 34 42c8.13 0 36.883.867 61.958-20Z" />
@@ -267,7 +267,7 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
           </svg>
           {t('help.buyMeACoffee')}
         </a>
-      </div>
+      </div> */}
     </section>
   );
 }

@@ -1,7 +1,4 @@
 interface PaywallProps {
-  readonly priceDisplay: string | null;
-  /** True while the store price fetch is still in-flight. */
-  readonly priceLoading: boolean;
   readonly pending: boolean;
   readonly error: string | null;
   readonly onPurchase: () => void;
@@ -9,28 +6,11 @@ interface PaywallProps {
 }
 
 export function Paywall({
-  priceDisplay,
-  priceLoading,
   pending,
   error,
   onPurchase,
   onRestore
 }: PaywallProps) {
-  // 3.1 — Determine price display label with skeleton / unavailable states
-  const priceLabel = (() => {
-    if (priceLoading) {
-      // Skeleton shown while network fetch is in progress
-      return null;
-    }
-    if (priceDisplay) {
-      return `${priceDisplay} one-time`;
-    }
-    // fetch completed but returned nothing — still allow purchase (OS sheet shows real price)
-    return 'Price unavailable — tap to continue';
-  })();
-
-  // Unlock button is disabled while price is still loading or an action is pending
-  const unlockDisabled = pending || priceLoading;
 
   return (
     <section className="license-paywall" aria-labelledby="license-paywall-title">
@@ -41,20 +21,13 @@ export function Paywall({
           Unlock the full app forever with a one-time purchase.
         </p>
 
-        {/* 3.1 — Price skeleton loader */}
-        <p className="license-paywall-price" aria-live="polite" aria-busy={priceLoading}>
-          {priceLoading
-            ? <span className="license-paywall-price-skeleton" aria-label="Loading price…" />
-            : priceLabel}
-        </p>
-
         <div className="license-paywall-actions">
           <button
             type="button"
             id="paywall-unlock-button"
             className="license-paywall-primary"
             onClick={onPurchase}
-            disabled={unlockDisabled}
+            disabled={pending}
           >
             {pending ? 'Processing…' : 'Unlock Forever'}
           </button>

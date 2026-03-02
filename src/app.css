@@ -6508,8 +6508,9 @@ body.is-session-dragging * {
 
 .license-trial-banner {
   position: fixed;
-  top: 10px;
-  right: 12px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1200;
   padding: 8px 12px;
   border-radius: 999px;
@@ -6586,8 +6587,13 @@ body.is-session-dragging * {
 }
 
 @keyframes skeleton-sweep {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .license-paywall-actions {
@@ -6634,8 +6640,9 @@ body.is-session-dragging * {
 /* 1.2 — Trial banner with Buy Now CTA */
 .license-trial-banner {
   position: fixed;
-  top: 10px;
-  right: 12px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1200;
   display: flex;
   align-items: center;
@@ -6648,6 +6655,7 @@ body.is-session-dragging * {
   letter-spacing: 0.01em;
   backdrop-filter: blur(8px);
   box-shadow: 0 12px 28px rgba(12, 18, 30, 0.3);
+  white-space: nowrap;
 }
 
 .license-trial-banner__text {
@@ -6702,6 +6710,7 @@ body.is-session-dragging * {
   .license-trial-banner {
     left: 12px;
     right: 12px;
+    transform: none;
     border-radius: 14px;
     flex-wrap: wrap;
     justify-content: center;
