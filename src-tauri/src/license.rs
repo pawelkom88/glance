@@ -337,65 +337,26 @@ mod platform {
         purchased: bool,
     }
 
-    pub fn check_status(config: &LicenseConfig) -> Result<LicenseStatus, String> {
-        let now = chrono::Utc::now().timestamp();
-        let mut record = load_or_initialize_record(config, now)?;
-
-        let is_clock_tampered = now < (record.last_seen_unix - CLOCK_SKEW_TOLERANCE_SECS);
-
-        if now > record.last_seen_unix {
-            record.last_seen_unix = now;
-            save_record(config, &record)?;
-        }
-
-        if is_clock_tampered {
-            return Ok(LicenseStatus {
-                state: LicenseState::Expired,
-                days_remaining: None,
-            });
-        }
-
-        Ok(derive_status(config.trial_days, &record))
+    pub fn check_status(_config: &LicenseConfig) -> Result<LicenseStatus, String> {
+        // MICROSOFT STORE: Always return Purchased since the app is an upfront paid purchase
+        Ok(LicenseStatus {
+            state: LicenseState::Purchased,
+            days_remaining: None,
+        })
     }
 
-    pub fn purchase_unlock(app: &tauri::AppHandle, _config: &LicenseConfig) -> Result<bool, String> {
-        // Open the Paddle checkout URL. 
-        // In a real app, this might come from config or env var.
-        let checkout_url = "https://buy.paddle.com/product/12345";
-        app.opener().open_url(checkout_url, None::<&str>).map_err(|e: tauri_plugin_opener::Error| e.to_string())?;
-
-
-        
-        // Return false to indicate that the purchase flow is manual (via browser).
-        Ok(false)
+    pub fn purchase_unlock(_app: &tauri::AppHandle, _config: &LicenseConfig) -> Result<bool, String> {
+        // App is already paid upfront
+        Ok(true)
     }
 
-    pub fn restore_purchases(config: &LicenseConfig, key: Option<String>) -> Result<bool, String> {
-        if let Some(license_key) = key {
-            // Validate the key offline!
-            crate::offline_license::verify_license_key(&license_key)?;
-            
-            // If valid, save the purchased state.
-            let now = chrono::Utc::now().timestamp();
-            let mut record = load_or_initialize_record(config, now)?;
-            record.purchased = true;
-            if now > record.last_seen_unix {
-                record.last_seen_unix = now;
-            }
-            save_record(config, &record)?;
-            return Ok(true);
-        }
-
-        // Check local record.
-        match load_record(config)? {
-            Some(record) => Ok(record.purchased),
-            None => Ok(false),
-        }
+    pub fn restore_purchases(_config: &LicenseConfig, _key: Option<String>) -> Result<bool, String> {
+        // App is already paid upfront
+        Ok(true)
     }
 
     pub fn get_price_display(_config: &LicenseConfig) -> Result<Option<String>, String> {
-        // Since we use an external checkout, we return a static price or placeholder.
-        Ok(Some(String::from("$7.99")))
+        Ok(None)
     }
 
     fn derive_status(trial_days: i64, record: &RuntimeRecord) -> LicenseStatus {
