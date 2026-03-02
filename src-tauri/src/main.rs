@@ -1,6 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod license;
+#[cfg(target_os = "windows")]
+mod offline_license;
 mod sessions;
 
 use std::collections::HashMap;
@@ -186,10 +189,8 @@ fn main() {
                 if should_keep_only_global_hide_shortcut(window_label, *focused) {
                     // When overlay is unfocused, keep only the global hide shortcut registered.
                     if let Some(state) = window.try_state::<AppState>() {
-                        let _ = commands::apply_hide_overlay_binding_only(
-                            window.app_handle(),
-                            &state,
-                        );
+                        let _ =
+                            commands::apply_hide_overlay_binding_only(window.app_handle(), &state);
                     }
                 }
             }
@@ -268,7 +269,11 @@ fn main() {
             commands::snap_overlay_to_center,
             commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
-            commands::export_diagnostics
+            commands::export_diagnostics,
+            license::check_status,
+            license::purchase_unlock,
+            license::restore_purchases,
+            license::get_unlock_product
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Glance application");
