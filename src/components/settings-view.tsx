@@ -1,6 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
-import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { save } from '@tauri-apps/plugin-dialog';
 import { languageOptions, toLanguageOptionLabel } from '../i18n/languages';
 import { translateForLanguage, useI18n } from '../i18n/use-i18n';

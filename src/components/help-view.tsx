@@ -1,4 +1,3 @@
-import { open as openUrl } from '@tauri-apps/plugin-shell';
 import { open as openFileDialog, ask } from '@tauri-apps/plugin-dialog';
 import { loadShortcutConfig } from '../lib/shortcuts';
 import { openSessionsFolder, readTextFile } from '../lib/tauri';
@@ -39,10 +38,6 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
   const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const setMarkdown = useAppStore((state) => state.setMarkdown);
 
-  const handleDonationClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    await openUrl('https://buymeacoffee.com/ordo');
-  };
 
   const handleRestore = async () => {
     try {
