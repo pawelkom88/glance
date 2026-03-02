@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Documentation | Glance — Teleprompter Overlay</title>
+    <meta name="description"
+        content="Learn how to use Glance. Installation, keyboard shortcuts, markdown scripts, and power tips for a flawless presentation.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,400..700;1,400..700&display=swap"
+        rel="stylesheet">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <style>
+        :root {
+            --blue: #007AFF;
+            --blue-soft: #E8F2FF;
+            --text-1: #1d1d1f;
+            --text-2: #424245;
+            --bg: #ffffff;
+            --bg-2: #f5f5f7;
+            --border: rgba(0, 0, 0, 0.05);
+            --radius-xl: 32px;
+            --radius-lg: 24px;
+            --radius-md: 12px;
+            --easing: cubic-bezier(0.16, 1, 0.3, 1);
+            --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --shadow-premium: 0 20px 60px rgba(0, 0, 0, 0.08);
+            --fs-display: clamp(2.5rem, 5vw, 3.5rem);
+            --fs-h2: clamp(1.75rem, 3vw, 2.25rem);
+            --space-section: clamp(4rem, 8vw, 6rem);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-1);
+            line-height: 1.5;
+            letter-spacing: -0.005em;
+        }
+
+        /* ─── NAVIGATION ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            border-radius: 6px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-1);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-1);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 52px;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                flex-direction: column;
+                padding: 20px 40px;
+                gap: 20px;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .nav-inner {
+                padding: 0 20px;
+            }
+        }
+
+        /* ─── LAYOUT ─── */
+        .page-container {
+            max-width: 800px;
+            margin: 52px auto 0;
+            min-height: calc(100vh - 52px);
+            padding: 80px 24px 120px;
+        }
+
+
+        /* ─── CONTENT ─── */
+        main {
+            max-width: 100%;
+        }
+
+        header {
+            margin-bottom: 80px;
+        }
+
+        header h1 {
+            font-family: 'Commissioner', sans-serif !important;
+            font-size: var(--fs-display);
+            line-height: 1.12;
+            margin-bottom: 16px;
+            font-weight: 700 !important;
+            font-style: normal !important;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            font-size: 20px;
+            color: var(--text-2);
+            font-weight: 400;
+            line-height: 1.5;
+            max-width: 600px;
+        }
+
+        section {
+            margin-bottom: var(--space-section);
+            scroll-margin-top: 100px;
+        }
+
+        h2 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: var(--fs-h2);
+            margin-bottom: 24px;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+        }
+
+        h3 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 20px;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: #424245;
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        strong {
+            color: var(--text-1);
+            font-weight: 600;
+        }
+
+        ul,
+        ol {
+            margin-bottom: 24px;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            color: #424245;
+        }
+
+        code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: var(--bg-2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: var(--blue);
+        }
+
+        /* ─── CARDS/HINTS ─── */
+        .hint {
+            background: #f8f8f8;
+            padding: 28px;
+            border-radius: var(--radius-lg);
+            margin: 32px 0;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .hint::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--blue);
+            border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        }
+
+        .hint strong {
+            color: var(--blue);
+            display: block;
+            margin-bottom: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 700;
+        }
+
+        /* ─── IMAGE PLACEHOLDERS ─── */
+        .image-placeholder {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 100%);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            margin-top: 20px;
+            /* Adjusted for alignment */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            color: var(--text-2);
+        }
+
+        .image-placeholder svg {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .image-placeholder span {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-1);
+        }
+
+        .image-placeholder p {
+            font-size: 12px;
+            margin-bottom: 0;
+            max-width: 300px;
+            line-height: 1.4;
+        }
+
+        /* ─── INSTALLATION GRID ─── */
+        .installation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 48px;
+        }
+
+        .install-steps {
+            flex: 1;
+            /* Pushes the image placeholder down equally in both columns */
+        }
+
+        .install-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .install-col .image-placeholder {
+            margin-top: auto;
+        }
+
+        /* ─── PREMIUM SHORTCUTS ─── */
+        .shortcut-section {
+            background: #0a0a0a;
+            padding: 60px;
+            border-radius: var(--radius-xl);
+            color: #fff;
+            margin: 48px 0;
+        }
+
+        .shortcut-section h2 {
+            color: #fff;
+            margin-bottom: 40px;
+        }
+
+        .shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .shortcut-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 24px;
+            border-radius: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s var(--easing);
+        }
+
+        .shortcut-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .shortcut-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .shortcut-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .shortcut-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .key-combo {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        kbd {
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom-width: 3px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        /* ─── FOOTER ─── */
+        footer {
+            margin-top: 120px;
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: var(--text-2);
+            margin-bottom: 16px;
+        }
+
+        footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        footer a {
+            color: var(--text-2);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: var(--text-1);
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 1024px) {
+            main {
+                padding: 60px 40px 100px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .installation-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .install-steps {
+                min-height: auto;
+            }
+
+            .shortcut-section {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-inner">
+            <a href="index.html" class="logo">
+                <img src="icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links">
+                <a href="index.html">Product</a>
+                <a href="docs.html" class="active">Docs</a>
+                <a href="privacy.html">Privacy</a>
+            </div>
+
+        </div>
+    </nav>
+
+    <div class="page-container">
+
+        <main>
+            <header>
+                <h1>User Guide & Documentation</h1>
+                <p>Learn how to present with confidence. From installation to advanced section-jump workflows.</p>
+            </header>
+
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>Glance is an elegant, transparent teleprompter overlay for macOS and Windows. Designed for
+                    professionals who need to maintain perfect eye contact during high-stakes Zoom, Teams, or Google
+                    Meet calls.</p>
+
+                <div class="image-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>Main Application Interface</span>
+                    <p>Suggested Image: A high-resolution screen capture of the Glance overlay on top of a Zoom meeting
+                        window.</p>
+                </div>
+
+                <div class="hint">
+                    <strong>Privacy First</strong>
+                    Glance operates entirely locally. Your scripts never leave your device, and we never track your
+                    usage. No account, no cloud, no telemetry.
+                </div>
+            </section>
+
+            <section id="installation">
+                <h2>Installation</h2>
+
+                <div class="installation-grid">
+                    <div class="install-col">
+                        <h3>macOS</h3>
+                        <div class="install-steps">
+                            <p>1. Download the <code>.dmg</code> installer.</p>
+                            <p>2. Drag <strong>Glance</strong> to your Applications folder.</p>
+                            <p>3. Open the app, then go to <strong>System Settings</strong> → <strong>Privacy &
+                                    Security</strong> and confirm under Security.</p>
+                        </div>
+                        <div class="image-placeholder" style="aspect-ratio: 4/3;">
+                            <span>macOS Drag & Drop</span>
+                            <p>Suggested Image: The standard macOS DMG installation window with the app icon and
+                                applications folder arrow.</p>
+                        </div>
+                    </div>
+                    <div class="install-col">
+                        <h3>Windows</h3>
+                        <div class="install-steps">
+                            <p>Glance is available directly in the <strong>Microsoft Store</strong> for seamless setup.
+                            </p>
+                            <p>1. Search for "Glance Teleprompter" in the Store.</p>
+                            <p>2. Click <strong>Install</strong>.</p>
+                            <p>3. Launch from your Start Menu.</p>
+                        </div>
+                        <div class="image-placeholder" style="aspect-ratio: 4/3;">
+                            <span>Windows Store Page</span>
+                            <p>Suggested Image: A screenshot of the Glance listing in the Microsoft Store app.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="onboarding">
+                <h2>The Onboarding Flow</h2>
+                <p>Glance is designed to be learned in seconds. When you first launch the app, follow these three steps:
+                </p>
+                <ol>
+                    <li><strong>Prepare your script:</strong> Paste your text directly or drop a Markdown file into the
+                        editor.</li>
+                    <li><strong>Adjust the window:</strong> Position the overlay near your camera to maintain eye
+                        contact.</li>
+                    <li><strong>Start the prompt:</strong> Enter "Prompter Mode" to begin the smooth, transparent
+                        scroll.</li>
+                </ol>
+
+                <div class="image-placeholder">
+                    <span>First Script Setup</span>
+                    <p>Suggested Image: A close-up of the editor window with a sample script loaded and the 'Prompter'
+                        button highlighted.</p>
+                </div>
+            </section>
+
+            <section id="scripts">
+                <h2>Managing Scripts</h2>
+                <p>You can work with scripts in three ways:</p>
+                <ul>
+                    <li><strong>Direct Entry:</strong> Type and edit directly within Glance.</li>
+                    <li><strong>Paste:</strong> Bring in text from any document or website.</li>
+                    <li><strong>Markdown Import:</strong> Load <code>.md</code> files to keep your styling and headings
+                        intact.</li>
+                </ul>
+            </section>
+
+            <section id="prompter-editor">
+                <h2>Prompter vs. Editor</h2>
+                <p>Glance toggles between two specialized views:</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div
+                        style="background: #fbfbfb; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                        <strong>Editor Mode</strong>
+                        <p style="font-size: 13px; margin-top: 8px;">A clean, distraction-free environment for writing
+                            and formatting your script.</p>
+                    </div>
+                    <div
+                        style="background: #fbfbfb; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                        <strong>Prompter Mode</strong>
+                        <p style="font-size: 13px; margin-top: 8px;">The transparent overlay that sits on top of your
+                            windows while the text scrolls.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="shortcuts" class="shortcut-section">
+                <h2>Keyboard Shortcuts</h2>
+                <p style="color: rgba(255,255,255,0.6); margin-bottom: 40px;">Control your presentation flow without
+                    ever touching the mouse.</p>
+
+                <div class="shortcut-grid">
+                    <div class="shortcut-card">
+                        <div class="shortcut-info">
+                            <span class="shortcut-label">Toggle Prompter</span>
+                            <span class="shortcut-desc">Switch between Editor and Prompt</span>
+                        </div>
+                        <div class="key-combo"><kbd>⌘</kbd> / <kbd>Ctrl</kbd> <kbd>P</kbd></div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="shortcut-info">
+                            <span class="shortcut-label">Increase Speed</span>
+                            <span class="shortcut-desc">Speed up the text scroll</span>
+                        </div>
+                        <div class="key-combo"><kbd>⌘</kbd> / <kbd>Ctrl</kbd> <kbd>+</kbd></div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="shortcut-info">
+                            <span class="shortcut-label">Decrease Speed</span>
+                            <span class="shortcut-desc">Slow down the text scroll</span>
+                        </div>
+                        <div class="key-combo"><kbd>⌘</kbd> / <kbd>Ctrl</kbd> <kbd>-</kbd></div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="shortcut-info">
+                            <span class="shortcut-label">Font Size Up</span>
+                            <span class="shortcut-desc">Make the text larger</span>
+                        </div>
+                        <div class="key-combo"><kbd>⌘</kbd> / <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>&gt;</kbd></div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="shortcut-info">
+                            <span class="shortcut-label">Font Size Down</span>
+                            <span class="shortcut-desc">Make the text smaller</span>
+                        </div>
+                        <div class="key-combo"><kbd>⌘</kbd> / <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>&lt;</kbd></div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="shortcut-info">
+                            <span class="shortcut-label">Toggle Opacity</span>
+                            <span class="shortcut-desc">Adjust window transparency</span>
+                        </div>
+                        <div class="key-combo"><kbd>⌘</kbd> / <kbd>Ctrl</kbd> <kbd>O</kbd></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="markdown-jumps">
+                <h2>Power Tip: Section Jumps</h2>
+                <p>In high-stakes calls, conversations are rarely linear. If you use Markdown headings (<code>#</code>,
+                    <code>##</code>), Glance automatically creates valid jump points.
+                </p>
+                <p>Press <strong>Ctrl + [Number]</strong> to jump instantly to that section. Perfect for jumping back to
+                    a specific talking point during a Q&A session.</p>
+
+                <div class="image-placeholder">
+                    <span>Section Navigation UI</span>
+                    <p>Suggested Image: A screenshot showing the section jump indicator or the headings map within the
+                        prompter mode.</p>
+                </div>
+            </section>
+
+            <section id="local-first">
+                <h2>Reliability & Security</h2>
+                <p>Because Glance is a local desktop application, it works perfectly even if your internet connection
+                    drops. More importantly, your business-critical scripts, sales demos, and confidential notes never
+                    touch a server.</p>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Glance. Operated by Pawel Komorkiewicz, United Kingdom. Not affiliated with Zoom, Microsoft,
+                or Google.</p>
+            <div class="footer-links">
+                <a href="index.html">Product</a>
+                <a href="docs.html">Docs</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms of Service</a>
+                <a href="refund.html">Refund Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.querySelector('.mobile-menu-toggle').addEventListener('click', () => {
+            document.querySelector('.nav-links').classList.toggle('active');
+        });
+    </script>
+</body>
+
+</html>

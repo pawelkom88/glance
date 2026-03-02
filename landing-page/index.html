@@ -478,7 +478,7 @@
     }
 
     .logo img {
-      width: 48px;
+      width: 32px;
       border-radius: 6px;
     }
 
@@ -488,7 +488,7 @@
     }
 
     .nav-links a {
-      color: var(--text-2);
+      color: #424245;
       font-size: var(--fs-small);
       font-weight: 500;
       text-decoration: none;
@@ -497,6 +497,43 @@
 
     .nav-links a:hover {
       color: var(--text-1);
+    }
+
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: var(--text-1);
+    }
+
+    @media (max-width: 768px) {
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 52px;
+        left: 0;
+        width: 100%;
+        background: var(--bg);
+        flex-direction: column;
+        padding: 20px 40px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .nav-links.active {
+        display: flex;
+      }
+
+      .nav-inner {
+        padding: 0 20px;
+      }
     }
 
     .divider {
@@ -1868,7 +1905,7 @@
     .cta-notes {
       width: 100%;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
       max-width: 640px;
       margin: 10px auto 0;
@@ -2477,15 +2514,24 @@
 
   <nav>
     <div class="nav-inner">
-      <a href="#" class="logo">
-        <img width="48" height="48" src="icon.png" alt="Glance logo">
+      <a href="index.html" class="logo">
+        <img width="32" height="32" src="icon.png" alt="Glance">
         Glance
       </a>
+      <button class="mobile-menu-toggle" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <div class="nav-links">
-        <a href="#features">Features</a>
+        <a href="index.html">Product</a>
+        <a href="docs.html">Docs</a>
         <a href="privacy.html">Privacy</a>
-        <a href="https://github.com/pawelkom88/glance" target="_blank">GitHub</a>
       </div>
+
     </div>
   </nav>
 
@@ -2522,105 +2568,110 @@
           </a>
           <div class="cta-caption dl-mac-caption">Checking version...</div>
         </div>
+
         <div class="cta-wrapper">
-          <a href="https://github.com/pawelkom88/glance/releases/download/v0.2.0/Glance_0.2.0_x64-setup.exe"
+          <a href="https://apps.microsoft.com/store/detail/glance/REPLACE_WITH_YOUR_ID" target="_blank"
             class="btn btn-secondary dl-win-btn">
             <span class="btn-text">Download for Windows</span>
             <span class="btn-subtext dl-win-subtext">v0.2.0 · 64-bit</span>
           </a>
-          <div class="cta-caption dl-win-caption">No cloud access.</div>
+          <p class="cta-caption dl-win-caption">No cloud access.
         </div>
+
       </div>
-      <p
-        style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;">
-        Private & local • Works with Zoom/Teams/Meet • Adjustable speed, size & transparency
-      </p>
+    </div>
 
-      <div class="install-security-block">
-        <div class="install-security-wrapper">
-          <div class="install-security-notice">
-            <div class="install-security-notice-content">
-              <div class="install-security-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-              </div>
+    </div>
+    <p
+      style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;">
+      Private & local • Works with Zoom/Teams/Meet • Adjustable speed, size & transparency
+    </p>
 
-              <div class="install-security-content">
-                <h3 class="install-security-title">Not distributed via the App Store</h3>
-                <p class="install-security-description">
-                  Glance is distributed directly from this website. Your OS may ask for a one-time security
-                  confirmation — this is expected and safe. You can revert this setting at any time.
-                </p>
-                <button type="button" class="install-security-link" data-open-setup-guide aria-haspopup="dialog"
-                  aria-controls="setup-guide-dialog">
-                  Open setup guide
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="install-security-platform-strip">
-            <div class="install-security-platform-item">
-              <div class="install-security-platform-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="#1D1D1F">
-                  <path
-                    d="M16.37 12.72c.02 2.35 2.07 3.13 2.09 3.14-.02.05-.33 1.13-1.09 2.24-.66.96-1.34 1.91-2.41 1.93-1.06.02-1.4-.63-2.61-.63-1.2 0-1.58.61-2.58.65-1.03.04-1.82-1.03-2.49-1.99-1.35-1.95-2.38-5.5-1-7.9.69-1.19 1.92-1.95 3.26-1.97 1.02-.02 1.98.69 2.61.69.62 0 1.79-.86 3.02-.73.51.02 1.95.21 2.87 1.56-.07.05-1.71 1-1.67 3.01zM14.2 6.2c.56-.68.93-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.98 1.56-.86 2.48.9.07 1.82-.46 2.4-1.13z">
-                  </path>
-                </svg>
-              </div>
-              <div>
-                <p class="install-security-platform-label">macOS</p>
-                <p class="install-security-platform-description">
-                  Open the app, then go to <strong>System Settings → Privacy &amp; Security</strong> and confirm under
-                  Security.
-                </p>
-              </div>
-            </div>
-
-            <div class="install-security-platform-item">
-              <div class="install-security-platform-icon" aria-hidden="true">
-                <svg viewBox="0 0 28 28">
-                  <rect x="2" y="4" width="11" height="9" fill="#1D1D1F" opacity="1"></rect>
-                  <rect x="15" y="3" width="11" height="10" fill="#1D1D1F" opacity="0.65"></rect>
-                  <rect x="2" y="15" width="11" height="9" fill="#1D1D1F" opacity="0.65"></rect>
-                  <rect x="15" y="14" width="11" height="10" fill="#1D1D1F" opacity="0.4"></rect>
-                </svg>
-              </div>
-              <div>
-                <p class="install-security-platform-label">Windows</p>
-                <p class="install-security-platform-description">
-                  If SmartScreen appears, select <strong>More info</strong>, then <strong>Run anyway</strong>.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="hero-visual reveal">
-        <img src="glance-mockup.png" alt="MacBook Mockup" class="mockup-frame">
-        <div class="video-overlay">
-          <div class="video-camera-dot"></div>
-          <video playsinline controls poster="poster.webp">
-            <source src="glance-apple-promo-final.webm" type="video/webm">
-            <source src="glance-apple-promo-final.mp4" type="video/mp4">
-          </video>
-          <button class="video-play-overlay" type="button" aria-label="Play demo video">
-            <span class="video-play-overlay-icon" aria-hidden="true">
+    <div class="install-security-block">
+      <div class="install-security-wrapper">
+        <div class="install-security-notice">
+          <div class="install-security-notice-content">
+            <div class="install-security-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <path d="M8 5.5v13l10-6.5z"></path>
+                <circle cx="12" cy="12" r="9"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
-            </span>
-          </button>
+            </div>
+
+            <div class="install-security-content">
+              <h3 class="install-security-title">Not distributed via the App Store</h3>
+              <p class="install-security-description">
+                Glance is distributed directly from this website. Your OS may ask for a one-time security
+                confirmation — this is expected and safe. You can revert this setting at any time.
+              </p>
+              <button type="button" class="install-security-link" data-open-setup-guide aria-haspopup="dialog"
+                aria-controls="setup-guide-dialog">
+                Open setup guide
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="install-security-platform-strip">
+          <div class="install-security-platform-item">
+            <div class="install-security-platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#1D1D1F">
+                <path
+                  d="M16.37 12.72c.02 2.35 2.07 3.13 2.09 3.14-.02.05-.33 1.13-1.09 2.24-.66.96-1.34 1.91-2.41 1.93-1.06.02-1.4-.63-2.61-.63-1.2 0-1.58.61-2.58.65-1.03.04-1.82-1.03-2.49-1.99-1.35-1.95-2.38-5.5-1-7.9.69-1.19 1.92-1.95 3.26-1.97 1.02-.02 1.98.69 2.61.69.62 0 1.79-.86 3.02-.73.51.02 1.95.21 2.87 1.56-.07.05-1.71 1-1.67 3.01zM14.2 6.2c.56-.68.93-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.98 1.56-.86 2.48.9.07 1.82-.46 2.4-1.13z">
+                </path>
+              </svg>
+            </div>
+            <div>
+              <p class="install-security-platform-label">macOS</p>
+              <p class="install-security-platform-description">
+                Open the app, then go to <strong>System Settings → Privacy &amp; Security</strong> and confirm under
+                Security.
+              </p>
+            </div>
+          </div>
+
+          <div class="install-security-platform-item">
+            <div class="install-security-platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 28 28">
+                <rect x="2" y="4" width="11" height="9" fill="#1D1D1F" opacity="1"></rect>
+                <rect x="15" y="3" width="11" height="10" fill="#1D1D1F" opacity="0.65"></rect>
+                <rect x="2" y="15" width="11" height="9" fill="#1D1D1F" opacity="0.65"></rect>
+                <rect x="15" y="14" width="11" height="10" fill="#1D1D1F" opacity="0.4"></rect>
+              </svg>
+            </div>
+            <div>
+              <p class="install-security-platform-label">Windows</p>
+              <p class="install-security-platform-description">
+                If SmartScreen appears, select <strong>More info</strong>, then <strong>Run anyway</strong>.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
+
+    <div class="hero-visual reveal">
+      <img src="glance-mockup.png" alt="MacBook Mockup" class="mockup-frame">
+      <div class="video-overlay">
+        <div class="video-camera-dot"></div>
+        <video playsinline controls poster="poster.webp">
+          <source src="glance-apple-promo-final.webm" type="video/webm">
+          <source src="glance-apple-promo-final.mp4" type="video/mp4">
+        </video>
+        <button class="video-play-overlay" type="button" aria-label="Play demo video">
+          <span class="video-play-overlay-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M8 5.5v13l10-6.5z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
     </div>
   </section>
 
@@ -2909,6 +2960,7 @@
             <span class="btn-sub dl-win-subtext">v0.2.0 · 64-bit</span>
           </a>
         </div>
+
         <div class="cta-notes">
           <p class="cta-note">Not Apple Silicon? <button type="button" class="cta-switch-arch toggle-arch-btn">Switch to
               Intel</button></p>
@@ -3111,21 +3163,33 @@
           </a>
           <div class="cta-caption dl-mac-caption">Checking version...</div>
         </div>
+
         <div class="cta-wrapper">
-          <a href="https://github.com/pawelkom88/glance/releases/download/v0.2.0/Glance_0.2.0_x64-setup.exe"
+          <a href="https://apps.microsoft.com/store/detail/glance/REPLACE_WITH_YOUR_ID" target="_blank"
             class="btn btn-secondary dl-win-btn">
             <span class="btn-text">Download for Windows</span>
             <span class="btn-subtext dl-win-subtext">v0.2.0 · 64-bit</span>
           </a>
-          <div class="cta-caption dl-win-caption">No cloud access.</div>
+          <p class="cta-caption dl-win-caption">No cloud access.
         </div>
+
       </div>
     </div>
+
+
   </section>
   <footer>
     <div class="container">
-      <p>&copy; 2025 Glance. All rights reserved. <a href="privacy.html"
-          style="color:var(--text-2); margin-left:16px;">Privacy Policy</a></p>
+      <p>&copy; 2026 Glance. Operated by Pawel Komorkiewicz, United Kingdom. Not affiliated with Zoom, Microsoft, or
+        Google.</p>
+      <div class="footer-links"
+        style="display: flex; justify-content: center; gap: 24px; margin-top: 16px; flex-wrap: wrap;">
+        <a href="index.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Product</a>
+        <a href="docs.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Docs</a>
+        <a href="privacy.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Privacy Policy</a>
+        <a href="terms.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Terms of Service</a>
+        <a href="refund.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Refund Policy</a>
+      </div>
     </div>
   </footer>
 
@@ -3452,7 +3516,7 @@
   <div id="cookie-banner" class="cookie-banner-minimal" aria-live="polite" role="dialog" aria-label="Cookie consent">
     <p class="cookie-minimal-text">
       <strong>Cookies.</strong> We use basic analytics to understand how Glance is discovered. No personal data.
-      <a href="/privacy">Privacy Policy →</a>
+      <a href="privacy.html">Privacy Policy &rarr;</a>
     </p>
     <div class="cookie-minimal-actions">
       <button id="cookie-decline" class="cookie-btn-decline">Decline</button>
@@ -3536,6 +3600,11 @@
       });
 
     })();
+
+    // Mobile menu toggle
+    document.querySelector('.mobile-menu-toggle').addEventListener('click', () => {
+      document.querySelector('.nav-links').classList.toggle('active');
+    });
   </script>
 </body>
 
