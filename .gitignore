@@ -7,3 +7,7 @@ node_modules
 !/docs/testing/
 /docs/testing/*
 !/docs/testing/behavioral-testing.md
+
+# Paddle Licensing
+scripts/generate_keys/paddle_licenses.txt
+scripts/generate_keys/target
