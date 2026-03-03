@@ -71,12 +71,22 @@ npm run build:win
 *(Note: Building for Windows generally requires running the command on a Windows machine or a configured cross-compilation environment).*
 
 ## Landing Page
-The promotional landing page is located in the `landing-page/` directory. It is a static, zero-build vanilla HTML/CSS site designed for immediate hosting on platforms like Netlify or GitHub Pages.
+The promotional landing page is located in the `landing-page/` directory. It is deployed as static files with Netlify Edge negotiation:
 
-To preview the landing page locally:
+- `text/html` (default browser behavior) returns `*.html`
+- `text/markdown` (LLM/agent-friendly) returns `*.md` when available for that route
+- Edge function source: `netlify/edge-functions/accept-markdown.js`
+- Netlify config: `netlify.toml`
+
+To preview the landing page with Edge Functions locally:
 ```bash
-cd landing-page
-npx live-server .
+npx netlify dev
+```
+
+Test HTML vs Markdown responses:
+```bash
+curl -i -H "Accept: text/html" http://127.0.0.1:8888/
+curl -i -H "Accept: text/markdown, text/html;q=0.8" http://127.0.0.1:8888/
 ```
 
 ---
