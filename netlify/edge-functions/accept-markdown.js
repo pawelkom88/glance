@@ -67,13 +67,14 @@ export default async (request, context) => {
     return context.next();
   }
 
+  const normalizedPath = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
   const htmlPath =
-    pathname === "/"
+    normalizedPath === "/"
       ? "/index.html"
       : pathname.endsWith(".html")
         ? pathname
-        : `${pathname}.html`;
-  const markdownPath = htmlPath.replace(/\.html$/i, ".md");
+        : `${normalizedPath}/index.html`;
+  const markdownPath = htmlPath.replace(/index\.html$/i, "index.md").replace(/\.html$/i, ".md");
 
   const acceptsMarkdown = prefersMarkdownOverHtml(request.headers.get("accept"));
 
