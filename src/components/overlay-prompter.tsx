@@ -420,6 +420,7 @@ export function OverlayPrompter() {
   const speedBubbleTimeoutRef = useRef<number | null>(null);
   const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resizeTimeoutRef = useRef<number | null>(null);
+  const jumpScrollRafRef = useRef<number | null>(null);
   const moveTimeoutRef = useRef<number | null>(null);
 
   const [isClosing, setIsClosing] = useState(false);
@@ -1136,18 +1137,57 @@ export function OverlayPrompter() {
     // heading top margins) does not match the estimated scaledLineHeight values
     // used by linePositions.
     const node = lineRefs.current[targetLineIndex];
-    if (node) {
-      // node.offsetTop is relative to its offset parent (.overlay-lines), and
-      // already includes paddingTop (= lanePadding). We subtract lanePadding so
-      // the heading lands exactly at the reading ruler when translateY(-pos) is applied.
-      const effectivePadding = Math.max(0, lanePadding + firstLineLaneNudge);
-      setScrollPosition(Math.max(0, node.offsetTop - effectivePadding));
+    const effectivePadding = Math.max(0, lanePadding + firstLineLaneNudge);
+    const targetY = node
+      ? Math.max(0, node.offsetTop - effectivePadding)
+      : (linePositions.positions[targetLineIndex] ?? 0);
+
+    // Cancel any in-progress jump animation.
+    if (jumpScrollRafRef.current !== null) {
+      cancelAnimationFrame(jumpScrollRafRef.current);
+      jumpScrollRafRef.current = null;
+    }
+
+    const fromY = useAppStore.getState().scrollPosition;
+    const distance = targetY - fromY;
+    const linesEl = contentRef.current?.querySelector<HTMLElement>('.overlay-lines');
+
+    // Skip animation for tiny distances (already close).
+    if (Math.abs(distance) < 2) {
+      setScrollPosition(targetY);
       return;
     }
 
-    // Fallback to linePositions if the DOM ref isn't available yet.
-    const targetY = linePositions.positions[targetLineIndex] ?? 0;
-    setScrollPosition(targetY);
+    const DURATION_MS = 540;
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / DURATION_MS, 1);
+
+      // Scroll: ease-out cubic — fast start, gentle landing.
+      const scrollEased = 1 - Math.pow(1 - t, 3);
+      setScrollPosition(fromY + distance * scrollEased);
+
+      // Opacity: sine arc (1 → 0 → 1) — dissolves at the midpoint of travel,
+      // so the content fades as it moves and sharpens as it arrives.
+      if (linesEl) {
+        const opacity = 1 - Math.sin(Math.PI * t);
+        linesEl.style.opacity = opacity.toFixed(3);
+      }
+
+      if (t < 1) {
+        jumpScrollRafRef.current = requestAnimationFrame(tick);
+      } else {
+        // Ensure clean final state.
+        if (linesEl) {
+          linesEl.style.opacity = '';
+        }
+        jumpScrollRafRef.current = null;
+      }
+    };
+
+    jumpScrollRafRef.current = requestAnimationFrame(tick);
   }, [firstLineLaneNudge, lanePadding, linePositions.positions, sectionStartLineIndexes, setScrollPosition]);
 
   const commitFontScale = useCallback((nextValue: number) => {
@@ -1188,6 +1228,9 @@ export function OverlayPrompter() {
       }
       if (speedBubbleTimeoutRef.current !== null) {
         window.clearTimeout(speedBubbleTimeoutRef.current);
+      }
+      if (jumpScrollRafRef.current !== null) {
+        cancelAnimationFrame(jumpScrollRafRef.current);
       }
     };
   }, []);
