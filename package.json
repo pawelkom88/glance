@@ -19,7 +19,7 @@
     "build:mac": "tauri build --target aarch64-apple-darwin",
     "build:win": "tauri build --target x86_64-pc-windows-msvc",
     "push": "git push",
-    "push:skip": "git commit --amend --no-edit -m \"$(git log -1 --pretty=%B) [skip ci]\" && git push --force-with-lease"
+    "deploy:landing": "netlify deploy --prod --dir=landing-page --site 92add545-3e1a-44bd-8803-afec8f7908e3"
   },
   "dependencies": {
     "@fontsource-variable/commissioner": "^5.2.10",
