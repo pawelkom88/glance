@@ -4,9 +4,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Primary SEO -->
   <title>Guides | At a Glance</title>
   <meta name="description"
     content="Practical guides for better video-call presence, camera confidence, and daily productivity habits with At a Glance." />
+  <link rel="canonical" href="https://atglance.app/guides/" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Guides | At a Glance" />
+  <meta property="og:description"
+    content="Practical guides for better video-call presence, camera confidence, and daily productivity habits with At a Glance." />
+  <meta property="og:url" content="https://atglance.app/guides/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Guides | At a Glance" />
+  <meta name="twitter:description"
+    content="Practical guides for better video-call presence, camera confidence, and daily productivity habits with At a Glance." />
+  <meta name="twitter:image" content="https://atglance.app/OG.webp" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#ffffff" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -187,9 +211,10 @@
       color: inherit;
     }
 
-    .featured-visual {
-      min-height: 340px;
-      background: var(--placeholder);
+    .featured-visual img {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
     }
 
     .featured-content {
@@ -672,11 +697,15 @@
         productivity systems.</p>
 
       <a href="/guides/read-notes-without-looking-down-zoom/" class="featured-card card-interactive">
-        <div class="featured-visual" aria-hidden="true"></div>
+        <div class="featured-visual" aria-hidden="true">
+          <img width="100%" src="../read-notes-without-looking-down-zoom.webp"
+            alt="How to Read Notes on Zoom Without Looking Down">
+        </div>
         <div class="featured-content">
           <p class="category">Communication</p>
           <h2 class="featured-title">How to Read Notes on Zoom Without Looking Down</h2>
-          <p class="featured-excerpt">A practical guide to using notes on Zoom without looking distracted. Fix your screen
+          <p class="featured-excerpt">A practical guide to using notes on Zoom without looking distracted. Fix your
+            screen
             layout, shorten your notes, and keep your eyes near the camera.</p>
           <p class="meta">9 min read · March 2026</p>
           <span class="featured-read">Read guide

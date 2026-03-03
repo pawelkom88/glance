@@ -1,11 +1,11 @@
 ---
-title: "Glance — Teleprompter Overlay for Zoom, Teams & Google Meet"
-slug: "/"
-meta_title: "Glance — Teleprompter Overlay for Zoom, Teams & Google Meet"
-meta_description: "Glance is a discreet teleprompter overlay for video calls. Keep your script beside the camera to maintain eye contact on Zoom, Teams, and Google Meet. Private. Local-first. No account."
+title: "Glance — Teleprompter Overlay for Zoom"
+slug: "/zoom-teleprompter"
+meta_title: "Zoom Teleprompter Overlay — Glance (Keep Eye Contact on Calls)"
+meta_description: "Glance is a discreet Zoom teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls. Local-first. No account."
 ---
 
-# Glance — Teleprompter Overlay for Zoom, Teams & Google Meet
+# Zoom Teleprompter Overlay — Glance (Keep Eye Contact on Calls)
 
 Keep your script beside the camera so you maintain eye contact in live calls.
 

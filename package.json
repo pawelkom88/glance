@@ -17,7 +17,9 @@
     "tauri-trial:dev": "GLANCE_LICENSE_DEV_BYPASS=1 tauri dev",
     "tauri:build": "tauri build",
     "build:mac": "tauri build --target aarch64-apple-darwin",
-    "build:win": "tauri build --target x86_64-pc-windows-msvc"
+    "build:win": "tauri build --target x86_64-pc-windows-msvc",
+    "push": "git push",
+    "push:skip": "git commit --amend --no-edit -m \"$(git log -1 --pretty=%B) [skip ci]\" && git push --force-with-lease"
   },
   "dependencies": {
     "@fontsource-variable/commissioner": "^5.2.10",
