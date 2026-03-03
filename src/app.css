@@ -5289,8 +5289,8 @@ body.is-session-dragging * {
   text-transform: uppercase;
   color: var(--i-stripe);
   opacity: 0.85;
-  margin-bottom: 22px;
-  margin-top: 64px;
+  margin-bottom: calc(22px * var(--overlay-font-scale, 1));
+  margin-top: calc(64px * var(--overlay-font-scale, 1));
 }
 
 .script-section-title:first-child {
@@ -5304,7 +5304,7 @@ body.is-session-dragging * {
   line-height: 1.70;
   color: var(--overlay-lane-text);
   margin-top: 0;
-  margin-bottom: 32px;
+  margin-bottom: calc(32px * var(--overlay-font-scale, 1));
   letter-spacing: -0.2px;
 }
 

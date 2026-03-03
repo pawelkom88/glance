@@ -35,8 +35,8 @@ import {
 } from '../constants';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 
-const baseLineHeight = 54;
-const overlayLineGapPx = 10;
+const baseLineHeight = 80;
+const overlayLineGapPx = 0;
 const fadeDurationMs = 140;
 const minFontScale = 0.85;
 const maxFontScale = 2.0;
@@ -470,7 +470,7 @@ export function OverlayPrompter() {
     timerTickStartRef.current = null;
   }, [setPlaybackState]);
 
-  const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * overlayFontScale));
+  const scaledLineHeight = Math.max(60, Math.round(baseLineHeight * overlayFontScale));
   const lineStride = scaledLineHeight + overlayLineGapPx;
   const focusLaneRatio = 0.14;
   const lanePadding = useMemo(
@@ -479,7 +479,7 @@ export function OverlayPrompter() {
       const clampedOffset = Math.max(52, Math.min(contentMetrics.height * 0.24, preferredOffset));
       return Math.max(0, clampedOffset - (scaledLineHeight * 0.5));
     },
-    [contentMetrics.height, scaledLineHeight]
+    [contentMetrics.height, focusLaneRatio, scaledLineHeight]
   );
 
   const measureText = useCallback((text: string): number => {
@@ -509,6 +509,17 @@ export function OverlayPrompter() {
     });
   }, [contentMetrics.width, markdown, measureText]);
 
+  const firstRenderableLine = useMemo(
+    () => lines.find((line) => line.kind !== 'empty') ?? null,
+    [lines]
+  );
+
+  const firstLineLaneNudge = firstRenderableLine?.kind === 'heading'
+    ? -18
+    : firstRenderableLine?.kind === 'bullet'
+      ? -10
+      : 0;
+
   const sectionStartLineIndexes = useMemo(() => {
     return sections.map((section) => {
       const headingId = `heading-${section.lineIndex}`;
@@ -536,6 +547,17 @@ export function OverlayPrompter() {
       return 0;
     }
 
+    // Use DOM measurements for precision if available
+    const effectivePadding = Math.max(0, lanePadding + firstLineLaneNudge);
+    const nodes = lineRefs.current;
+    for (let i = 0; i < nodes.length; i += 1) {
+      const node = nodes[i];
+      if (node && node.offsetTop > scrollPosition + effectivePadding + 2) {
+        return Math.max(0, i - 1);
+      }
+    }
+
+    // Fallback to linePositions estimate
     const { positions } = linePositions;
     for (let i = 0; i < positions.length; i += 1) {
       if (positions[i] > scrollPosition) {
@@ -544,28 +566,35 @@ export function OverlayPrompter() {
     }
 
     return Math.max(0, lines.length - 1);
-  }, [linePositions, lines.length, scrollPosition]);
+  }, [firstLineLaneNudge, lanePadding, linePositions, lines.length, scrollPosition]);
 
   const currentSectionIndex = useMemo(() => {
     if (sections.length === 0) {
       return 0;
     }
 
+    // Prefer DOM-based section detection to stay in sync with Jump logic.
+    // We walk backwards from the end to find the last section that has started.
+    const effectivePadding = Math.max(0, lanePadding + firstLineLaneNudge);
+    const nodes = lineRefs.current;
+
+    for (let i = sectionStartLineIndexes.length - 1; i >= 0; i -= 1) {
+      const lineIndex = sectionStartLineIndexes[i];
+      const node = nodes[lineIndex];
+      // A small 5px buffer helps prevent flickering near the ruler line.
+      if (node && node.offsetTop <= scrollPosition + effectivePadding + 5) {
+        return i;
+      }
+    }
+
+    // Fallback to line-index based detection
     const resolved = currentSectionFromLine(lines, anchorLineIndex);
     return Math.max(0, Math.min(sections.length - 1, resolved));
-  }, [anchorLineIndex, lines, sections.length]);
+  }, [anchorLineIndex, firstLineLaneNudge, lanePadding, lines, scrollPosition, sectionStartLineIndexes, sections.length]);
 
   const currentSection = sections[currentSectionIndex] ?? null;
   const nextSection = sections[currentSectionIndex + 1] ?? null;
-  const firstRenderableLine = useMemo(
-    () => lines.find((line) => line.kind !== 'empty') ?? null,
-    [lines]
-  );
-  const firstLineLaneNudge = firstRenderableLine?.kind === 'heading'
-    ? -18
-    : firstRenderableLine?.kind === 'bullet'
-      ? -10
-      : 0;
+
   const normalizedSpeed = scrollSpeed;
   const currentFontSize = Math.round(28 * overlayFontScale);
   const speedProgress = ((scrollSpeed - MIN_SPEED_MULTIPLIER) / (MAX_SPEED_MULTIPLIER - MIN_SPEED_MULTIPLIER)) * 100;
