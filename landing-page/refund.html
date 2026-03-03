@@ -309,7 +309,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Glance. Operated by Pawel Komorkiewicz, United Kingdom. Not affiliated with Zoom, Microsoft,
+            <p>&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with Zoom, Microsoft,
                 or Google.</p>
             <div class="footer-links">
                 <a href="index.html">Product</a>
@@ -325,6 +325,10 @@
         document.querySelector('.mobile-menu-toggle').addEventListener('click', () => {
             document.querySelector('.nav-links').classList.toggle('active');
         });
+    </script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
     </script>
 </body>
 

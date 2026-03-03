@@ -405,6 +405,73 @@
             box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
         }
 
+        /* ─── CONTROLS SECTION ─── */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-top: 16px;
+        }
+
+        .control-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            transition: all 0.3s var(--easing);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .control-card:hover {
+            box-shadow: var(--shadow-subtle);
+            transform: translateY(-2px);
+            border-color: rgba(0, 122, 255, 0.2);
+        }
+
+        .control-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .control-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--blue-soft);
+            color: var(--blue);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .control-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .control-card h3 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        .control-desc {
+            font-size: 15px;
+            color: var(--text-2);
+            margin-bottom: 24px;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        .control-card .image-placeholder {
+            margin-top: auto;
+            aspect-ratio: 16 / 10;
+        }
+
         /* ─── FOOTER ─── */
         footer {
             padding: 60px 0;
@@ -588,6 +655,171 @@
 
             </section>
 
+            <section id="controls">
+                <h2>Presentation Controls</h2>
+                <p>Customize your reading experience on the fly. Glance puts all the essential controls directly at your
+                    fingertips.</p>
+
+                <div class="controls-grid">
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            </div>
+                            <h3>Play & Pause</h3>
+                        </div>
+                        <p class="control-desc">Start or stop the prompter scroll instantly. Perfect for pausing to
+                            expand on a thought or answer a question.</p>
+                        <div class="image-placeholder">
+                            <span>Play/Pause Control</span>
+                            <p>Suggested: Image of play controls</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="13 19 22 12 13 5 13 19"></polygon>
+                                    <polygon points="2 19 11 12 2 5 2 19"></polygon>
+                                </svg>
+                            </div>
+                            <h3>Adjust Speed</h3>
+                        </div>
+                        <p class="control-desc">Fine-tune the scrolling pace to match your natural speaking rhythm using
+                            the slider or keyboard shortcuts.</p>
+                        <div class="image-placeholder">
+                            <span>Speed Slider</span>
+                            <p>Suggested: Image of the speed control</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                                    <line x1="9" y1="20" x2="15" y2="20"></line>
+                                    <line x1="12" y1="4" x2="12" y2="20"></line>
+                                </svg>
+                            </div>
+                            <h3>Font Size</h3>
+                        </div>
+                        <p class="control-desc">Dial in the perfect text scale. Make your script readable at any
+                            distance without squinting or leaning in.</p>
+                        <div class="image-placeholder">
+                            <span>Font Size Config</span>
+                            <p>Suggested: Image of text resizing</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </div>
+                            <h3>Toggle Panel</h3>
+                        </div>
+                        <p class="control-desc">Once your settings are dialled in, hide the controls completely to enjoy
+                            a distraction-free confidence screen.</p>
+                        <div class="image-placeholder">
+                            <span>Panel Toggle</span>
+                            <p>Suggested: GIF of controls hiding</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </div>
+                            <h3>Snap to Center</h3>
+                        </div>
+                        <p class="control-desc">Instantly align your text directly under your camera lens to guarantee
+                            flawless, natural eye contact with your audience.</p>
+                        <div class="image-placeholder">
+                            <span>Centering</span>
+                            <p>Suggested: GIF of snapping to center</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z">
+                                    </path>
+                                    <path
+                                        d="M12 22V2c5.448 0 9.873 4.316 9.996 9.722v.556C21.873 17.684 17.448 22 12 22z"
+                                        fill="currentColor"></path>
+                                </svg>
+                            </div>
+                            <h3>Adjust Opacity</h3>
+                        </div>
+                        <p class="control-desc">Dim the prompter background so it blends seamlessly into your screen, or
+                            make it fully opaque for maximum readability.</p>
+                        <div class="image-placeholder">
+                            <span>Opacity Slider</span>
+                            <p>Suggested: Image of opacity dimming</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <h3>Elapsed Timer</h3>
+                        </div>
+                        <p class="control-desc">Keep track of your presentation length in real-time. Ensure you hit your
+                            marks and never accidentally run over time.</p>
+                        <div class="image-placeholder">
+                            <span>Timer Status</span>
+                            <p>Suggested: Close-up of elapsed time</p>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <div class="control-header">
+                            <div class="control-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                                    </path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </div>
+                            <h3>Quick Hide</h3>
+                        </div>
+                        <p class="control-desc">Need to check your notes or a window beneath the prompter? Hide the
+                            entire overlay instantly when it's not needed.</p>
+                        <div class="image-placeholder">
+                            <span>Hide Overlay</span>
+                            <p>Suggested: GIF of overlay hiding</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="shortcuts" class="shortcut-section">
                 <h2>Keyboard Shortcuts</h2>
                 <p style="color: rgba(255,255,255,0.6); margin-bottom: 40px;">Control your presentation flow without
@@ -665,7 +897,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Glance. Operated by Pawel Komorkiewicz, United Kingdom. Not affiliated with Zoom, Microsoft,
+            <p>&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with Zoom, Microsoft,
                 or Google.</p>
             <div class="footer-links">
                 <a href="index.html">Product</a>
@@ -682,6 +914,10 @@
         document.querySelector('.mobile-menu-toggle').addEventListener('click', () => {
             document.querySelector('.nav-links').classList.toggle('active');
         });
+    </script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
     </script>
 </body>
 

@@ -278,7 +278,7 @@
             completely local and private by design. While our website uses basic, privacy-friendly analytics to help us
             understand how people find us, your work within the app never leaves your device.</p>
 
-        <p><strong>Data Controller:</strong> Glance is operated by Pawel Komorkiewicz, based in the United Kingdom. This
+        <p><strong>Data Controller:</strong> Glance is operated by Glance team, based in the United Kingdom. This
             policy is compliant with the UK GDPR. For any privacy-related questions, contact us at <a
                 href="mailto:hello@atglance.app">hello@atglance.app</a>.</p>
 
@@ -326,7 +326,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Glance. Operated by Pawel Komorkiewicz, United Kingdom. Not affiliated with Zoom, Microsoft,
+            <p>&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with Zoom, Microsoft,
                 or Google.</p>
             <div class="footer-links">
                 <a href="index.html">Product</a>
@@ -342,6 +342,10 @@
         document.querySelector('.mobile-menu-toggle').addEventListener('click', () => {
             document.querySelector('.nav-links').classList.toggle('active');
         });
+    </script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
     </script>
 </body>
 
