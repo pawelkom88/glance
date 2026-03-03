@@ -59,25 +59,13 @@ function withHeaders(response, mutateHeaders) {
   });
 }
 
-function buildCandidates(pathname, extension) {
-  if (pathname === "/") {
-    return [`/index${extension}`];
-  }
+// buildCandidates function removed as it is no longer used
 
-  if (pathname.endsWith(extension)) {
-    return [pathname];
-  }
-
-  const normalizedPath = pathname.replace(/\/+$/, "");
-  const basePath = normalizedPath || "/";
-  if (basePath === "/") {
-    return [`/index${extension}`];
-  }
-
-  // Always try the flat file (e.g. /docs.html) BEFORE the directory index
-  // (e.g. /docs/index.html).  This is critical for legacy stand-alone HTML
-  // pages like /docs, /privacy, /refund, /terms that live at root level.
-  return [`${basePath}${extension}`, `${basePath}/index${extension}`];
+function isSuccess(status) {
+  // Allow 2xx status codes and 304 Not Modified.
+  // We specifically avoid 301/302 redirects, which can cause infinite loops
+  // if Netlify's "Pretty URLs" feature tries to redirect .html back to the clean URL.
+  return (status >= 200 && status < 300) || status === 304;
 }
 
 /**
@@ -89,7 +77,7 @@ async function rewriteFlat(context, pathname, extension) {
   // Already has extension – just try it directly
   if (pathname.endsWith(extension)) {
     const r = await context.rewrite(pathname);
-    return r.status < 400 ? r : null;
+    return isSuccess(r.status) ? r : null;
   }
 
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
@@ -97,7 +85,7 @@ async function rewriteFlat(context, pathname, extension) {
   // 1. Try flat file: /docs.html
   const flatCandidate = normalizedPath === "/" ? `/index${extension}` : `${normalizedPath}${extension}`;
   const flatResponse = await context.rewrite(flatCandidate);
-  if (flatResponse.status < 400) {
+  if (isSuccess(flatResponse.status)) {
     return flatResponse;
   }
 
@@ -105,19 +93,8 @@ async function rewriteFlat(context, pathname, extension) {
   if (normalizedPath !== "/") {
     const indexCandidate = `${normalizedPath}/index${extension}`;
     const indexResponse = await context.rewrite(indexCandidate);
-    if (indexResponse.status < 400) {
+    if (isSuccess(indexResponse.status)) {
       return indexResponse;
-    }
-  }
-
-  return null;
-}
-
-async function rewriteFirstFound(context, candidates) {
-  for (const candidate of candidates) {
-    const response = await context.rewrite(candidate);
-    if (response.status < 400) {
-      return response;
     }
   }
 
