@@ -10,6 +10,7 @@
   <meta name="description"
     content="Desktop teleprompter overlay for Zoom, Teams & Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
   <link rel="canonical" href="https://atglance.app/" />
+  <link rel="preload" as="video" href="glance-demo.mp4" type="video/mp4" />
 
   <!-- Open Graph -->
   <meta property="og:title" content="Teleprompter for Zoom, Teams & Meet | AtGlance" />
@@ -138,9 +139,9 @@
           "@type": "VideoObject",
           "name": "Glance — The discreet teleprompter for professionals",
           "description": "See how Glance sits above your Zoom or Teams call to help you maintain eye contact while reading your script.",
-          "thumbnailUrl": "https://atglance.app/poster.webp",
-          "uploadDate": "2026-03-01T08:00:00+00:00",
-          "contentUrl": "https://atglance.app/glance-apple-promo-final.mp4",
+          "thumbnailUrl": "https://atglance.app/glance-demo-poster.webp",
+          "uploadDate": "2026-03-04T13:00:00+00:00",
+          "contentUrl": "https://atglance.app/glance-demo.mp4",
           "embedUrl": "https://atglance.app/",
           "publisher": { "@id": "https://atglance.app/#organization" }
         }
@@ -349,7 +350,7 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.45);
-      /* Improved contrast from 30% for accessibility */
+      text-align: center;
       margin-bottom: 48px;
     }
 
@@ -421,6 +422,10 @@
     @media (max-width: 640px) {
       .problems-section {
         padding: 80px 0;
+      }
+
+      .problems-container {
+        padding: 0 10px;
       }
 
       .problem-item {
@@ -622,22 +627,47 @@
     }
 
     .hero-mid-visual {
-      width: min(800px, 100% - 48px);
+      width: min(640px, 100% - 48px);
       aspect-ratio: 16 / 9;
-      background: #f5f5f7;
-      border-radius: 24px;
-      margin: 0 auto 48px;
+      background: #000;
+      border-radius: 20px;
+      margin: 0 auto 64px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.1);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+      box-shadow:
+        0 30px 60px -12px rgba(0, 0, 0, 0.25),
+        0 18px 36px -18px rgba(0, 0, 0, 0.3);
+      transform: perspective(1000px) rotateX(1deg);
+      transition: transform 0.6s var(--easing);
+    }
+
+    .hero-mid-visual:hover {
+      transform: perspective(1000px) rotateX(0deg) scale(1.01);
+    }
+
+    .hero-mid-visual video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Reflection/Glow effect */
+    .hero-mid-visual::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+      z-index: 2;
+      pointer-events: none;
     }
 
     .hero-mid-visual::after {
-      content: "Looped GIF Placeholder";
+      content: "";
       font-size: 14px;
       color: #86868b;
       font-weight: 500;
@@ -2650,13 +2680,14 @@
       <div class="hero-eyebrow reveal"><span class="record-dot"></span>Teleprompter for Zoom, Teams & Google Meet</div>
 
       <div class="hero-mid-visual reveal">
-        <!-- GIF placeholder -->
+        <video autoplay muted loop playsinline poster="glance-demo-poster.webp" preload="auto">
+          <source src="glance-demo.webm" type="video/webm">
+          <source src="glance-demo.mp4" type="video/mp4">
+        </video>
       </div>
-      <h1 class="headline reveal">Discreetly <span class="cursive-blue">placed by the camera.</span> <br>Teleprompter
-        for Zoom, Teams & Meet.
+      <h1 class="headline reveal">Keep eye contact. <br><span class="cursive-blue">Read your script.</span>
       </h1>
-      <p class="subhead reveal">A discreet on-screen teleprompter overlay built for sales demos, interviews, team
-        updates, and creator videos — without showing up in your camera feed.</p>
+      <p class="subhead reveal">A teleprompter placed beside your camera for Zoom, Teams and Google Meet.</p>
 
       <div class="btn-group reveal">
         <div class="cta-wrapper">
@@ -2683,7 +2714,7 @@
     </div>
     <p
       style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;padding-inline: 42px">
-      Private & local • Works with Zoom/Teams/Meet • Adjustable speed, size & transparency
+      Private & local • No account • Works with Zoom/Teams/Meet • Adjustable speed, size & transparency
     </p>
 
     <div class="install-security-block">
