@@ -349,6 +349,12 @@
             margin-top: auto;
         }
 
+        .install-col img {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: contain;
+        }
+
         /* ─── PREMIUM SHORTCUTS ─── */
         .shortcut-section {
             background: #0a0a0a;
@@ -634,11 +640,14 @@
                             <p>1. Search for "Glance Teleprompter" in the Store.</p>
                             <p>2. Click <strong>Install</strong>.</p>
                             <p>3. Launch from your Start Menu.</p>
+                            <p style="margin-top: 12px; font-size: 14px; color: var(--text-2);">
+                                Having trouble? <a href="help/windows-install/"
+                                    style="color: var(--accent); text-decoration: none;">View installation
+                                    troubleshooting</a>
+                            </p>
                         </div>
-                        <div class="image-placeholder" style="aspect-ratio: 4/3;">
-                            <span>Windows Store Page</span>
-                            <p>Suggested Image: A screenshot of the Glance listing in the Microsoft Store app.</p>
-                        </div>
+                        <img style="box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);border: 1px solid var(--border);border-radius: 15px"
+                            width="100%" src="docs-glance-windows.webp" alt="Windows installer">
                     </div>
                 </div>
             </section>

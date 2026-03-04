@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Primary SEO -->
+    <title>Windows Installation Help — Glance</title>
+    <meta name="description"
+        content="Explanations of common install outcomes and error codes for installing Glance on Windows." />
+    <link rel="canonical" href="https://atglance.app/help/windows-install/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Windows Installation Help — Glance" />
+    <meta property="og:description"
+        content="Explanations of common install outcomes and error codes for installing Glance on Windows." />
+    <meta property="og:url" content="https://atglance.app/help/windows-install/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Windows Installation Help — Glance" />
+    <meta name="twitter:description"
+        content="Explanations of common install outcomes and error codes for installing Glance on Windows." />
+    <meta name="twitter:image" content="https://atglance.app/OG.webp" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+        rel="stylesheet">
+
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="icon" type="image/png" href="../../favicon.png">
+    <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #f5f5f7;
+            --text-1: #1d1d1f;
+            --text-2: #424245;
+            --text-3: #86868b;
+            --accent: #007AFF;
+            --border: rgba(0, 0, 0, 0.08);
+            --placeholder: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-1);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            text-rendering: optimizeLegibility;
+            line-height: 1.6;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            border-radius: 6px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-1);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-1);
+        }
+
+        .article-shell {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 108px 32px 0;
+        }
+
+        .back-link {
+            border: 0;
+            background: transparent;
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-bottom: 34px;
+            text-decoration: none;
+        }
+
+        .back-link svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+        }
+
+        .article-eyebrow {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-family: "Commissioner", sans-serif;
+            font-size: clamp(34px, 6vw, 48px);
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .article-meta {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 22px;
+            margin-bottom: 40px;
+            color: var(--text-3);
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        article p {
+            font-size: 17px;
+            line-height: 1.75;
+            color: var(--text-1);
+            font-weight: 400;
+            margin-bottom: 24px;
+        }
+
+        article h2 {
+            font-family: "Commissioner", sans-serif;
+            font-size: 28px;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
+            font-weight: 700;
+            margin: 56px 0 20px;
+        }
+
+        article h3 {
+            font-family: "Commissioner", sans-serif;
+            font-size: 20px;
+            line-height: 1.4;
+            letter-spacing: -0.01em;
+            font-weight: 700;
+            margin: 32px 0 16px;
+        }
+
+        article ul,
+        article ol {
+            margin: 24px 0 32px;
+            padding: 0;
+            list-style: none;
+        }
+
+        article li {
+            position: relative;
+            padding: 12px 0 12px 24px;
+            border-bottom: 1px solid var(--border);
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--text-2);
+        }
+
+        article ul li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 1.15em;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        /* Numbered lists don't use the bullet before pseudoelement */
+        article ol {
+            counter-reset: article-counter;
+        }
+
+        article ol li {
+            padding-left: 32px;
+        }
+
+        article ol li::before {
+            content: counter(article-counter) ".";
+            counter-increment: article-counter;
+            position: absolute;
+            left: 0;
+            top: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            background: none;
+            width: auto;
+            height: auto;
+            border-radius: 0;
+        }
+
+        /* Nested lists */
+        article li ul {
+            margin: 12px 0 0 0;
+        }
+
+        article li ul li {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        article li ul li:last-child {
+            padding-bottom: 0px;
+        }
+
+        article q,
+        blockquote {
+            display: block;
+            margin: 40px 0;
+            padding: 24px;
+            background: var(--surface);
+            border-radius: 16px;
+            border-left: 4px solid var(--accent);
+        }
+
+        article blockquote p {
+            margin-bottom: 0;
+            font-weight: 500;
+            color: var(--text-1);
+        }
+
+        article blockquote a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        article hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 48px 0;
+        }
+
+        article pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        article code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #eb5757;
+        }
+        
+        article pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+            font-size: 1em;
+        }
+
+        footer {
+            padding: 80px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            margin-top: 120px;
+        }
+
+        footer .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: var(--text-3);
+            margin-bottom: 20px;
+        }
+
+        footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        footer a {
+            color: var(--text-3);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: var(--text-1);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 52px;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                flex-direction: column;
+                padding: 20px 40px;
+                gap: 20px;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .article-shell {
+                padding: 100px 20px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-inner">
+            <a href="../../index.html" class="logo">
+                <img src="../../icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links">
+                <a href="../../index.html">Product</a>
+                <a href="../../docs.html">Docs</a>
+                <a href="../../guides/">Guides</a>
+                <a href="../../privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="article-shell">
+        <p class="article-eyebrow">Support</p>
+        <h1>Windows installation help</h1>
+        <p class="article-meta">Help & Support</p>
+
+        <article>
+            <p>This page explains common install outcomes and error codes for installing <strong>Glance</strong> on Windows (including installs initiated via Microsoft Store / Partner Center).</p>
+
+            <hr />
+
+            <h2>Installer return codes</h2>
+            
+            <h3>Code <code>0</code> — Success</h3>
+            <p>The app installed successfully.</p>
+
+            <h3>Code <code>1</code> — Cancelled by user</h3>
+            <p>The installation was cancelled before completion.</p>
+
+            <h3>Code <code>2</code> — Installation failed</h3>
+            <p>A generic installer failure. Common causes include:</p>
+            <ul>
+                <li>the app (or related process) was running and files were locked</li>
+                <li>security software blocked the installer</li>
+                <li>missing system components (for example, WebView2 Runtime)</li>
+                <li>insufficient permissions or a system policy preventing the install</li>
+            </ul>
+
+            <hr />
+
+            <h2>What to do if installation fails (especially code <code>2</code>)</h2>
+            <p>Try these in order:</p>
+            <ol>
+                <li><strong>Restart Windows</strong>, then install again.</li>
+                <li><strong>Close Glance if it’s running</strong>, then retry the installer.</li>
+                <li><strong>Check Windows Security / antivirus</strong>
+                    <ul>
+                        <li>If “Controlled folder access” (Ransomware protection) is enabled, it may block installers.</li>
+                        <li>Temporarily disable it or allow the installer, then retry.</li>
+                    </ul>
+                </li>
+                <li><strong>Ensure Microsoft Edge WebView2 Runtime is installed</strong>
+                    <ul>
+                        <li>Many Tauri-based apps require WebView2 on Windows.</li>
+                        <li>Install WebView2 Runtime (Evergreen) and retry.</li>
+                    </ul>
+                </li>
+                <li>If it still fails, contact support and include:
+                    <ul>
+                        <li>the <strong>error code</strong> (0 / 1 / 2)</li>
+                        <li>your Windows version (e.g., Windows 11 23H2)</li>
+                        <li>the installer filename (e.g., <code>Glance_0.2.0_x64-setup.exe</code>)</li>
+                        <li>a screenshot of the error (if available)</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <hr />
+
+            <h2>How to verify the return code on your PC (advanced)</h2>
+            <p>If you’re testing locally, you can run the installer from Command Prompt and read the exit code.</p>
+
+            <h3>Verify success (<code>0</code>)</h3>
+<pre><code>Glance_0.2.0_x64-setup.exe /S
+echo %ERRORLEVEL%</code></pre>
+
+            <h3>Verify cancel (<code>1</code>)</h3>
+            <p>Run the installer <strong>without</strong> <code>/S</code>, click <strong>Cancel</strong>, then:</p>
+<pre><code>echo %ERRORLEVEL%</code></pre>
+
+            <h3>Verify failure (<code>2</code>)</h3>
+            <p>To intentionally trigger a failure, try installing while the app is running:</p>
+            <ol>
+                <li>Start Glance.</li>
+                <li>Run:
+<pre><code>Glance_0.2.0_x64-setup.exe /S
+echo %ERRORLEVEL%</code></pre>
+                </li>
+            </ol>
+            <p>If the installer aborts, you may see code <code>2</code>.</p>
+
+            <hr />
+
+            <h2>Need help?</h2>
+            <p>Email support with the details listed above and we’ll help you get installed.</p>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. Not affiliated with Zoom, Microsoft, or Google.</p>
+            <div class="footer-links">
+                <a href="../../index.html">Product</a>
+                <a href="../../docs.html">Docs</a>
+                <a href="../../guides/">Guides</a>
+                <a href="../../privacy.html">Privacy Policy</a>
+                <a href="../../terms.html">Terms of Service</a>
+                <a href="../../refund.html">Refund Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelector(".mobile-menu-toggle").addEventListener("click", () => {
+            document.querySelector(".nav-links").classList.toggle("active");
+        });
+
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => {
+            el.textContent = year;
+        });
+    </script>
+</body>
+
+</html>
