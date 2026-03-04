@@ -72,18 +72,26 @@ export default defineConfig({
       ignored: ['**/src-tauri/**']
     }
   },
-  build: {
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-        docs: path.resolve(__dirname, 'landing-page/docs.html'),
-        guides: path.resolve(__dirname, 'landing-page/guides/index.html'),
-        privacy: path.resolve(__dirname, 'landing-page/privacy.html'),
-        terms: path.resolve(__dirname, 'landing-page/terms.html'),
-        refund: path.resolve(__dirname, 'landing-page/refund.html'),
-        'zoom-teleprompter': path.resolve(__dirname, 'landing-page/zoom-teleprompter/index.html'),
+  build: process.env.TAURI_ENV_PLATFORM
+    ? {
+        rollupOptions: {
+          input: {
+            main: path.resolve(__dirname, 'index.html'),
+          }
+        }
       }
-    }
-  },
-  publicDir: 'landing-page'
+    : {
+        rollupOptions: {
+          input: {
+            main: path.resolve(__dirname, 'index.html'),
+            docs: path.resolve(__dirname, 'landing-page/docs.html'),
+            guides: path.resolve(__dirname, 'landing-page/guides/index.html'),
+            privacy: path.resolve(__dirname, 'landing-page/privacy.html'),
+            terms: path.resolve(__dirname, 'landing-page/terms.html'),
+            refund: path.resolve(__dirname, 'landing-page/refund.html'),
+            'zoom-teleprompter': path.resolve(__dirname, 'landing-page/zoom-teleprompter/index.html'),
+          }
+        }
+      },
+  publicDir: process.env.TAURI_ENV_PLATFORM ? false : 'landing-page'
 });
