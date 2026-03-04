@@ -16,7 +16,7 @@
     "tauri-expired:dev": "GLANCE_LICENSE_DEV_STATE=expired tauri dev",
     "tauri-trial:dev": "GLANCE_LICENSE_DEV_BYPASS=1 tauri dev",
     "tauri:build": "tauri build",
-    "build:mac": "tauri build --target aarch64-apple-darwin",
+    "build:mac": "MACOSX_DEPLOYMENT_TARGET=12.0 tauri build --target aarch64-apple-darwin",
     "build:win": "tauri build --target x86_64-pc-windows-msvc",
     "push": "git push",
     "deploy:landing": "netlify deploy --prod --dir=landing-page --site 92add545-3e1a-44bd-8803-afec8f7908e3"
