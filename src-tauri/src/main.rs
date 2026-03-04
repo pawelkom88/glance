@@ -151,8 +151,11 @@ async fn check_update(app: tauri::AppHandle) {
     if let Ok(updater) = app.updater() {
         if let Ok(Some(update)) = updater.check().await {
             // Silently install and restart if an update is found
-            let _ = update.download_and_install(|_, _| {}, || {}).await;
-            app.restart();
+            if let Err(e) = update.download_and_install(|_, _| {}, || {}).await {
+                tracing::error!("Failed to download and install update: {}", e);
+            } else {
+                app.restart();
+            }
         }
     }
 }
