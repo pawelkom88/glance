@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary SEO -->
+    <title>Free Video Call & Presentation Script Templates | Glance</title>
+    <meta name="description"
+        content="Download free, proven script templates for Zoom, Teams, and Google Meet. Markdown-ready for teleprompters. Nail your next sales demo or presentation." />
+    <link rel="canonical" href="https://atglance.app/script-template/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Free Video Call & Presentation Script Templates | Glance" />
+    <meta property="og:description"
+        content="Download free, proven script templates for Zoom, Teams, and Google Meet. Markdown-ready for teleprompters." />
+    <meta property="og:url" content="https://atglance.app/script-template/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Free Video Call & Presentation Script Templates | Glance" />
+    <meta name="twitter:description"
+        content="Download free, proven script templates for Zoom, Teams, and Google Meet." />
+    <meta name="twitter:image" content="https://atglance.app/OG.webp" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,400..700;1,400..700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="icon" type="image/png" href="../favicon.png" />
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@id": "https://atglance.app/#organization",
+                    "@type": "Organization",
+                    "name": "Glance",
+                    "url": "https://atglance.app/",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": "https://atglance.app/favicon.png"
+                    }
+                },
+                {
+                    "@type": "WebPage",
+                    "name": "Free Video Call & Presentation Script Templates | Glance",
+                    "description": "Download free, proven script templates for Zoom, Teams, and Google Meet. Markdown-ready for teleprompters.",
+                    "url": "https://atglance.app/script-template/",
+                    "publisher": { "@id": "https://atglance.app/#organization" }
+                },
+                {
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": 1,
+                            "name": "Home",
+                            "item": "https://atglance.app/"
+                        },
+                        {
+                            "@type": "ListItem",
+                            "position": 2,
+                            "name": "Script Templates",
+                            "item": "https://atglance.app/script-template/"
+                        }
+                    ]
+                }
+            ]
+        }
+    </script>
+
+    <style>
+        :root {
+            --blue: #007AFF;
+            --blue-soft: #E8F2FF;
+            --text-1: #1d1d1f;
+            --text-2: #86868b;
+            --bg: #ffffff;
+            --bg-2: #f5f5f7;
+            --border: rgba(0, 0, 0, 0.08);
+            --radius-lg: 20px;
+            --easing: cubic-bezier(0.16, 1, 0.3, 1);
+
+            /* Syntax Highlighting Colors */
+            --syn-heading: #d73a49;
+            --syn-placeholder: #005cc5;
+            --syn-bold: #22863a;
+            --syn-hr: #6a737d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-1);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            border-radius: 6px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            color: #424245;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-1);
+        }
+
+        /* HERO */
+        .hero {
+            padding: 120px 0 60px;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(40px, 8vw, 72px);
+            line-height: 1.1;
+            font-weight: 900;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--text-2);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* TABS */
+        .tabs-wrapper {
+            margin-top: 60px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            justify-content: flex-start;
+            gap: 8px;
+            margin-bottom: 40px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px 20px;
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        @media (min-width: 769px) {
+            .tabs-nav {
+                justify-content: center;
+                padding: 10px 0;
+            }
+        }
+
+        .tabs-nav::-webkit-scrollbar {
+            display: none;
+            /* Safari/Chrome */
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border-radius: 980px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .tab-btn:hover {
+            background: var(--bg-2);
+            color: var(--text-1);
+        }
+
+        .tab-btn.active {
+            background: var(--text-1);
+            color: #fff;
+            border-color: var(--text-1);
+        }
+
+        /* TEMPLATE CARDS */
+        .template-container {
+            position: relative;
+            min-height: 500px;
+        }
+
+        .template-card {
+            display: none;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            animation: slideIn 0.4s var(--easing);
+        }
+
+        .template-card.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card-title-group h2 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-copy {
+            background: var(--bg-2);
+            color: var(--text-1);
+            border: 1px solid var(--border);
+        }
+
+        .btn-copy:hover {
+            background: #e5e5e7;
+        }
+
+        .btn-open {
+            background: var(--blue);
+            color: #fff;
+            border: none;
+        }
+
+        .btn-open:hover {
+            opacity: 0.9;
+        }
+
+        .card-desc {
+            border-left: 3px solid var(--blue);
+            padding-left: 20px;
+            font-size: 16px;
+            color: var(--text-2);
+            margin-bottom: 32px;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+
+        /* SYNTAX HIGHLIGHTING */
+        pre {
+            background: #f8f9fa;
+            padding: 32px;
+            border-radius: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+            color: #24292e;
+            border: 1px solid var(--border);
+        }
+
+        .h {
+            color: var(--syn-heading);
+            font-weight: 700;
+        }
+
+        .p {
+            color: var(--syn-placeholder);
+            background: #f1f8ff;
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
+        .b {
+            color: var(--syn-bold);
+            font-weight: 600;
+        }
+
+        .hr {
+            color: var(--syn-hr);
+            opacity: 0.6;
+        }
+
+        /* SEO SECTION */
+        .seo-section {
+            padding: 100px 0;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .seo-title {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .seo-content p {
+            font-size: 17px;
+            color: var(--text-2);
+            margin-bottom: 24px;
+            line-height: 1.8;
+            font-weight: 300;
+        }
+
+        /* CONVERSION STRIP */
+        .cta-strip {
+            background: #000;
+            color: #fff;
+            padding: 80px 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            margin-bottom: 100px;
+        }
+
+        .cta-headline {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta-subhead {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 32px;
+            font-weight: 300;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 16px 40px;
+            background: var(--blue);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 980px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+        }
+
+        .cta-note {
+            margin-top: 16px;
+            font-size: 13px;
+            opacity: 0.5;
+        }
+
+        /* FOOTER */
+        footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: var(--text-2);
+            margin-bottom: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-2);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 20px;
+            }
+
+            .hero {
+                padding: 100px 0 40px;
+            }
+
+            .card-header {
+                flex-direction: column;
+            }
+
+            .card-actions {
+                width: 100%;
+            }
+
+            .btn-action {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-inner">
+            <a href="../index.html" class="logo">
+                <img src="../icon.png" alt="Glance">
+                Glance
+            </a>
+            <div class="nav-links">
+                <a href="../index.html">Product</a>
+                <a href="../docs.html">Docs</a>
+                <a href="index.html" class="active">Scripts</a>
+                <a href="../privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1 class="hero-title">Nail your next video call.</h1>
+            <p class="hero-subtitle">Free script templates for sales demos, presentations, and team updates.
+                Markdown-ready for your teleprompter.</p>
+        </section>
+
+        <div class="tabs-wrapper">
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="zoom">Zoom Presentation</button>
+                <button class="tab-btn" data-tab="sales">Sales Call</button>
+                <button class="tab-btn" data-tab="podcast">Podcast Intro</button>
+                <button class="tab-btn" data-tab="webinar">Webinar</button>
+                <button class="tab-btn" data-tab="demo">Product Demo</button>
+            </div>
+
+            <div class="template-container">
+                <!-- ZOOM PRESENTATION -->
+                <div class="template-card active" id="zoom">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Zoom Presentation Template</h2>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-action btn-copy">Copy Markdown</button>
+                            <a href="../index.html#download" class="btn-action btn-open">Start for free →</a>
+                        </div>
+                    </div>
+                    <p class="card-desc">Designed for structured quarterly reviews, board updates, or internal project
+                        pitches. Balances authority with clarity.</p>
+                    <pre><code><span class="h"># Presentation Title</span>
+
+<span class="hr">---</span>
+
+<span class="b">**OPEN**</span>
+<span class="hr">---</span>
+- Welcome everyone. Wait 15s for late arrivals.
+- <span class="p">[Hook line]</span>: "Today we are solving one specific bottleneck..."
+- Goal of today: <span class="p">[Outcome]</span>
+
+<span class="b">**SECTION 1: THE CURRENT STATE**</span>
+<span class="hr">---</span>
+- Where we are today: <span class="p">[Metric]</span>
+- The challenge: <span class="p">[Pain point]</span>
+- <span class="p">(Pause for reaction)</span>
+
+<span class="b">**SECTION 2: PROPOSED SOLUTION**</span>
+<span class="hr">---</span>
+- Transition: "So how do we fix this?"
+- Point A: <span class="p">[Logic]</span>
+- Point B: <span class="p">[Data]</span>
+
+<span class="b">**SECTION 3: THE IMPACT**</span>
+<span class="hr">---</span>
+- After implementation: <span class="p">[Future state]</span>
+- ROI estimate: <span class="p">[Number]</span>
+
+<span class="b">**CLOSE**</span>
+<span class="hr">---</span>
+- Next steps: <span class="p">[Action plan]</span>
+- "Does anyone have questions about the timeline?"</code></pre>
+                </div>
+
+                <!-- SALES CALL -->
+                <div class="template-card" id="sales">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Sales Discovery & Pitch</h2>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-action btn-copy">Copy Markdown</button>
+                            <a href="../index.html#download" class="btn-action btn-open">Start for free →</a>
+                        </div>
+                    </div>
+                    <p class="card-desc">Follows the SPICE framework. Focuses on discovery questions that uncover pain
+                        before pitching the solution.</p>
+                    <pre><code><span class="h"># Sales Discovery: <span class="p">[Company Name]</span></span>
+
+<span class="b">**PRE-CALL CHECKLIST**</span>
+- [ ] Research LinkedIn
+- [ ] Check CRM history
+- [ ] Verify person's role
+
+<span class="b">**OPEN (2 mins)**</span>
+- Goal: "Verify if Glance solves <span class="p">[Pain Point]</span>"
+- Agenda: Discovery -> Demo -> Next Steps
+
+<span class="b">**DISCOVERY**</span>
+- <span class="b">Situation:</span> "Walk me through how you handle <span class="p">[Process]</span> today?"
+- <span class="b">Impact:</span> "What happens if <span class="p">[Metric]</span> doesn't improve?"
+- <span class="b">Priority:</span> "Why solve this now?"
+
+<span class="b">**THE PITCH**</span>
+- Tie to pain: "You mentioned <span class="p">[Pain]</span>. Here is how we fix it."
+- Value 1: <span class="p">[USP]</span>
+
+<span class="b">**OBJECTIONS**</span>
+| Objection | Response |
+| :--- | :--- |
+| Too expensive | Focus on ROI |
+| No time | Focus on speed-to-value |
+
+<span class="b">**CLOSE**</span>
+- "Based on this, should we move to a pilot?"</code></pre>
+                </div>
+
+                <!-- PODCAST INTRO -->
+                <div class="template-card" id="podcast">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Podcast / Video Guest Intro</h2>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-action btn-copy">Copy Markdown</button>
+                            <a href="../index.html#download" class="btn-action btn-open">Start for free →</a>
+                        </div>
+                    </div>
+                    <p class="card-desc">High-energy opening for interview-style content. Keeps the flow tight and
+                        professional.</p>
+                    <pre><code><span class="h"># Episode Title: <span class="p">[Topic]</span></span>
+
+<span class="b">**HOOK**</span>
+- "Welcome to the show. Today we're diving into <span class="p">[Big Idea]</span>."
+- <span class="p">[Music Cue: Fade Up]</span>
+
+<span class="b">**HOST WELCOME**</span>
+- "I'm your host <span class="p">[Name]</span>, and this is <span class="p">[Podcast Name]</span>."
+
+<span class="b">**GUEST INTRO**</span>
+- "Joining us today is <span class="p">[Guest Name]</span>."
+- Achievements: <span class="p">[Point 1]</span>, <span class="p">[Point 2]</span>.
+- "Welcome to the show, <span class="p">[Guest Name]</span>!"
+
+<span class="b">**OPENING QUESTION**</span>
+- "Let's start here: How did you first discover <span class="p">[Topic]</span>?"
+
+<span class="b">**EPISODE ARC**</span>
+- 1. The Origin
+- 2. The Strategy
+- 3. The Future
+
+<span class="b">**OUTRO**</span>
+- "Where can people find you?"
+- "Thanks for listening. See you next Tuesday."</code></pre>
+                </div>
+
+                <!-- WEBINAR -->
+                <div class="template-card" id="webinar">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Webinar Content Framework</h2>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-action btn-copy">Copy Markdown</button>
+                            <a href="../index.html#download" class="btn-action btn-open">Start for free →</a>
+                        </div>
+                    </div>
+                    <p class="card-desc">Built to hold attention for 45+ minutes. Includes recurring engagement hooks
+                        and a soft-to-hard pitch transition.</p>
+                    <pre><code><span class="h"># Masterclass: <span class="p">[Outcome]</span></span>
+
+<span class="b">**PRE-SHOW CHAT**</span>
+- "Hey everyone! Where are you joining from? Type in the chat."
+
+<span class="b">**OPEN (5 mins)**</span>
+- The Promise: "By the end of this, you will know <span class="p">[Result]</span>."
+- The Credibility: "I've helped <span class="p">[Number]</span> people do exactly this."
+
+<span class="b">**CONTENT (30 mins)**</span>
+- <span class="b">Point 1:</span> <span class="p">[Insight]</span> -> Engagement: "Type YES if this makes sense."
+- <span class="b">Point 2:</span> <span class="p">[Method]</span>
+- <span class="b">Point 3:</span> <span class="p">[Secret]</span>
+
+<span class="b">**THE OFFER**</span>
+- The Shift: "You have two choices: go slow or go fast."
+- Product: <span class="p">[Offer Name]</span>
+- Bonus: <span class="p">[Scarcity Element]</span>
+
+<span class="b">**Q&A**</span>
+- "I'm staying until every question is answered."
+
+<span class="b">**CLOSE**</span>
+- Link in chat: <span class="p">[URL]</span></code></pre>
+                </div>
+
+                <!-- PRODUCT DEMO -->
+                <div class="template-card" id="demo">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <h2>Product Demo & Walkthrough</h2>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-action btn-copy">Copy Markdown</button>
+                            <a href="../index.html#download" class="btn-action btn-open">Start for free →</a>
+                        </div>
+                    </div>
+                    <p class="card-desc">Avoid the "Feature Factory" trap. This script links every feature demo directly
+                        to a pre-defined pain point.</p>
+                    <pre><code><span class="h"># Demo: Glance for <span class="p">[Prospect]</span></span>
+
+<span class="b">**DISCOVERY RECAP**</span>
+- "You mentioned that <span class="p">[Pain 1]</span> is costing you <span class="p">[Amount]</span> per month."
+- "I'm going to show you exactly how to automate that today."
+
+<span class="b">**FEATURE 1: <span class="p">[Name]</span>**</span>
+- <span class="b">Context:</span> "Since you struggle with <span class="p">[Problem]</span>..."
+- <span class="b">Action:</span> "I just click here..."
+- <span class="b">Value:</span> "Now you never have to <span class="p">[Manual Task]</span> again."
+
+<span class="b">**FEATURE 2: <span class="p">[Name]</span>**</span>
+- <span class="b">Benefit:</span> "This directly addresses <span class="p">[Goal]</span>."
+- <span class="p">(Check-in: "How would this compare to your current flow?")</span>
+
+<span class="b">**VALUE SUMMARY**</span>
+- 1. Saves <span class="p">[Time]</span>
+- 2. Increases <span class="p">[Metric]</span>
+
+<span class="b">**NEXT STEPS**</span>
+- "Does this align with your technical requirements?"
+- Set follow-up date: <span class="p">[Date]</span></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <section class="seo-section">
+            <h2 class="seo-title">Why a good script matters more than ever</h2>
+            <div class="seo-content">
+                <p>In a remote-first world, your video presence is your professional signature. Winging it often leads
+                    to rambling, missed points, and meetings that run over time. A well-structured script keeps you
+                    concise, respectful of everyone's time, and focused on the outcome.</p>
+                <p>However, writing a script is only half the battle. If you're constantly looking down at your desk or
+                    off to a second monitor to read your notes, you break eye contact and lose your audience's trust.
+                    The dreaded "reading side-glance" makes you look disconnected and unprepared.</p>
+                <p>That's why these templates are formatted in clear, scannable Markdown. They are designed to act as
+                    visual cues rather than a teleprompter word-salad. Pair them with a transparent desktop overlay like
+                    Glance, and you can keep your notes floating right beside your webcam—maintaining perfect eye
+                    contact while never missing a beat.</p>
+            </div>
+        </section>
+
+        <div class="cta-strip">
+            <h2 class="cta-headline">Nail the delivery, every time.</h2>
+            <p class="cta-subhead">Stop looking at notes and start looking at your audience.</p>
+            <a href="../index.html#download" class="btn-primary">Start for free →</a>
+            <p class="cta-note">No credit card · Works with Zoom, Meet, Teams</p>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. Not affiliated with Zoom, Microsoft, or Google.</p>
+            <div class="footer-links">
+                <a href="../index.html">Product</a>
+                <a href="../docs.html">Docs</a>
+                <a href="index.html">Script Templates</a>
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../refund.html">Refund Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching logic
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const cards = document.querySelectorAll('.template-card');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+
+                tabBtns.forEach(b => b.classList.remove('active'));
+                cards.forEach(c => c.classList.remove('active'));
+
+                btn.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+
+        // Copy to clipboard logic
+        document.querySelectorAll('.btn-copy').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const pre = btn.closest('.template-card').querySelector('pre');
+                const text = pre.innerText;
+
+                try {
+                    await navigator.clipboard.writeText(text);
+                    const originalText = btn.innerText;
+                    btn.innerText = '✓ Copied!';
+                    btn.style.background = '#ebf9ee';
+                    btn.style.color = '#22863a';
+
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
+                }
+            });
+        });
+
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => {
+            el.textContent = year;
+        });
+    </script>
+</body>
+
+</html>

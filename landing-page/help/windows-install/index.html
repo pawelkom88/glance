@@ -323,7 +323,7 @@
             font-size: 0.9em;
             color: #eb5757;
         }
-        
+
         article pre code {
             background: transparent;
             padding: 0;
@@ -416,6 +416,7 @@
             <div class="nav-links">
                 <a href="../../index.html">Product</a>
                 <a href="../../docs.html">Docs</a>
+                <a href="/script-template/">Scripts</a>
                 <a href="../../guides/">Guides</a>
                 <a href="../../privacy.html">Privacy</a>
             </div>
@@ -428,12 +429,13 @@
         <p class="article-meta">Help & Support</p>
 
         <article>
-            <p>This page explains common install outcomes and error codes for installing <strong>Glance</strong> on Windows (including installs initiated via Microsoft Store / Partner Center).</p>
+            <p>This page explains common install outcomes and error codes for installing <strong>Glance</strong> on
+                Windows (including installs initiated via Microsoft Store / Partner Center).</p>
 
             <hr />
 
             <h2>Installer return codes</h2>
-            
+
             <h3>Code <code>0</code> — Success</h3>
             <p>The app installed successfully.</p>
 
@@ -458,7 +460,8 @@
                 <li><strong>Close Glance if it’s running</strong>, then retry the installer.</li>
                 <li><strong>Check Windows Security / antivirus</strong>
                     <ul>
-                        <li>If “Controlled folder access” (Ransomware protection) is enabled, it may block installers.</li>
+                        <li>If “Controlled folder access” (Ransomware protection) is enabled, it may block installers.
+                        </li>
                         <li>Temporarily disable it or allow the installer, then retry.</li>
                     </ul>
                 </li>
@@ -484,19 +487,19 @@
             <p>If you’re testing locally, you can run the installer from Command Prompt and read the exit code.</p>
 
             <h3>Verify success (<code>0</code>)</h3>
-<pre><code>Glance_0.2.0_x64-setup.exe /S
+            <pre><code>Glance_0.2.0_x64-setup.exe /S
 echo %ERRORLEVEL%</code></pre>
 
             <h3>Verify cancel (<code>1</code>)</h3>
             <p>Run the installer <strong>without</strong> <code>/S</code>, click <strong>Cancel</strong>, then:</p>
-<pre><code>echo %ERRORLEVEL%</code></pre>
+            <pre><code>echo %ERRORLEVEL%</code></pre>
 
             <h3>Verify failure (<code>2</code>)</h3>
             <p>To intentionally trigger a failure, try installing while the app is running:</p>
             <ol>
                 <li>Start Glance.</li>
                 <li>Run:
-<pre><code>Glance_0.2.0_x64-setup.exe /S
+                    <pre><code>Glance_0.2.0_x64-setup.exe /S
 echo %ERRORLEVEL%</code></pre>
                 </li>
             </ol>
@@ -515,6 +518,7 @@ echo %ERRORLEVEL%</code></pre>
             <div class="footer-links">
                 <a href="../../index.html">Product</a>
                 <a href="../../docs.html">Docs</a>
+                <a href="/script-template/">Script Templates</a>
                 <a href="../../guides/">Guides</a>
                 <a href="../../privacy.html">Privacy Policy</a>
                 <a href="../../terms.html">Terms of Service</a>
