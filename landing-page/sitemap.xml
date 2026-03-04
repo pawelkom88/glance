@@ -1,14 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
     <loc>https://atglance.app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <video:video>
+      <video:thumbnail_loc>https://atglance.app/poster.webp</video:thumbnail_loc>
+      <video:title>Glance — The discreet teleprompter for professionals</video:title>
+      <video:description>See how Glance sits above your Zoom or Teams call to help you maintain eye contact while reading your script.</video:description>
+      <video:content_loc>https://atglance.app/glance-apple-promo-final.mp4</video:content_loc>
+      <video:publication_date>2026-03-01T08:00:00+00:00</video:publication_date>
+    </video:video>
   </url>
   <url>
     <loc>https://atglance.app/docs.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <video:video>
+      <video:thumbnail_loc>https://atglance.app/poster.webp</video:thumbnail_loc>
+      <video:title>Glance Onboarding Flow</video:title>
+      <video:description>Learn how to get started with Glance in seconds.</video:description>
+      <video:content_loc>https://atglance.app/onboarding-video.mp4</video:content_loc>
+      <video:publication_date>2026-03-01T08:00:00+00:00</video:publication_date>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://atglance.app/poster.webp</video:thumbnail_loc>
+      <video:title>Glance Section Jumps</video:title>
+      <video:description>See how to use Markdown headings to create instant jump points in your script.</video:description>
+      <video:content_loc>https://atglance.app/docs-sections-jump.mov</video:content_loc>
+      <video:publication_date>2026-03-01T08:00:00+00:00</video:publication_date>
+    </video:video>
   </url>
   <url>
     <loc>https://atglance.app/guides/</loc>

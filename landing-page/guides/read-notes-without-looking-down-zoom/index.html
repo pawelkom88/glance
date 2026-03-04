@@ -31,6 +31,58 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#ffffff" />
 
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@id": "https://atglance.app/#organization",
+          "@type": "Organization",
+          "name": "Glance",
+          "url": "https://atglance.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://atglance.app/logo.png"
+          }
+        },
+        {
+          "@type": "TechArticle",
+          "headline": "How to Read Notes on Zoom Without Looking Down",
+          "description": "A practical guide to using notes on Zoom without looking distracted. Fix your screen layout, shorten your notes, and keep your eyes near the camera.",
+          "image": "https://atglance.app/read-notes-without-looking-down-zoom.webp",
+          "author": { "@id": "https://atglance.app/#organization" },
+          "publisher": { "@id": "https://atglance.app/#organization" },
+          "datePublished": "2026-03-01T08:00:00+00:00",
+          "url": "https://atglance.app/guides/read-notes-without-looking-down-zoom/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://atglance.app/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Guides",
+              "item": "https://atglance.app/guides/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "How to Read Notes on Zoom Without Looking Down",
+              "item": "https://atglance.app/guides/read-notes-without-looking-down-zoom/"
+            }
+          ]
+        }
+      ]
+    }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link

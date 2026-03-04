@@ -35,6 +35,33 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@type": "VideoObject",
+                    "name": "Glance Onboarding Flow",
+                    "description": "Learn how to get started with Glance in seconds: prepare your script, position the prompter, and control your flow.",
+                    "thumbnailUrl": "https://atglance.app/poster.webp",
+                    "uploadDate": "2026-03-01T08:00:00+00:00",
+                    "contentUrl": "https://atglance.app/onboarding-video.mp4",
+                    "embedUrl": "https://atglance.app/docs.html"
+                },
+                {
+                    "@type": "VideoObject",
+                    "name": "Glance Section Jumps",
+                    "description": "See how to use Markdown headings to create instant jump points in your script for non-linear presentations.",
+                    "thumbnailUrl": "https://atglance.app/poster.webp",
+                    "uploadDate": "2026-03-01T08:00:00+00:00",
+                    "contentUrl": "https://atglance.app/docs-sections-jump.mov",
+                    "embedUrl": "https://atglance.app/docs.html"
+                }
+            ]
+        }
+    </script>
+
     <style>
         :root {
             --blue: #007AFF;
@@ -667,7 +694,7 @@
                 </ol>
 
 
-                <video controls style="width: 100%;">
+                <video controls poster="poster.webp" style="width: 100%;">
                     <source src="onboarding-video.webm" type="video/webm">
                     <source src="onboarding-video.mp4" type="video/mp4">
                 </video>
@@ -915,7 +942,7 @@
                 <p>Press <strong>Ctrl + [Number]</strong> to jump instantly to that section. Perfect for jumping back to
                     a specific talking point during a Q&A session.</p>
 
-                <video width="100%" controls>
+                <video width="100%" controls poster="poster.webp">
                     <source src="docs-sections-jump.webm" type="video/webm">
                     <source src="docs-sections-jump.mov" type="video/mp4">
                 </video>

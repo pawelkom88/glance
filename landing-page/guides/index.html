@@ -31,6 +31,49 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#ffffff" />
 
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@id": "https://atglance.app/#organization",
+          "@type": "Organization",
+          "name": "Glance",
+          "url": "https://atglance.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://atglance.app/logo.png"
+          }
+        },
+        {
+          "@type": "CollectionPage",
+          "name": "Guides | At a Glance",
+          "url": "https://atglance.app/guides/",
+          "description": "Practical guides for better video-call presence, camera confidence, and daily productivity habits.",
+          "publisher": { "@id": "https://atglance.app/#organization" }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://atglance.app/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Guides",
+              "item": "https://atglance.app/guides/"
+            }
+          ]
+        }
+      ]
+    }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link

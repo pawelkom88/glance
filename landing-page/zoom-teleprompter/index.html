@@ -35,6 +35,51 @@
     <link rel="icon" type="image/png" href="../favicon.png">
     <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@id": "https://atglance.app/#organization",
+                    "@type": "Organization",
+                    "name": "Glance",
+                    "url": "https://atglance.app/",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": "https://atglance.app/logo.png"
+                    }
+                },
+                {
+                    "@type": "SoftwareApplication",
+                    "name": "Glance — Zoom Teleprompter Overlay",
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": ["macOS", "Windows"],
+                    "description": "Glance is a discreet Zoom teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls.",
+                    "url": "https://atglance.app/zoom-teleprompter/",
+                    "publisher": { "@id": "https://atglance.app/#organization" }
+                },
+                {
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": 1,
+                            "name": "Home",
+                            "item": "https://atglance.app/"
+                        },
+                        {
+                            "@type": "ListItem",
+                            "position": 2,
+                            "name": "Zoom Teleprompter",
+                            "item": "https://atglance.app/zoom-teleprompter/"
+                        }
+                    ]
+                }
+            ]
+        }
+    </script>
+
     <style>
         :root {
             --bg: #ffffff;

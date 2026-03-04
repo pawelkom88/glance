@@ -28,6 +28,31 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@id": "https://atglance.app/#organization",
+                    "@type": "Organization",
+                    "name": "Glance",
+                    "url": "https://atglance.app/",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": "https://atglance.app/logo.png"
+                    }
+                },
+                {
+                    "@type": "WebPage",
+                    "name": "Privacy Policy | Glance",
+                    "url": "https://atglance.app/privacy.html",
+                    "publisher": { "@id": "https://atglance.app/#organization" }
+                }
+            ]
+        }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
