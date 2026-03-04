@@ -5,3 +5,15 @@
 [[edge_functions]]
   function = "accept-markdown"
   path = "/*"
+
+[[redirects]]
+  from = "https://www.atglance.app/*"
+  to = "https://atglance.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://atglance.app/*"
+  to = "https://atglance.app/:splat"
+  status = 301
+  force = true
