@@ -647,15 +647,15 @@ mod tests {
 
     #[test]
     fn parses_truthy_env_flags() {
-        std::env::set_var("GLANCE_TEST_BOOL_FLAG", "TRUE");
-        assert!(env_flag_enabled("GLANCE_TEST_BOOL_FLAG"));
-        std::env::remove_var("GLANCE_TEST_BOOL_FLAG");
+        std::env::set_var("GLANCE_TEST_BOOL_FLAG_TRUTHY", "TRUE");
+        assert!(env_flag_enabled("GLANCE_TEST_BOOL_FLAG_TRUTHY"));
+        std::env::remove_var("GLANCE_TEST_BOOL_FLAG_TRUTHY");
     }
 
     #[test]
     fn rejects_unknown_env_flags() {
-        std::env::set_var("GLANCE_TEST_BOOL_FLAG", "0");
-        assert!(!env_flag_enabled("GLANCE_TEST_BOOL_FLAG"));
-        std::env::remove_var("GLANCE_TEST_BOOL_FLAG");
+        std::env::set_var("GLANCE_TEST_BOOL_FLAG_UNKNOWN", "0");
+        assert!(!env_flag_enabled("GLANCE_TEST_BOOL_FLAG_UNKNOWN"));
+        std::env::remove_var("GLANCE_TEST_BOOL_FLAG_UNKNOWN");
     }
 }
