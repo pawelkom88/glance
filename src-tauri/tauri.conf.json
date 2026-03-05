@@ -41,7 +41,7 @@
     "createUpdaterArtifacts": true,
     "windows": {
       "nsis": {
-        "installMode": "currentUser",
+        "installMode": "perMachine",
         "installerHooks": "windows/nsis-hooks.nsh"
       }
     },
