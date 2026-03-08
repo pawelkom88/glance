@@ -7,6 +7,7 @@ import { validMarkdown, validSessionSummary } from '../fixtures/sessions';
 
 const tauriMocks = vi.hoisted(() => ({
   closeOverlayWindow: vi.fn(),
+  quitApp: vi.fn(),
   showMainWindow: vi.fn(),
   listenForShortcutEvents: vi.fn(),
   recoverOverlayFocus: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock('../../../lib/tauri', () => ({
   setLastActiveSessionId: vi.fn(),
   closeOverlayWindow: tauriMocks.closeOverlayWindow,
   listenForShortcutEvents: tauriMocks.listenForShortcutEvents,
+  quitApp: tauriMocks.quitApp,
   recoverOverlayFocus: tauriMocks.recoverOverlayFocus,
   saveOverlayBoundsForMonitor: tauriMocks.saveOverlayBoundsForMonitor,
   setLastOverlayMonitorName: tauriMocks.setLastOverlayMonitorName,
@@ -53,6 +55,7 @@ describe('Medium behavior: timer mode persistence', () => {
 
     tauriMocks.listenForShortcutEvents.mockResolvedValue(() => undefined);
     tauriMocks.closeOverlayWindow.mockResolvedValue(undefined);
+    tauriMocks.quitApp.mockResolvedValue(undefined);
     tauriMocks.showMainWindow.mockResolvedValue(undefined);
     tauriMocks.snapOverlayToTopCenter.mockResolvedValue({ x: 0, y: 0, monitorName: 'Built-in' });
 

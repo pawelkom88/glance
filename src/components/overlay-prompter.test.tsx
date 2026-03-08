@@ -6,6 +6,7 @@ import { OverlayPrompter } from './overlay-prompter';
 
 const tauriMocks = vi.hoisted(() => ({
   closeOverlayWindow: vi.fn(),
+  quitApp: vi.fn(),
   showMainWindow: vi.fn(),
   listenForShortcutEvents: vi.fn(),
   recoverOverlayFocus: vi.fn(),
@@ -55,6 +56,7 @@ vi.mock('../lib/tauri', () => ({
   getLastActiveSessionId: vi.fn().mockReturnValue(null),
   getLastOverlayMonitorName: vi.fn().mockReturnValue(null),
   listenForShortcutEvents: tauriMocks.listenForShortcutEvents,
+  quitApp: tauriMocks.quitApp,
   recoverOverlayFocus: tauriMocks.recoverOverlayFocus,
   saveOverlayBoundsForMonitor: tauriMocks.saveOverlayBoundsForMonitor,
   setLastOverlayMonitorName: tauriMocks.setLastOverlayMonitorName,
@@ -119,6 +121,7 @@ beforeEach(() => {
     }
   );
   tauriMocks.closeOverlayWindow.mockResolvedValue(undefined);
+  tauriMocks.quitApp.mockResolvedValue(undefined);
   tauriMocks.showMainWindow.mockResolvedValue(undefined);
   tauriMocks.listenForShortcutEvents.mockResolvedValue(() => undefined);
   tauriMocks.recoverOverlayFocus.mockResolvedValue(undefined);
@@ -251,6 +254,19 @@ describe('OverlayPrompter behavior', () => {
       expect(tauriMocks.closeOverlayWindow).toHaveBeenCalledTimes(1);
       expect(tauriMocks.showMainWindow).toHaveBeenCalledWith();
     });
+  });
+
+  it('quits the app on Cmd+W in Tauri mode instead of reopening the editor', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    render(<OverlayPrompter />);
+
+    fireEvent.keyDown(window, { key: 'w', metaKey: true });
+
+    await waitFor(() => {
+      expect(tauriMocks.quitApp).toHaveBeenCalledTimes(1);
+    });
+    expect(tauriMocks.closeOverlayWindow).not.toHaveBeenCalled();
+    expect(tauriMocks.showMainWindow).not.toHaveBeenCalled();
   });
 
   it('applies speed keyboard shortcuts with visible speed feedback', () => {

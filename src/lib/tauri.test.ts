@@ -11,6 +11,7 @@ import {
   moveOverlayToMonitor,
   moveWindowToMonitor,
   openOverlayWindow,
+  quitApp,
   snapOverlayToTopCenter,
   showMainWindow
 } from './tauri';
@@ -143,6 +144,14 @@ describe('tauri monitor bridge behavior', () => {
     await showMainWindow();
 
     expect(invokeMock).toHaveBeenCalledWith('show_main_window');
+  });
+
+  it('quitApp invokes the backend quit command', async () => {
+    invokeMock.mockResolvedValue(undefined);
+
+    await quitApp();
+
+    expect(invokeMock).toHaveBeenCalledWith('quit_app');
   });
 
   it('getMonitors returns backend monitor metadata sorted primary-first', async () => {
