@@ -89,6 +89,8 @@ function resetStore(): void {
     scrollSpeed: 42,
     overlayFontScale: 1,
     showReadingRuler: true,
+    vadEnabled: true,
+    voicePauseDelayMs: 1500,
     toastMessage: null
   });
 }
@@ -267,6 +269,13 @@ describe('OverlayPrompter behavior', () => {
     expect(container.querySelector('.overlay-speed-icon-slow.is-animating')).toBeTruthy();
   });
 
+  it('keeps voice auto-pause controls out of the overlay UI', async () => {
+    render(<OverlayPrompter />);
+
+    expect(screen.queryByRole('slider', { name: 'Pause delay after silence' })).toBeNull();
+    expect(screen.queryByText('Pause After Silence')).toBeNull();
+  });
+
   it('supports jump menu keyboard navigation with Arrow keys, Home, and End', async () => {
     const user = userEvent.setup();
     render(<OverlayPrompter />);
@@ -323,24 +332,34 @@ describe('OverlayPrompter behavior', () => {
     expect(overlayRoot?.style.getPropertyValue('--overlay-controls-opacity')).toBe('0.5');
   });
 
-  it('renders desktop timer and voice controls together in the footer', () => {
+  it('renders the timer and a passive voice status in the desktop footer when enabled', () => {
     setViewport(1440, 900);
     const { container } = render(<OverlayPrompter />);
 
     const desktopStatus = container.querySelector('.overlay-speed-footer .overlay-footer-status-center-desktop');
     expect(desktopStatus?.querySelector('.overlay-timer-chip')).toBeTruthy();
-    expect(desktopStatus?.querySelector('.overlay-vad-group.is-desktop')).toBeTruthy();
-    expect(container.querySelector('.overlay-controls-desktop .overlay-vad-group')).toBeNull();
+    expect(desktopStatus?.querySelector('.overlay-voice-status')).toBeTruthy();
+    expect(container.querySelector('.overlay-mic-toggle')).toBeNull();
+    expect(screen.getAllByText('Voice').length).toBeGreaterThan(0);
   });
 
-  it('keeps compact voice controls in the inline status row below 1200px', () => {
+  it('avoids duplicating the passive voice status in the compact row below 1200px', () => {
     setViewport(1100, 900);
     const { container } = render(<OverlayPrompter />);
 
     const compactStatusRow = container.querySelector('.overlay-compact-status-row');
-    expect(compactStatusRow?.querySelector('.overlay-mic-toggle-compact')).toBeTruthy();
-    expect(container.querySelector('.overlay-controls .overlay-footer-status-center .overlay-vad-group')).toBeNull();
+    expect(compactStatusRow?.querySelector('.overlay-mic-toggle-compact')).toBeNull();
+    expect(compactStatusRow?.querySelector('.overlay-voice-status')).toBeNull();
+    expect(container.querySelectorAll('.overlay-voice-status')).toHaveLength(1);
     expect(container.querySelector('.overlay-speed-footer .overlay-footer-status-center-desktop')).toBeNull();
+  });
+
+  it('hides the passive voice status when voice auto-pause is disabled', () => {
+    useAppStore.setState({ vadEnabled: false });
+    const { container } = render(<OverlayPrompter />);
+
+    expect(container.querySelector('.overlay-voice-status')).toBeNull();
+    expect(screen.queryByText('Voice')).toBeNull();
   });
 
   it('shows error toast when close request fails', async () => {

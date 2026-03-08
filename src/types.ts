@@ -155,9 +155,3 @@ export interface ToastMessage {
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
-
-export enum VadSensitivity {
-  Low = 'low',
-  Medium = 'medium',
-  High = 'high',
-}

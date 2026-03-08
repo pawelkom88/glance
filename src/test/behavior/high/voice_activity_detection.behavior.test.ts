@@ -3,350 +3,332 @@
  *
  * Priority: high
  *
- * These tests describe the OBSERVABLE BEHAVIOUR of the VAD feature, not the
- * internal mechanics.  The Web Audio API is fully faked so no real mic access
- * occurs during testing.
- *
- * Covered behaviours:
- *  1. VAD is disabled by default (opt-in, privacy-first)
- *  2. When enabled, silence exceeding the threshold pauses the prompter
- *  3. When speech resumes, the prompter automatically unpauses
- *  4. Sensitivity thresholds (low / medium / high) affect when silence is declared
- *  5. Prompter that was already paused by the user stays paused after speech resumes
- *  6. Disabling VAD mid-session has no effect on current playback state
- *  7. VAD preference persists across sessions via localStorage
- *  8. Stopping the mic stream gracefully cleans up without errors
+ * These tests describe the observable behaviour of the pause-delay controller.
+ * The Web Audio API is fully faked so no real mic access occurs during testing.
  */
 
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-    VadSensitivity,
-    VAD_RMS_THRESHOLDS,
-    VAD_SILENCE_DURATION_MS,
-    createVoiceActivityController,
-    type VoiceActivityController,
-    readVadPrefs,
-    writeVadPrefs,
+  DEFAULT_VOICE_PAUSE_DELAY_MS,
+  MAX_VOICE_PAUSE_DELAY_MS,
+  MEDIUM_VOICE_RMS_THRESHOLD,
+  MIN_VOICE_PAUSE_DELAY_MS,
+  VOICE_PAUSE_DELAY_STEP_MS,
+  createVoiceActivityController,
+  formatVoicePauseDelayLabel,
+  normalizeVoicePauseDelayMs,
+  type VoiceActivityController
 } from '../../../lib/voice-activity';
 
-// ---------------------------------------------------------------------------
-// Fake Web Audio API
-// ---------------------------------------------------------------------------
-
 class FakeAnalyserNode {
-    fftSize = 256;
-    private _rms = 0;
+  fftSize = 256;
+  private rms = 0;
 
-    setRms(value: number) {
-        this._rms = value;
-    }
+  setRms(value: number) {
+    this.rms = value;
+  }
 
-    getByteTimeDomainData(buffer: Uint8Array) {
-        // Encode the RMS target into every sample so the controller can decode it.
-        // A flat signal at value v has RMS = |v - 128| / 128 after normalisation.
-        const amplitude = Math.round(this._rms * 128);
-        buffer.fill(128 + amplitude);
-    }
+  getByteTimeDomainData(buffer: Uint8Array) {
+    const amplitude = Math.round(this.rms * 128);
+    buffer.fill(128 + amplitude);
+  }
 }
 
 class FakeAudioContext {
-    state: AudioContextState = 'running';
-    readonly analyser = new FakeAnalyserNode();
+  state: AudioContextState = 'running';
+  readonly analyser = new FakeAnalyserNode();
 
-    createAnalyser() {
-        return this.analyser;
-    }
+  createAnalyser() {
+    return this.analyser;
+  }
 
-    createMediaStreamSource(_stream: MediaStream) {
-        return {
-            connect: (_node: unknown) => { },
-            disconnect: () => { },
-        };
-    }
+  createMediaStreamSource(_stream: MediaStream) {
+    return {
+      connect: (_node: unknown) => {},
+      disconnect: () => {}
+    };
+  }
 
-    close() {
-        this.state = 'closed';
-        return Promise.resolve();
-    }
+  close() {
+    this.state = 'closed';
+    return Promise.resolve();
+  }
 }
 
 function makeFakeStream() {
-    return { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream;
+  return { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream;
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function advanceTimersByMs(ms: number) {
-    vi.advanceTimersByTime(ms);
+  vi.advanceTimersByTime(ms);
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+describe('Voice Activity Detection — silence delay behavior', () => {
+  let controller: VoiceActivityController;
+  let fakeCtx: FakeAudioContext;
+  let onSilence: ReturnType<typeof vi.fn>;
+  let onSpeech: ReturnType<typeof vi.fn>;
 
-describe('Voice Activity Detection — disabled by default', () => {
-    it('reads vadEnabled as false when no preference is stored', () => {
-        window.localStorage.clear();
-        const prefs = readVadPrefs();
-        expect(prefs.enabled).toBe(false);
-    });
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fakeCtx = new FakeAudioContext();
+    onSilence = vi.fn();
+    onSpeech = vi.fn();
 
-    it('reads vadSensitivity as medium when no preference is stored', () => {
-        window.localStorage.clear();
-        const prefs = readVadPrefs();
-        expect(prefs.sensitivity).toBe(VadSensitivity.Medium);
+    controller = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: DEFAULT_VOICE_PAUSE_DELAY_MS,
+      onSilence: onSilence as unknown as () => void,
+      onSpeech: onSpeech as unknown as () => void
     });
+  });
+
+  afterEach(() => {
+    controller.destroy();
+    vi.useRealTimers();
+  });
+
+  it('does not fire onSilence before the configured delay elapses', () => {
+    fakeCtx.analyser.setRms(0);
+    controller.start();
+
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS - 100);
+
+    expect(onSilence).not.toHaveBeenCalled();
+  });
+
+  it('fires onSilence after the configured delay elapses', () => {
+    fakeCtx.analyser.setRms(0);
+    controller.start();
+
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS + 50);
+
+    expect(onSilence).toHaveBeenCalledOnce();
+  });
+
+  it('fires onSpeech when audio rises above the fixed speech threshold after a VAD pause', () => {
+    fakeCtx.analyser.setRms(0);
+    controller.start();
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS + 50);
+
+    fakeCtx.analyser.setRms(MEDIUM_VOICE_RMS_THRESHOLD + 0.05);
+    advanceTimersByMs(200);
+
+    expect(onSilence).toHaveBeenCalledOnce();
+    expect(onSpeech).toHaveBeenCalledOnce();
+  });
+
+  it('does not fire onSilence while audio stays above the fixed speech threshold', () => {
+    fakeCtx.analyser.setRms(MEDIUM_VOICE_RMS_THRESHOLD + 0.1);
+    controller.start();
+
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS * 3);
+
+    expect(onSilence).not.toHaveBeenCalled();
+  });
+
+  it('resets the silence timer when speech interrupts a silence window', () => {
+    fakeCtx.analyser.setRms(0);
+    controller.start();
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS - 200);
+
+    fakeCtx.analyser.setRms(MEDIUM_VOICE_RMS_THRESHOLD + 0.1);
+    advanceTimersByMs(100);
+
+    fakeCtx.analyser.setRms(0);
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS - 100);
+    expect(onSilence).not.toHaveBeenCalled();
+
+    advanceTimersByMs(200);
+    expect(onSilence).toHaveBeenCalledOnce();
+  });
 });
 
-describe('Voice Activity Detection — preference persistence', () => {
-    beforeEach(() => {
-        window.localStorage.clear();
+describe('Voice Activity Detection — pause delay presets', () => {
+  let fakeCtx: FakeAudioContext;
+  let onSilence: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fakeCtx = new FakeAudioContext();
+    onSilence = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    onSilence.mockReset();
+  });
+
+  it('uses a 0.5s to 3.0s slider range with 0.5s snapping and a 1.5s default', () => {
+    expect(MIN_VOICE_PAUSE_DELAY_MS).toBe(500);
+    expect(MAX_VOICE_PAUSE_DELAY_MS).toBe(3000);
+    expect(VOICE_PAUSE_DELAY_STEP_MS).toBe(500);
+    expect(DEFAULT_VOICE_PAUSE_DELAY_MS).toBe(1500);
+  });
+
+  it('pauses sooner with a 0.5s delay than with a 3.0s delay for the same silent audio', () => {
+    const oneSecondController = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: 500,
+      onSilence: onSilence as unknown as () => void,
+      onSpeech: vi.fn() as unknown as () => void
     });
 
-    it('persists enabled flag across reads', () => {
-        writeVadPrefs({ enabled: true, sensitivity: VadSensitivity.High });
-        const prefs = readVadPrefs();
-        expect(prefs.enabled).toBe(true);
-        expect(prefs.sensitivity).toBe(VadSensitivity.High);
+    const threeSecondOnSilence = vi.fn();
+    const threeSecondController = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: 3000,
+      onSilence: threeSecondOnSilence as unknown as () => void,
+      onSpeech: vi.fn() as unknown as () => void
     });
 
-    it('round-trips all sensitivity values', () => {
-        for (const sensitivity of Object.values(VadSensitivity)) {
-            writeVadPrefs({ enabled: false, sensitivity });
-            expect(readVadPrefs().sensitivity).toBe(sensitivity);
-        }
-    });
-});
+    fakeCtx.analyser.setRms(0);
+    oneSecondController.start();
+    threeSecondController.start();
 
-describe('Voice Activity Detection — silence detection pauses prompter', () => {
-    let controller: VoiceActivityController;
-    let fakeCtx: FakeAudioContext;
-    let onSilence: ReturnType<typeof vi.fn>;
-    let onSpeech: ReturnType<typeof vi.fn>;
+    advanceTimersByMs(1000);
 
-    beforeEach(() => {
-        vi.useFakeTimers();
-        fakeCtx = new FakeAudioContext();
-        onSilence = vi.fn();
-        onSpeech = vi.fn();
+    expect(onSilence).toHaveBeenCalledOnce();
+    expect(threeSecondOnSilence).not.toHaveBeenCalled();
 
-        controller = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: makeFakeStream(),
-            sensitivity: VadSensitivity.Medium,
-            onSilence: onSilence as unknown as () => void,
-            onSpeech: onSpeech as unknown as () => void,
-        });
+    oneSecondController.destroy();
+    threeSecondController.destroy();
+  });
+
+  it('uses the same speech threshold regardless of the chosen pause delay', () => {
+    const oneSecondOnSpeech = vi.fn();
+    const oneSecondController = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: 500,
+      onSilence: onSilence as unknown as () => void,
+      onSpeech: oneSecondOnSpeech as unknown as () => void
     });
 
-    afterEach(() => {
-        controller.destroy();
-        vi.useRealTimers();
+    const threeSecondOnSilence = vi.fn();
+    const threeSecondOnSpeech = vi.fn();
+    const threeSecondController = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: 3000,
+      onSilence: threeSecondOnSilence as unknown as () => void,
+      onSpeech: threeSecondOnSpeech as unknown as () => void
     });
 
-    it('does not fire onSilence immediately when silence starts', () => {
-        fakeCtx.analyser.setRms(0); // silent
-        controller.start();
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] - 100);
-        expect(onSilence).not.toHaveBeenCalled();
-    });
+    fakeCtx.analyser.setRms(0);
+    oneSecondController.start();
+    threeSecondController.start();
+    advanceTimersByMs(3100);
 
-    it('fires onSilence after the silence threshold duration has elapsed', () => {
-        fakeCtx.analyser.setRms(0); // silent
-        controller.start();
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] + 50);
-        expect(onSilence).toHaveBeenCalledOnce();
-    });
+    fakeCtx.analyser.setRms(MEDIUM_VOICE_RMS_THRESHOLD + 0.02);
+    advanceTimersByMs(200);
 
-    it('fires onSpeech when RMS rises above the voice threshold while paused by VAD', () => {
-        fakeCtx.analyser.setRms(0);
-        controller.start();
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] + 50);
-        expect(onSilence).toHaveBeenCalledOnce();
+    expect(onSilence).toHaveBeenCalledOnce();
+    expect(threeSecondOnSilence).toHaveBeenCalledOnce();
+    expect(oneSecondOnSpeech).toHaveBeenCalledOnce();
+    expect(threeSecondOnSpeech).toHaveBeenCalledOnce();
 
-        fakeCtx.analyser.setRms(VAD_RMS_THRESHOLDS[VadSensitivity.Medium] + 0.05);
-        advanceTimersByMs(200);
-        expect(onSpeech).toHaveBeenCalledOnce();
-    });
+    oneSecondController.destroy();
+    threeSecondController.destroy();
+  });
 
-    it('does NOT fire onSilence when audio is above the threshold', () => {
-        fakeCtx.analyser.setRms(VAD_RMS_THRESHOLDS[VadSensitivity.Medium] + 0.1);
-        controller.start();
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] * 3);
-        expect(onSilence).not.toHaveBeenCalled();
-    });
+  it('normalizes free values to the nearest supported slider step', () => {
+    expect(normalizeVoicePauseDelayMs(1400)).toBe(1500);
+    expect(normalizeVoicePauseDelayMs(2600)).toBe(2500);
+    expect(normalizeVoicePauseDelayMs(99999)).toBe(3000);
+    expect(normalizeVoicePauseDelayMs(Number.NaN)).toBe(1500);
+  });
 
-    it('resets the silence timer when speech interrupts a silence window', () => {
-        fakeCtx.analyser.setRms(0);
-        controller.start();
-        // Advance almost to the threshold…
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] - 200);
-
-        // Brief speech
-        fakeCtx.analyser.setRms(VAD_RMS_THRESHOLDS[VadSensitivity.Medium] + 0.1);
-        advanceTimersByMs(100);
-
-        // Go silent again — timer should restart from zero
-        fakeCtx.analyser.setRms(0);
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] - 100);
-        expect(onSilence).not.toHaveBeenCalled();
-
-        // Now cross the full threshold
-        advanceTimersByMs(200);
-        expect(onSilence).toHaveBeenCalledOnce();
-    });
-});
-
-describe('Voice Activity Detection — sensitivity thresholds', () => {
-    let fakeCtx: FakeAudioContext;
-    let onSilence: ReturnType<typeof vi.fn>;
-
-    beforeEach(() => {
-        vi.useFakeTimers();
-        fakeCtx = new FakeAudioContext();
-        onSilence = vi.fn();
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
-        onSilence.mockReset();
-    });
-
-    it('Low sensitivity requires longer silence before pausing than High', () => {
-        // Low = user needs to be quiet for longer before the prompter pauses
-        expect(VAD_SILENCE_DURATION_MS[VadSensitivity.Low])
-            .toBeGreaterThan(VAD_SILENCE_DURATION_MS[VadSensitivity.High]);
-    });
-
-    it('High sensitivity detects silence at a lower RMS than Low', () => {
-        // High = more sensitive = triggers at quieter audio
-        expect(VAD_RMS_THRESHOLDS[VadSensitivity.High])
-            .toBeLessThan(VAD_RMS_THRESHOLDS[VadSensitivity.Low]);
-    });
-
-    it('fires onSilence sooner with High sensitivity than with Low for the same audio', () => {
-        const highController = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: makeFakeStream(),
-            sensitivity: VadSensitivity.High,
-            onSilence: onSilence as unknown as () => void,
-            onSpeech: vi.fn() as unknown as () => void,
-        });
-
-        const lowOnSilence = vi.fn();
-        const lowController = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: makeFakeStream(),
-            sensitivity: VadSensitivity.Low,
-            onSilence: lowOnSilence as unknown as () => void,
-            onSpeech: vi.fn() as unknown as () => void,
-        });
-
-        fakeCtx.analyser.setRms(0);
-        highController.start();
-        lowController.start();
-
-        // Advance past High threshold but not Low threshold
-        const midpoint = Math.floor(
-            (VAD_SILENCE_DURATION_MS[VadSensitivity.High] +
-                VAD_SILENCE_DURATION_MS[VadSensitivity.Low]) / 2
-        );
-        advanceTimersByMs(midpoint);
-
-        expect(onSilence).toHaveBeenCalledOnce();
-        expect(lowOnSilence).not.toHaveBeenCalled();
-
-        highController.destroy();
-        lowController.destroy();
-    });
+  it('formats pause delay labels for visible inline values', () => {
+    expect(formatVoicePauseDelayLabel(1500, 'en')).toBe('1.5s');
+    expect(formatVoicePauseDelayLabel(2000, 'en')).toBe('2s');
+  });
 });
 
 describe('Voice Activity Detection — lifecycle and cleanup', () => {
-    beforeEach(() => {
-        vi.useFakeTimers();
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('destroy() halts polling so onSilence is never called after it', () => {
+    const fakeCtx = new FakeAudioContext();
+    const onSilence = vi.fn();
+
+    const controller = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: DEFAULT_VOICE_PAUSE_DELAY_MS,
+      onSilence,
+      onSpeech: vi.fn()
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
+    fakeCtx.analyser.setRms(0);
+    controller.start();
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS / 2);
+
+    controller.destroy();
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS * 2);
+
+    expect(onSilence).not.toHaveBeenCalled();
+  });
+
+  it('destroy() closes the AudioContext', () => {
+    const fakeCtx = new FakeAudioContext();
+    const controller = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: DEFAULT_VOICE_PAUSE_DELAY_MS,
+      onSilence: vi.fn(),
+      onSpeech: vi.fn()
     });
 
-    it('stop() halts polling so onSilence is never called after it', () => {
-        const fakeCtx = new FakeAudioContext();
-        const onSilence = vi.fn();
+    controller.start();
+    controller.destroy();
 
-        const controller = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: makeFakeStream(),
-            sensitivity: VadSensitivity.Medium,
-            onSilence,
-            onSpeech: vi.fn(),
-        });
+    expect(fakeCtx.state).toBe('closed');
+  });
 
-        fakeCtx.analyser.setRms(0);
-        controller.start();
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] / 2);
+  it('destroy() stops each media stream track', () => {
+    const fakeCtx = new FakeAudioContext();
+    const fakeTrack = { stop: vi.fn() };
+    const fakeStream = { getTracks: () => [fakeTrack] } as unknown as MediaStream;
 
-        controller.destroy();
-
-        // Continue advancing — no callbacks should fire
-        advanceTimersByMs(VAD_SILENCE_DURATION_MS[VadSensitivity.Medium] * 2);
-        expect(onSilence).not.toHaveBeenCalled();
+    const controller = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: fakeStream,
+      silenceDelayMs: DEFAULT_VOICE_PAUSE_DELAY_MS,
+      onSilence: vi.fn(),
+      onSpeech: vi.fn()
     });
 
-    it('stop() closes the AudioContext', async () => {
-        const fakeCtx = new FakeAudioContext();
+    controller.start();
+    controller.destroy();
 
-        const controller = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: makeFakeStream(),
-            sensitivity: VadSensitivity.Medium,
-            onSilence: vi.fn(),
-            onSpeech: vi.fn(),
-        });
+    expect(fakeTrack.stop).toHaveBeenCalledOnce();
+  });
 
-        controller.start();
-        controller.destroy();
-
-        // AudioContext should be closed
-        expect(fakeCtx.state).toBe('closed');
+  it('calling destroy() multiple times does not throw', () => {
+    const fakeCtx = new FakeAudioContext();
+    const controller = createVoiceActivityController({
+      audioContext: fakeCtx as unknown as AudioContext,
+      stream: makeFakeStream(),
+      silenceDelayMs: DEFAULT_VOICE_PAUSE_DELAY_MS,
+      onSilence: vi.fn(),
+      onSpeech: vi.fn()
     });
 
-    it('stop() calls getTracks().stop() on the stream', () => {
-        const fakeCtx = new FakeAudioContext();
-        const fakeTrack = { stop: vi.fn() };
-        const fakeStream = { getTracks: () => [fakeTrack] } as unknown as MediaStream;
+    controller.start();
 
-        const controller = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: fakeStream,
-            sensitivity: VadSensitivity.Medium,
-            onSilence: vi.fn(),
-            onSpeech: vi.fn(),
-        });
-
-        controller.start();
-        controller.destroy();
-
-        expect(fakeTrack.stop).toHaveBeenCalledOnce();
-    });
-
-    it('calling destroy() multiple times does not throw', () => {
-        const fakeCtx = new FakeAudioContext();
-        const controller = createVoiceActivityController({
-            audioContext: fakeCtx as unknown as AudioContext,
-            stream: makeFakeStream(),
-            sensitivity: VadSensitivity.Medium,
-            onSilence: vi.fn(),
-            onSpeech: vi.fn(),
-        });
-
-        controller.start();
-
-        expect(() => {
-            controller.destroy();
-            controller.destroy();
-        }).not.toThrow();
-    });
+    expect(() => {
+      controller.destroy();
+      controller.destroy();
+    }).not.toThrow();
+  });
 });

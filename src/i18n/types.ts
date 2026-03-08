@@ -249,10 +249,10 @@ export interface TranslationCatalog {
     readonly sectionCounter: (params: { readonly current: number; readonly total: number }) => string;
     readonly closeErrorToast: string;
     readonly autoPauseToggleAria: string;
-    readonly autoPauseSensitivityAria: string;
-    readonly autoPauseSensitivityLow: string;
-    readonly autoPauseSensitivityMedium: string;
-    readonly autoPauseSensitivityHigh: string;
+    readonly autoPauseDelayAria: string;
+    readonly autoPauseDelayOneSecond: string;
+    readonly autoPauseDelayTwoSeconds: string;
+    readonly autoPauseDelayThreeSeconds: string;
     readonly autoPausePermissionError: string;
   };
   readonly settingsView: {
@@ -267,11 +267,8 @@ export interface TranslationCatalog {
       readonly enabledTitle: string;
       readonly enabledSubtitle: string;
       readonly enabledAria: string;
-      readonly sensitivityTitle: string;
-      readonly sensitivitySubtitle: string;
-      readonly sensitivityLowHint: string;
-      readonly sensitivityMediumHint: string;
-      readonly sensitivityHighHint: string;
+      readonly pauseDelayTitle: string;
+      readonly pauseDelaySubtitle: string;
     };
     readonly appearance: {
       readonly title: string;

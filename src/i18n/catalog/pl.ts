@@ -295,12 +295,16 @@ export const plCatalog: TranslationCatalog = {
         timerDisplay: ({ mode, time }) => `Timer: ${mode === 'Count Up' ? 'wszerz' : 'w dół'}, czas: ${time}`,
         sectionCounter: ({ current, total }) => `Sekcja ${current} z ${total}`,
         closeErrorToast: 'Nie udało się zamknąć promptera',
-        autoPauseToggleAria: 'Automatyczna pauza przy ciszy',
-        autoPauseSensitivityAria: 'Czułość automatycznej pauzy',
-        autoPauseSensitivityLow: 'Niska',
-        autoPauseSensitivityMedium: 'Średnio',
-        autoPauseSensitivityHigh: 'Wysoka',
-        autoPausePermissionError: 'Odmowa dostępu do mikrofonu'
+        autoPauseToggleAria: 'Automatyczna pauza głosem',
+        autoPauseDelayAria: 'Opóźnienie pauzy po ciszy',
+        autoPauseDelayOneSecond: '1 s',
+        autoPauseDelayTwoSeconds: '2 s',
+        autoPauseDelayThreeSeconds: '3 s',
+        autoPausePermissionError: 'Odmowa dostępu do mikrofonu',
+        autoPauseStatusLabel: 'Głos',
+        autoPauseStatusListening: 'Automatyczna pauza głosowa nasłuchuje',
+        autoPauseStatusSilent: 'Automatyczna pauza głosowa czeka, aż znów zaczniesz mówić',
+        autoPauseStatusStarting: 'Automatyczna pauza głosowa uruchamia się'
     },
     settingsView: {
         title: 'Ustawienia',
@@ -310,15 +314,12 @@ export const plCatalog: TranslationCatalog = {
             support: 'Wsparcie'
         },
         vad: {
-            title: 'Wykrywanie aktywności głosowej',
+            title: 'Auto-pauza głosem',
             enabledTitle: 'Auto-pauza głosem',
             enabledSubtitle: 'Automatycznie zatrzymuj prompter, gdy przestaniesz mówić.',
             enabledAria: 'Włącz wykrywanie aktywności głosowej',
-            sensitivityTitle: 'Czułość VAD',
-            sensitivitySubtitle: 'Dostosuj, jak czułe powinno być wykrywanie.',
-            sensitivityLowHint: 'Lepsze dla głośnych pomieszczeń. Ignoruje dźwięki tła, ale wymaga głośniejszego głosu.',
-            sensitivityMediumHint: 'Standardowe ustawienie dla większości cichych biur.',
-            sensitivityHighHint: 'Ekstremalnie czułe. Przerywa natychmiast, gdy przestajesz mówić.',
+            pauseDelayTitle: 'Pauza po ciszy',
+            pauseDelaySubtitle: 'Jak długo Glance czeka przed zatrzymaniem po tym, jak przestaniesz mówić.',
         },
         appearance: {
             title: 'Wygląd',

@@ -240,12 +240,16 @@ export const esCatalog: TranslationCatalog = {
     timerDisplay: ({ mode, time }) => `Temporizador de ${mode}: ${time}`,
     sectionCounter: ({ current, total }) => `${current}/${total}`,
     closeErrorToast: 'Error al cerrar el prompter',
-    autoPauseToggleAria: 'Pausa automática en silencio',
-    autoPauseSensitivityAria: 'Sensibilidad de pausa automática',
-    autoPauseSensitivityLow: 'Baja',
-    autoPauseSensitivityMedium: 'Media',
-    autoPauseSensitivityHigh: 'Alta',
-    autoPausePermissionError: 'Acceso al micrófono denegado'
+    autoPauseToggleAria: 'Pausa automática con la voz',
+    autoPauseDelayAria: 'Retraso de pausa tras el silencio',
+    autoPauseDelayOneSecond: '1 s',
+    autoPauseDelayTwoSeconds: '2 s',
+    autoPauseDelayThreeSeconds: '3 s',
+    autoPausePermissionError: 'Acceso al micrófono denegado',
+    autoPauseStatusLabel: 'Voz',
+    autoPauseStatusListening: 'La pausa automática por voz está escuchando',
+    autoPauseStatusSilent: 'La pausa automática por voz está esperando que vuelvas a hablar',
+    autoPauseStatusStarting: 'La pausa automática por voz se está iniciando'
   },
   settingsView: {
     title: 'Configuración',
@@ -255,15 +259,12 @@ export const esCatalog: TranslationCatalog = {
       support: 'Soporte'
     },
     vad: {
-      title: 'Detección de actividad de voz',
+      title: 'Pausa automática con la voz',
       enabledTitle: 'Pausa automática con voz',
       enabledSubtitle: 'Pausa automáticamente el prompter cuando dejas de hablar.',
       enabledAria: 'Activar detección de actividad de voz',
-      sensitivityTitle: 'Sensibilidad VAD',
-      sensitivitySubtitle: 'Ajusta qué tan sensible debe ser la detección.',
-      sensitivityLowHint: 'Mejor para habitaciones ruidosas. Ignora los sonidos de fondo pero requiere una voz más fuerte.',
-      sensitivityMediumHint: 'Ajuste estándar para la mayoría de oficinas tranquilas.',
-      sensitivityHighHint: 'Extremadamente sensible. Hace una pausa en el instante en que dejas de hablar.',
+      pauseDelayTitle: 'Pausar tras el silencio',
+      pauseDelaySubtitle: 'Cuánto espera Glance antes de pausar cuando dejas de hablar.',
     },
     appearance: {
       title: 'Apariencia',

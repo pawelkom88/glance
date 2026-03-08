@@ -240,12 +240,16 @@ export const frCatalog: TranslationCatalog = {
     timerDisplay: ({ mode, time }) => `Minuteur (${mode}) : ${time}`,
     sectionCounter: ({ current, total }) => `Section ${current} sur ${total}`,
     closeErrorToast: 'Échec de la fermeture du prompteur',
-    autoPauseToggleAria: 'Pause automatique en silence',
-    autoPauseSensitivityAria: 'Sensibilité de la pause automatique',
-    autoPauseSensitivityLow: 'Faible',
-    autoPauseSensitivityMedium: 'Moyenne',
-    autoPauseSensitivityHigh: 'Élevée',
-    autoPausePermissionError: 'Accès au microphone refusé'
+    autoPauseToggleAria: 'Pause automatique avec la voix',
+    autoPauseDelayAria: 'Délai avant la pause après silence',
+    autoPauseDelayOneSecond: '1 s',
+    autoPauseDelayTwoSeconds: '2 s',
+    autoPauseDelayThreeSeconds: '3 s',
+    autoPausePermissionError: 'Accès au microphone refusé',
+    autoPauseStatusLabel: 'Voix',
+    autoPauseStatusListening: 'La pause vocale automatique écoute',
+    autoPauseStatusSilent: 'La pause vocale automatique attend la reprise de la voix',
+    autoPauseStatusStarting: 'La pause vocale automatique démarre'
   },
   settingsView: {
     title: 'Réglages',
@@ -255,15 +259,12 @@ export const frCatalog: TranslationCatalog = {
       support: 'Assistance'
     },
     vad: {
-      title: 'Détection d\'activité vocale',
+      title: 'Pause auto avec la voix',
       enabledTitle: 'Pause auto avec la voix',
       enabledSubtitle: 'Met automatiquement en pause le prompteur quand vous arrêtez de parler.',
       enabledAria: 'Activer la détection d\'activité vocale',
-      sensitivityTitle: 'Sensibilité VAD',
-      sensitivitySubtitle: 'Ajustez la sensibilité de la détection.',
-      sensitivityLowHint: 'Mieux pour les pièces bruyantes. Ignore les bruits de fond mais nécessite une voix plus forte.',
-      sensitivityMediumHint: 'Réglage standard pour la plupart des bureaux calmes.',
-      sensitivityHighHint: 'Extrêmement sensible. S\'arrête dès que vous arrêtez de parler.',
+      pauseDelayTitle: 'Pause après silence',
+      pauseDelaySubtitle: 'Temps d\'attente de Glance avant la pause quand vous cessez de parler.',
     },
     appearance: {
       title: 'Apparence',

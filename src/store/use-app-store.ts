@@ -42,7 +42,7 @@ import type {
   ToastMessage,
   ToastVariant,
 } from '../types';
-import { VadSensitivity } from '../types';
+import { DEFAULT_VOICE_PAUSE_DELAY_MS, normalizeVoicePauseDelayMs } from '../lib/voice-activity';
 
 type PlaybackState = 'paused' | 'running';
 
@@ -70,7 +70,7 @@ interface AppStoreState {
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
   readonly vadEnabled: boolean;
-  readonly vadSensitivity: VadSensitivity;
+  readonly voicePauseDelayMs: number;
   readonly initialized: boolean;
   readonly hasCompletedOnboarding: boolean;
   readonly completeOnboarding: () => Promise<void>;
@@ -108,7 +108,7 @@ interface AppStoreState {
   readonly showToast: (message: string, variant?: ToastVariant) => void;
   readonly clearToast: () => void;
   readonly setVadEnabled: (value: boolean) => void;
-  readonly setVadSensitivity: (value: VadSensitivity) => void;
+  readonly setVoicePauseDelayMs: (value: number) => void;
 }
 
 function readLocalOnboardingState(): boolean {
@@ -121,7 +121,7 @@ const showReadingRulerStorageKey = 'glance-show-reading-ruler-v1';
 const speedStepStorageKey = 'glance-speed-step-v1';
 const languageStorageKey = 'glance-language-v1';
 const vadEnabledStorageKey = 'glance-vad-enabled-v1';
-const vadSensitivityStorageKey = 'glance-vad-sensitivity-v1';
+const voicePauseDelayStorageKey = 'glance-voice-pause-delay-ms-v1';
 
 function readVadEnabled(): boolean {
   if (typeof window === 'undefined') return false;
@@ -133,18 +133,18 @@ function writeVadEnabled(value: boolean): void {
   window.localStorage.setItem(vadEnabledStorageKey, value ? 'true' : 'false');
 }
 
-function readVadSensitivity(): VadSensitivity {
-  if (typeof window === 'undefined') return VadSensitivity.Medium;
-  const raw = window.localStorage.getItem(vadSensitivityStorageKey);
-  if (raw === 'low') return VadSensitivity.Low;
-  if (raw === 'medium') return VadSensitivity.Medium;
-  if (raw === 'high') return VadSensitivity.High;
-  return VadSensitivity.Medium;
+function readVoicePauseDelayMs(): number {
+  if (typeof window === 'undefined') return DEFAULT_VOICE_PAUSE_DELAY_MS;
+  const raw = window.localStorage.getItem(voicePauseDelayStorageKey);
+  if (raw === null) {
+    return DEFAULT_VOICE_PAUSE_DELAY_MS;
+  }
+  return normalizeVoicePauseDelayMs(Number(raw));
 }
 
-function writeVadSensitivity(value: VadSensitivity): void {
+function writeVoicePauseDelayMs(value: number): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(vadSensitivityStorageKey, value);
+  window.localStorage.setItem(voicePauseDelayStorageKey, String(normalizeVoicePauseDelayMs(value)));
 }
 
 function readThemeMode(): ThemeMode {
@@ -413,7 +413,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     shortcutWarning: null,
     toastMessage: null,
     vadEnabled: readVadEnabled(),
-    vadSensitivity: readVadSensitivity(),
+    voicePauseDelayMs: readVoicePauseDelayMs(),
     initialized: false,
     hasCompletedOnboarding: readLocalOnboardingState(),
 
@@ -478,8 +478,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             });
           } else if (event.key === vadEnabledStorageKey) {
             set({ vadEnabled: readVadEnabled() });
-          } else if (event.key === vadSensitivityStorageKey) {
-            set({ vadSensitivity: readVadSensitivity() });
+          } else if (event.key === voicePauseDelayStorageKey) {
+            set({ voicePauseDelayMs: readVoicePauseDelayMs() });
           }
         });
       }
@@ -839,9 +839,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       set({ vadEnabled: value });
     },
 
-    setVadSensitivity: (value: VadSensitivity) => {
-      writeVadSensitivity(value);
-      set({ vadSensitivity: value });
+    setVoicePauseDelayMs: (value: number) => {
+      const nextValue = normalizeVoicePauseDelayMs(value);
+      writeVoicePauseDelayMs(nextValue);
+      set({ voicePauseDelayMs: nextValue });
     },
 
     setIsControlsCollapsed: (value: boolean) => {

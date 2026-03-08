@@ -240,12 +240,16 @@ export const deCatalog: TranslationCatalog = {
         timerDisplay: ({ mode, time }) => `${mode}-Timer ${time}`,
         sectionCounter: ({ current, total }) => `${current}/${total}`,
         closeErrorToast: 'Fehler beim Schließen des Prompters',
-        autoPauseToggleAria: 'Automatische Pause bei Stille',
-        autoPauseSensitivityAria: 'Empfindlichkeit der automatischen Pause',
-        autoPauseSensitivityLow: 'Niedrig',
-        autoPauseSensitivityMedium: 'Mittel',
-        autoPauseSensitivityHigh: 'Hoch',
-        autoPausePermissionError: 'Mikrofonzugriff verweigert'
+        autoPauseToggleAria: 'Automatische Pause mit Stimme',
+        autoPauseDelayAria: 'Pausenverzögerung nach Stille',
+        autoPauseDelayOneSecond: '1 s',
+        autoPauseDelayTwoSeconds: '2 s',
+        autoPauseDelayThreeSeconds: '3 s',
+        autoPausePermissionError: 'Mikrofonzugriff verweigert',
+        autoPauseStatusLabel: 'Stimme',
+        autoPauseStatusListening: 'Die sprachgesteuerte Auto-Pause hört zu',
+        autoPauseStatusSilent: 'Die sprachgesteuerte Auto-Pause wartet, bis du wieder sprichst',
+        autoPauseStatusStarting: 'Die sprachgesteuerte Auto-Pause wird gestartet'
     },
     settingsView: {
         title: 'Einstellungen',
@@ -255,15 +259,12 @@ export const deCatalog: TranslationCatalog = {
             support: 'Support'
         },
         vad: {
-            title: 'Sprachaktivitätserkennung',
+            title: 'Automatische Pause mit Stimme',
             enabledTitle: 'Auto-Pause mit Stimme',
             enabledSubtitle: 'Hält den Prompter automatisch an, wenn Sie aufhören zu sprechen.',
             enabledAria: 'Sprachaktivitätserkennung aktivieren',
-            sensitivityTitle: 'VAD-Empfindlichkeit',
-            sensitivitySubtitle: 'Passen Sie an, wie empfindlich die Erkennung sein soll.',
-            sensitivityLowHint: 'Besser für laute Räume. Ignoriert Hintergrundgeräusche, benötigt aber eine lautere Stimme.',
-            sensitivityMediumHint: 'Standardeinstellung für die meisten ruhigen Büros.',
-            sensitivityHighHint: 'Extrem empfindlich. Pausiert sofort, wenn Sie aufhören zu sprechen.',
+            pauseDelayTitle: 'Pause nach Stille',
+            pauseDelaySubtitle: 'Wie lange Glance wartet, bevor nach dem Sprechen pausiert wird.',
         },
         appearance: {
             title: 'Erscheinungsbild',

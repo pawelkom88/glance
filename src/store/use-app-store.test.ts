@@ -91,6 +91,8 @@ function resetStore() {
     isControlsCollapsed: false,
     shortcutWarning: null,
     toastMessage: null,
+    vadEnabled: false,
+    voicePauseDelayMs: 1500,
     initialized: false,
     hasCompletedOnboarding: true
   });
@@ -240,6 +242,27 @@ describe('useAppStore session lifecycle behavior', () => {
 
     useAppStore.getState().setOverlayFontScale(9);
     expect(useAppStore.getState().overlayFontScale).toBe(2.0);
+  });
+
+  it('defaults voice pause delay to 1500ms', () => {
+    expect(useAppStore.getState().voicePauseDelayMs).toBe(1500);
+  });
+
+  it('persists voice pause delay selections to localStorage', () => {
+    useAppStore.getState().setVoicePauseDelayMs(2500);
+
+    expect(useAppStore.getState().voicePauseDelayMs).toBe(2500);
+    expect(window.localStorage.getItem('glance-voice-pause-delay-ms-v1')).toBe('2500');
+  });
+
+  it('snaps stored voice pause delay values to the nearest slider step', async () => {
+    useAppStore.setState({ voicePauseDelayMs: 2500 });
+    await useAppStore.getState().loadInitialState();
+
+    window.localStorage.setItem('glance-voice-pause-delay-ms-v1', '1400');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'glance-voice-pause-delay-ms-v1' }));
+
+    expect(useAppStore.getState().voicePauseDelayMs).toBe(1500);
   });
 
   it('does not change scroll position for invalid section indexes', () => {

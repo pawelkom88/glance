@@ -25,6 +25,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 }));
 
 vi.mock('../lib/tauri', () => ({
+  emitLanguageChanged: vi.fn().mockResolvedValue(undefined),
   exportDiagnostics: vi.fn().mockResolvedValue('/tmp/logs.zip'),
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
   getMonitors: vi.fn().mockResolvedValue([]),
@@ -72,6 +73,8 @@ function resetStore() {
     language: 'en',
     resolvedLanguage: 'en',
     showReadingRuler: true,
+    vadEnabled: true,
+    voicePauseDelayMs: 1500,
     toastMessage: null,
     shortcutWarning: null
   });
@@ -143,6 +146,24 @@ describe('SettingsView behavior', () => {
       message: 'Reading ruler disabled',
       variant: 'success'
     });
+  });
+
+  it('shows a pause-delay slider with a visible value and updates the store', async () => {
+    render(<SettingsView />);
+
+    expect(screen.getByText('Pause After Silence')).toBeTruthy();
+    expect(screen.getByText('How long Glance waits before pausing after you stop speaking.')).toBeTruthy();
+    expect(screen.queryByText('VAD Sensitivity')).toBeNull();
+    expect(screen.getByText('1.5s')).toBeTruthy();
+
+    act(() => {
+      fireEvent.change(screen.getByRole('slider', { name: 'Pause delay after silence' }), {
+        target: { value: '2500' }
+      });
+    });
+
+    expect(useAppStore.getState().voicePauseDelayMs).toBe(2500);
+    expect(screen.getByText('2.5s')).toBeTruthy();
   });
 
   it('moves window when display is selected', async () => {
@@ -474,7 +495,7 @@ describe('SettingsView behavior', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Shortcuts' }));
 
-    const playPauseInput = await screen.findByLabelText('Play/Pause shortcut');
+    const playPauseInput = await screen.findByLabelText('Play / Pause shortcut');
     await user.click(playPauseInput);
     await user.keyboard('{Backspace}');
     await user.click(screen.getByRole('button', { name: 'Apply shortcuts' }));
@@ -490,7 +511,7 @@ describe('SettingsView behavior', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Shortcuts' }));
 
-    const playPauseInput = await screen.findByLabelText('Play/Pause shortcut');
+    const playPauseInput = await screen.findByLabelText('Play / Pause shortcut');
     await user.click(playPauseInput);
     await user.keyboard('p');
 

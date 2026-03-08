@@ -240,12 +240,16 @@ export const enCatalog: TranslationCatalog = {
     timerDisplay: ({ mode, time }) => `${mode} timer ${time}`,
     sectionCounter: ({ current, total }) => `${current}/${total}`,
     closeErrorToast: 'Failed to close prompter',
-    autoPauseToggleAria: 'Auto-pause when silent',
-    autoPauseSensitivityAria: 'Auto-pause sensitivity',
-    autoPauseSensitivityLow: 'Low',
-    autoPauseSensitivityMedium: 'Medium',
-    autoPauseSensitivityHigh: 'High',
-    autoPausePermissionError: 'Microphone access denied'
+    autoPauseToggleAria: 'Auto-pause with voice',
+    autoPauseDelayAria: 'Pause delay after silence',
+    autoPauseDelayOneSecond: '1s',
+    autoPauseDelayTwoSeconds: '2s',
+    autoPauseDelayThreeSeconds: '3s',
+    autoPausePermissionError: 'Microphone access denied',
+    autoPauseStatusLabel: 'Voice',
+    autoPauseStatusListening: 'Voice auto-pause is listening',
+    autoPauseStatusSilent: 'Voice auto-pause is waiting for speech',
+    autoPauseStatusStarting: 'Voice auto-pause is starting'
   },
   settingsView: {
     title: 'Settings',
@@ -255,15 +259,12 @@ export const enCatalog: TranslationCatalog = {
       support: 'Support'
     },
     vad: {
-      title: 'Voice Activity Detection',
+      title: 'Auto-Pause with Voice',
       enabledTitle: 'Auto-Pause with Voice',
       enabledSubtitle: 'Automatically pause the prompter when you stop talking.',
       enabledAria: 'Enable voice activity detection',
-      sensitivityTitle: 'VAD Sensitivity',
-      sensitivitySubtitle: 'Adjust how sensitive the detection should be.',
-      sensitivityLowHint: 'Better for noisy rooms. Ignores background sounds but requires a louder voice.',
-      sensitivityMediumHint: 'Standard setting for most quiet offices.',
-      sensitivityHighHint: 'Extremely sensitive. Pauses the instant you stop talking.',
+      pauseDelayTitle: 'Pause After Silence',
+      pauseDelaySubtitle: 'How long Glance waits before pausing after you stop speaking.',
     },
     appearance: {
       title: 'Appearance',

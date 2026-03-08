@@ -1,4 +1,4 @@
-import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { isTauri } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { languageOptions, toLanguageOptionLabel } from '../i18n/languages';
@@ -28,9 +28,14 @@ import {
 import { useAppStore } from '../store/use-app-store';
 import { useAppLicense } from '../hooks/useAppLicense';
 import type { AppLanguage } from '../i18n/types';
-import { VadSensitivity } from '../types';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 import { ShortcutKeycaps } from './shortcut-keycaps';
+import {
+  MAX_VOICE_PAUSE_DELAY_MS,
+  MIN_VOICE_PAUSE_DELAY_MS,
+  VOICE_PAUSE_DELAY_STEP_MS,
+  formatVoicePauseDelayLabel
+} from '../lib/voice-activity';
 
 const playbackActions: readonly ShortcutActionId[] = ['toggle-play', 'start-over', 'speed-up', 'speed-down'];
 const globalActions: readonly ShortcutActionId[] = ['hide-overlay', 'snap-to-center', 'toggle-controls'];
@@ -188,9 +193,9 @@ export function SettingsView() {
   const setSpeedStep = useAppStore((state) => state.setSpeedStep);
   const setShortcutWarning = useAppStore((state) => state.setShortcutWarning);
   const vadEnabled = useAppStore((state) => state.vadEnabled);
-  const vadSensitivity = useAppStore((state) => state.vadSensitivity);
+  const voicePauseDelayMs = useAppStore((state) => state.voicePauseDelayMs);
   const setVadEnabled = useAppStore((state) => state.setVadEnabled);
-  const setVadSensitivity = useAppStore((state) => state.setVadSensitivity);
+  const setVoicePauseDelayMs = useAppStore((state) => state.setVoicePauseDelayMs);
   const { t } = useI18n();
   const {
     status: licenseStatus,
@@ -208,6 +213,10 @@ export function SettingsView() {
   const activeMonitor = useMemo(
     () => monitors.find((monitor) => monitor.key === selectedMonitor) ?? monitors[0] ?? null,
     [monitors, selectedMonitor]
+  );
+  const voicePauseDelayLabel = useMemo(
+    () => formatVoicePauseDelayLabel(voicePauseDelayMs, language),
+    [language, voicePauseDelayMs]
   );
   const activeMonitorId = activeMonitor?.key ?? '';
   const swapTargets = useMemo(
@@ -537,7 +546,7 @@ export function SettingsView() {
             }));
             setShortcutErrors((prev) => ({ ...prev, [definition.action]: '' }));
           }}
-          aria-label={`${definition.label} shortcut`}
+          aria-label={`${label} shortcut`}
         />
         {shortcutError ? <small className="shortcut-row-error">{shortcutError}</small> : null}
       </div>
@@ -830,33 +839,26 @@ export function SettingsView() {
             {vadEnabled ? (
               <div className="setting-row">
                 <div className="setting-copy">
-                  <span className="setting-title">{t('settingsView.vad.sensitivityTitle')}</span>
-                  <span className="setting-subtitle">{t('settingsView.vad.sensitivitySubtitle')}</span>
-                  <p className="setting-hint">
-                    {vadSensitivity === VadSensitivity.Low && t('settingsView.vad.sensitivityLowHint')}
-                    {vadSensitivity === VadSensitivity.Medium && t('settingsView.vad.sensitivityMediumHint')}
-                    {vadSensitivity === VadSensitivity.High && t('settingsView.vad.sensitivityHighHint')}
-                  </p>
+                  <span className="setting-title">{t('settingsView.vad.pauseDelayTitle')}</span>
+                  <span className="setting-subtitle">{t('settingsView.vad.pauseDelaySubtitle')}</span>
                 </div>
-                <div className="theme-segmented">
-                  {([VadSensitivity.Low, VadSensitivity.Medium, VadSensitivity.High] as const).map((value) => {
-                    const labels: Record<VadSensitivity, string> = {
-                      low: t('overlay.autoPauseSensitivityLow'),
-                      medium: t('overlay.autoPauseSensitivityMedium'),
-                      high: t('overlay.autoPauseSensitivityHigh')
-                    };
-                    const isSelected = vadSensitivity === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`theme-segmented-option ${isSelected ? 'is-selected' : ''}`}
-                        onClick={() => setVadSensitivity(value)}
-                      >
-                        {labels[value]}
-                      </button>
-                    );
-                  })}
+                <div className="setting-delay-control">
+                  <input
+                    className="setting-delay-slider"
+                    type="range"
+                    min={MIN_VOICE_PAUSE_DELAY_MS}
+                    max={MAX_VOICE_PAUSE_DELAY_MS}
+                    step={VOICE_PAUSE_DELAY_STEP_MS}
+                    value={voicePauseDelayMs}
+                    aria-label={t('overlay.autoPauseDelayAria')}
+                    onChange={(event) => setVoicePauseDelayMs(Number(event.target.value))}
+                    style={{
+                      '--setting-delay-progress': `${((voicePauseDelayMs - MIN_VOICE_PAUSE_DELAY_MS) / (MAX_VOICE_PAUSE_DELAY_MS - MIN_VOICE_PAUSE_DELAY_MS)) * 100}%`
+                    } as CSSProperties}
+                  />
+                  <span className="setting-delay-value" aria-live="polite">
+                    {voicePauseDelayLabel}
+                  </span>
                 </div>
               </div>
             ) : null}
