@@ -65,6 +65,7 @@ interface AppStoreState {
   readonly speedStep: number;
   readonly dimLevel: number;
   readonly isControlsCollapsed: boolean;
+  readonly lineSpacing: number;
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
   readonly initialized: boolean;
@@ -92,6 +93,7 @@ interface AppStoreState {
   readonly setShowReadingRuler: (value: boolean) => void;
   readonly setDimLevel: (value: number) => void;
   readonly setIsControlsCollapsed: (value: boolean) => void;
+  readonly setLineSpacing: (value: number) => void;
   readonly setThemeMode: (mode: ThemeMode) => void;
   readonly hydrateThemeFromStorage: () => void;
   readonly setLanguage: (language: AppLanguage, emit?: boolean) => void;
@@ -235,8 +237,9 @@ function readOverlayPersistentState() {
       running: false,
       fontScale: 1,
       showReadingRuler: true,
-      dimLevel: 1,
-      isControlsCollapsed: false
+      dimLevel: 100,
+      isControlsCollapsed: false,
+      lineSpacing: 1.0
     };
   }
 
@@ -248,8 +251,9 @@ function readOverlayPersistentState() {
       running: Boolean(parsed.running),
       fontScale: Number.isFinite(parsed.fontScale) ? parsed.fontScale : 1,
       showReadingRuler: typeof parsed.showReadingRuler === 'boolean' ? parsed.showReadingRuler : true,
-      dimLevel: Number.isFinite(parsed.dimLevel) ? parsed.dimLevel : 1,
-      isControlsCollapsed: typeof parsed.isControlsCollapsed === 'boolean' ? parsed.isControlsCollapsed : false
+      dimLevel: Number.isFinite(parsed.dimLevel) ? (parsed.dimLevel <= 3 ? 100 : Math.max(10, Math.min(100, parsed.dimLevel))) : 100,
+      isControlsCollapsed: typeof parsed.isControlsCollapsed === 'boolean' ? parsed.isControlsCollapsed : false,
+      lineSpacing: Number.isFinite(parsed.lineSpacing) ? Math.max(0.5, Math.min(3.0, parsed.lineSpacing)) : 1.0
     };
   } catch {
     return {
@@ -258,8 +262,9 @@ function readOverlayPersistentState() {
       running: false,
       fontScale: 1,
       showReadingRuler: true,
-      dimLevel: 1,
-      isControlsCollapsed: false
+      dimLevel: 100,
+      isControlsCollapsed: false,
+      lineSpacing: 1.0
     };
   }
 }
@@ -272,6 +277,7 @@ function writeOverlayPersistentState(input: {
   showReadingRuler: boolean;
   dimLevel: number;
   isControlsCollapsed: boolean;
+  lineSpacing: number;
 }): void {
   window.localStorage.setItem(
     'glance-overlay-state-v1',
@@ -326,7 +332,8 @@ function persistOverlayState(state: AppStoreState): void {
     fontScale: state.overlayFontScale,
     showReadingRuler: state.showReadingRuler,
     dimLevel: state.dimLevel,
-    isControlsCollapsed: state.isControlsCollapsed
+    isControlsCollapsed: state.isControlsCollapsed,
+    lineSpacing: state.lineSpacing
   });
 }
 
@@ -339,8 +346,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       running: false,
       fontScale: 1,
       showReadingRuler: true,
-      dimLevel: 1,
-      isControlsCollapsed: false
+      dimLevel: 100,
+      isControlsCollapsed: false,
+      lineSpacing: 1.0
     }
     : readOverlayPersistentState();
 
@@ -365,6 +373,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     showReadingRuler: storedOverlayState.showReadingRuler,
     dimLevel: storedOverlayState.dimLevel,
     isControlsCollapsed: storedOverlayState.isControlsCollapsed,
+    lineSpacing: storedOverlayState.lineSpacing,
     themeMode: initialThemeMode,
     resolvedTheme: initialResolvedTheme,
     language: initialLanguage,
@@ -780,8 +789,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     setDimLevel: (value: number) => {
+      const clamped = Math.max(10, Math.min(100, Math.round(value)));
       set((state) => {
-        const next = { dimLevel: value };
+        const next = { dimLevel: clamped };
         const nextState = { ...state, ...next };
         persistOverlayState(nextState);
         return next;
@@ -791,6 +801,15 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     setIsControlsCollapsed: (value: boolean) => {
       set((state) => {
         const next = { isControlsCollapsed: value };
+        const nextState = { ...state, ...next };
+        persistOverlayState(nextState);
+        return next;
+      });
+    },
+
+    setLineSpacing: (value: number) => {
+      set((state) => {
+        const next = { lineSpacing: value };
         const nextState = { ...state, ...next };
         persistOverlayState(nextState);
         return next;
@@ -886,8 +905,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }
 
       const baseLineHeight = 54;
-      const overlayLineGapPx = 10;
-      const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * state.overlayFontScale));
+      const baseLineGapPx = 10;
+      const overlayLineGapPx = Math.round(baseLineGapPx * state.lineSpacing);
+      const scaledLineHeight = Math.max(46, Math.round(baseLineHeight * state.overlayFontScale * state.lineSpacing));
       let y = 0;
       for (let i = 0; i < displayLineIndex; i++) {
         const line = lines[i];

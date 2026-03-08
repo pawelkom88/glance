@@ -1087,8 +1087,9 @@ export function OverlayPrompter() {
     '--overlay-font-scale': overlayFontScale.toString(),
     '--overlay-line-height': `${scaledLineHeight}px`,
     '--overlay-line-gap': `${overlayLineGapPx}px`,
-    '--overlay-lane-padding': `${Math.max(0, Math.round(lanePadding + firstLineLaneNudge))}px`
-  } as CSSProperties), [firstLineLaneNudge, lanePadding, overlayFontScale, scaledLineHeight]);
+    '--overlay-lane-padding': `${Math.max(0, Math.round(lanePadding + firstLineLaneNudge))}px`,
+    '--overlay-controls-opacity': (dimLevel / 100).toString()
+  } as CSSProperties), [dimLevel, firstLineLaneNudge, lanePadding, overlayFontScale, scaledLineHeight]);
 
   const closeJumpMenu = useCallback((restoreFocus: boolean) => {
     setIsJumpMenuOpen(false);
@@ -1648,7 +1649,7 @@ export function OverlayPrompter() {
         return;
       }
 
-      if (event.key === 'ArrowUp') {
+      if (event.key === 'ArrowUp' && !event.shiftKey) {
         if (tauriRuntime) {
           return;
         }
@@ -1659,7 +1660,13 @@ export function OverlayPrompter() {
         return;
       }
 
-      if (event.key === 'ArrowDown') {
+      if (event.key === 'ArrowUp' && event.shiftKey) {
+        event.preventDefault();
+        setDimLevel(Math.min(100, useAppStore.getState().dimLevel + 5));
+        return;
+      }
+
+      if (event.key === 'ArrowDown' && !event.shiftKey) {
         if (tauriRuntime) {
           return;
         }
@@ -1667,6 +1674,12 @@ export function OverlayPrompter() {
         changeScrollSpeedBy(-1);
         revealSpeedBubble();
         triggerSpeedIconAnimation('slow');
+        return;
+      }
+
+      if (event.key === 'ArrowDown' && event.shiftKey) {
+        event.preventDefault();
+        setDimLevel(Math.max(30, useAppStore.getState().dimLevel - 5));
         return;
       }
 
@@ -2242,50 +2255,72 @@ export function OverlayPrompter() {
 
           {isFontMenuOpen ? (
             <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label={t('overlay.fontSizeSettings')}>
-              <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
-                <button
-                  type="button"
-                  className="overlay-font-stepper-button"
-                  data-font-focus="true"
-                  onClick={() => changeFontScaleBy(-1)}
-                  aria-label={t('overlay.decreaseFontSize')}
-                >
-                  −
-                </button>
-                <span className="overlay-font-stepper-divider" aria-hidden="true" />
-                <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
-                <span className="overlay-font-stepper-divider" aria-hidden="true" />
-                <button
-                  type="button"
-                  className="overlay-font-stepper-button"
-                  onClick={() => changeFontScaleBy(1)}
-                  aria-label={t('overlay.increaseFontSize')}
-                >
-                  +
-                </button>
+              <div className="overlay-popover-header">TEXT & DISPLAY</div>
+
+              <div className="overlay-popover-row">
+                <span className="overlay-popover-label">Font Size</span>
+                <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
+                  <button
+                    type="button"
+                    className="overlay-font-stepper-button"
+                    data-font-focus="true"
+                    onClick={() => changeFontScaleBy(-1)}
+                    aria-label={t('overlay.decreaseFontSize')}
+                  >
+                    −
+                  </button>
+                  <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                  <span className="overlay-font-stepper-value" aria-live="polite">{currentFontSize}</span>
+                  <span className="overlay-font-stepper-divider" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="overlay-font-stepper-button"
+                    onClick={() => changeFontScaleBy(1)}
+                    aria-label={t('overlay.increaseFontSize')}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="overlay-font-slider-row">
-                <span className="overlay-font-label-small" aria-hidden="true">A</span>
-                <input
-                  className="overlay-font-slider"
-                  type="range"
-                  min={minFontScale}
-                  max={maxFontScale}
-                  step={fontScaleStep}
-                  value={overlayFontScale}
-                  onChange={(event) => commitFontScale(Number(event.target.value))}
-                  aria-label={t('overlay.fontSize')}
-                />
-                <span className="overlay-font-label-large" aria-hidden="true">A</span>
+
+              <div className="overlay-popover-divider" />
+
+              <div className="overlay-popover-column">
+                <div className="overlay-popover-row">
+                  <span className="overlay-popover-label">Opacity</span>
+                  <span className="overlay-popover-value">{dimLevel}%</span>
+                </div>
+                <div className="overlay-slider-row">
+                  <input
+                    className="overlay-popover-slider overlay-black-slider"
+                    type="range"
+                    min={30}
+                    max={100}
+                    step={5}
+                    value={dimLevel}
+                    onChange={(e) => setDimLevel(Number(e.target.value))}
+                    onPointerUp={(e) => { e.currentTarget.blur(); overlayRootRef.current?.focus({ preventScroll: true }); }}
+                    aria-label="Opacity"
+                  />
+                </div>
+                <div className="overlay-popover-row overlay-slider-labels">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
               </div>
-              <div className="overlay-font-footer overlay-font-footer-row">
-                <ShortcutKeycaps className="overlay-font-shortcuts overlay-font-shortcuts-row" shortcuts={['CmdOrCtrl+Plus', 'CmdOrCtrl+Minus']} alternativeSeparator="/" />
+
+              <div className="overlay-popover-divider popover-bottom-divider" />
+
+              <div className="overlay-popover-footer">
                 <button
                   type="button"
                   className="overlay-popover-link overlay-font-reset"
-                  onClick={() => commitFontScale(1)}
+                  onClick={() => {
+                    commitFontScale(1);
+                    setDimLevel(100);
+                  }}
                 >
-                  {t('overlay.reset')}
+                  Reset to Defaults
                 </button>
               </div>
             </div>
@@ -2326,7 +2361,6 @@ export function OverlayPrompter() {
           aria-live="polite"
           ref={contentRef}
           data-overlay-no-drag="true"
-          data-dim-level={showReadingRuler ? dimLevel : 0}
           style={{
             '--spotlight-top': `${rulerStyle.top}px`,
             '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
@@ -2431,30 +2465,24 @@ export function OverlayPrompter() {
                       {normalizedSpeed.toFixed(normalizedSpeed % 0.1 === 0 ? 1 : 2)}x
                     </span>
                     <div className="overlay-compact-status-divider" />
-                    <div className="overlay-compact-dim-group" role="group" aria-label={t('overlay.rulerIntensityAria')}>
-                      <span className="overlay-compact-dim-label">{t('overlay.dim')}</span>
-                      <div className="overlay-compact-dim-dots">
-                        {[1, 2, 3].map((level) => (
-                          <button
-                            key={level}
-                            type="button"
-                            className={`overlay-compact-dim-stage ${showReadingRuler && dimLevel === level ? 'is-active' : ''}`}
-                            aria-label={t('overlay.dimLevelAria', { level })}
-                            aria-pressed={showReadingRuler && dimLevel === level}
-                            onClick={() => {
-                              const store = useAppStore.getState();
-                              if (showReadingRuler && dimLevel === level) {
-                                store.setShowReadingRuler(false);
-                              } else {
-                                store.setShowReadingRuler(true);
-                                setDimLevel(level);
-                              }
-                            }}
-                          >
-                            <span className="overlay-compact-dim-dot" />
-                          </button>
-                        ))}
-                      </div>
+                    <div className="overlay-compact-opacity-group" role="group" aria-label={t('overlay.opacityAria')}>
+                      <svg className="overlay-compact-opacity-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z" stroke="currentColor" strokeWidth="2" />
+                        <path d="M12 2a10 10 0 0 0 0 20V2Z" fill="currentColor" />
+                      </svg>
+                      <input
+                        className="overlay-compact-opacity-slider"
+                        type="range"
+                        min={30}
+                        max={100}
+                        step={5}
+                        value={dimLevel}
+                        onChange={(e) => setDimLevel(Number(e.target.value))}
+                        onPointerUp={(e) => { e.currentTarget.blur(); overlayRootRef.current?.focus({ preventScroll: true }); }}
+                        aria-label={t('overlay.opacityAria')}
+                        style={{ '--overlay-opacity-progress': `${((dimLevel - 30) / 70) * 100}%` } as CSSProperties}
+                      />
+                      <span className="overlay-compact-opacity-value">{dimLevel}%</span>
                     </div>
                     <div className="overlay-compact-status-divider" />
                     <div className="overlay-compact-font-group">

@@ -858,6 +858,10 @@ export function SettingsView() {
                 <span className="shortcut-action-label">{t('settingsView.shortcuts.changeSpeed')}</span>
                 <ShortcutKeycaps shortcuts={['Up', 'Down']} />
               </div>
+              <div className="shortcut-static-row">
+                <span className="shortcut-action-label">{t('settingsView.shortcuts.adjustOpacity')}</span>
+                <ShortcutKeycaps shortcuts={['CmdOrCtrl+Shift+Up', 'CmdOrCtrl+Shift+Down']} />
+              </div>
             </div>
           </div>
         </section>

@@ -310,21 +310,17 @@ describe('OverlayPrompter behavior', () => {
     });
   });
 
-  it('toggles reading ruler intensity and allows disabling the ruler from dim controls', async () => {
+  it('changes opacity via the slider control', async () => {
     setViewport(1000, 900);
-    const user = userEvent.setup();
     render(<OverlayPrompter />);
 
-    const levelTwoButton = await screen.findByRole('button', { name: 'Dim intensity level 2' });
-    await user.click(levelTwoButton);
-    const overlayContent = document.querySelector('.overlay-content');
+    const opacitySlider = await screen.findByRole('slider', { name: 'Prompter opacity' });
+    fireEvent.change(opacitySlider, { target: { value: '50' } });
 
-    expect(useAppStore.getState().showReadingRuler).toBe(true);
-    expect(overlayContent?.getAttribute('data-dim-level')).toBe('2');
+    expect(useAppStore.getState().dimLevel).toBe(50);
 
-    await user.click(levelTwoButton);
-    expect(useAppStore.getState().showReadingRuler).toBe(false);
-    expect(overlayContent?.getAttribute('data-dim-level')).toBe('0');
+    const overlayRoot = document.querySelector('.overlay-root') as HTMLElement;
+    expect(overlayRoot?.style.getPropertyValue('--overlay-controls-opacity')).toBe('0.5');
   });
 
   it('shows error toast when close request fails', async () => {

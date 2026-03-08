@@ -117,6 +117,10 @@ export function HelpView({ onRestoreSuccess }: HelpViewProps) {
             <ShortcutKeycaps className="hsr-keys" shortcuts={[speedUpShortcut, speedDownShortcut]} />
           </div>
           <div className="help-shortcut-row">
+            <span className="hsr-action">{t('help.shortcutAdjustOpacity')}</span>
+            <ShortcutKeycaps className="hsr-keys" shortcuts={[`${modifier}+Shift+Up`, `${modifier}+Shift+Down`]} />
+          </div>
+          <div className="help-shortcut-row">
             <span className="hsr-action">{t('help.shortcutFontSize')}</span>
             <ShortcutKeycaps className="hsr-keys" shortcuts={[`${modifier}+Plus`, `${modifier}+Minus`]} />
           </div>

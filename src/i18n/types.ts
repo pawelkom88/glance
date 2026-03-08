@@ -64,6 +64,7 @@ export interface TranslationCatalog {
     readonly shortcutRestart: string;
     readonly shortcutJumpToSection: string;
     readonly shortcutAdjustSpeed: string;
+    readonly shortcutAdjustOpacity: string;
     readonly shortcutFontSize: string;
     readonly shortcutSnapToCenter: string;
     readonly shortcutTogglePrompter: string;
@@ -213,7 +214,7 @@ export interface TranslationCatalog {
     readonly done: string;
     readonly countUp: string;
     readonly countDown: string;
-    readonly dim: string;
+    readonly opacityAria: string;
     readonly pressToToggle: (params: { readonly key: string }) => string;
     readonly fontSizeSettings: string;
     readonly fontSize: string;
@@ -243,7 +244,6 @@ export interface TranslationCatalog {
     readonly sizeAria: string;
     readonly currentSpeedAria: string;
     readonly rulerIntensityAria: string;
-    readonly dimLevelAria: (params: { readonly level: number }) => string;
     readonly mainAria: string;
     readonly timerDisplay: (params: { readonly mode: string; readonly time: string }) => string;
     readonly sectionCounter: (params: { readonly current: number; readonly total: number }) => string;
@@ -307,6 +307,7 @@ export interface TranslationCatalog {
       readonly restartScript: string;
       readonly fontSize: string;
       readonly changeSpeed: string;
+      readonly adjustOpacity: string;
       readonly hidePrompter: string;
       readonly snapToCenter: string;
       readonly toggleControls: string;
