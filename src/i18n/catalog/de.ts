@@ -239,7 +239,13 @@ export const deCatalog: TranslationCatalog = {
         mainAria: 'Glance-Overlay',
         timerDisplay: ({ mode, time }) => `${mode}-Timer ${time}`,
         sectionCounter: ({ current, total }) => `${current}/${total}`,
-        closeErrorToast: 'Fehler beim Schließen des Prompters'
+        closeErrorToast: 'Fehler beim Schließen des Prompters',
+        autoPauseToggleAria: 'Automatische Pause bei Stille',
+        autoPauseSensitivityAria: 'Empfindlichkeit der automatischen Pause',
+        autoPauseSensitivityLow: 'Niedrig',
+        autoPauseSensitivityMedium: 'Mittel',
+        autoPauseSensitivityHigh: 'Hoch',
+        autoPausePermissionError: 'Mikrofonzugriff verweigert'
     },
     settingsView: {
         title: 'Einstellungen',
@@ -247,6 +253,17 @@ export const deCatalog: TranslationCatalog = {
             general: 'Allgemein',
             shortcuts: 'Tastaturkürzel',
             support: 'Support'
+        },
+        vad: {
+            title: 'Sprachaktivitätserkennung',
+            enabledTitle: 'Auto-Pause mit Stimme',
+            enabledSubtitle: 'Hält den Prompter automatisch an, wenn Sie aufhören zu sprechen.',
+            enabledAria: 'Sprachaktivitätserkennung aktivieren',
+            sensitivityTitle: 'VAD-Empfindlichkeit',
+            sensitivitySubtitle: 'Passen Sie an, wie empfindlich die Erkennung sein soll.',
+            sensitivityLowHint: 'Besser für laute Räume. Ignoriert Hintergrundgeräusche, benötigt aber eine lautere Stimme.',
+            sensitivityMediumHint: 'Standardeinstellung für die meisten ruhigen Büros.',
+            sensitivityHighHint: 'Extrem empfindlich. Pausiert sofort, wenn Sie aufhören zu sprechen.',
         },
         appearance: {
             title: 'Erscheinungsbild',

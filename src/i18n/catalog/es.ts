@@ -239,7 +239,13 @@ export const esCatalog: TranslationCatalog = {
     mainAria: 'Prompter de Glance',
     timerDisplay: ({ mode, time }) => `Temporizador de ${mode}: ${time}`,
     sectionCounter: ({ current, total }) => `${current}/${total}`,
-    closeErrorToast: 'Error al cerrar el prompter'
+    closeErrorToast: 'Error al cerrar el prompter',
+    autoPauseToggleAria: 'Pausa automática en silencio',
+    autoPauseSensitivityAria: 'Sensibilidad de pausa automática',
+    autoPauseSensitivityLow: 'Baja',
+    autoPauseSensitivityMedium: 'Media',
+    autoPauseSensitivityHigh: 'Alta',
+    autoPausePermissionError: 'Acceso al micrófono denegado'
   },
   settingsView: {
     title: 'Configuración',
@@ -247,6 +253,17 @@ export const esCatalog: TranslationCatalog = {
       general: 'General',
       shortcuts: 'Atajos',
       support: 'Soporte'
+    },
+    vad: {
+      title: 'Detección de actividad de voz',
+      enabledTitle: 'Pausa automática con voz',
+      enabledSubtitle: 'Pausa automáticamente el prompter cuando dejas de hablar.',
+      enabledAria: 'Activar detección de actividad de voz',
+      sensitivityTitle: 'Sensibilidad VAD',
+      sensitivitySubtitle: 'Ajusta qué tan sensible debe ser la detección.',
+      sensitivityLowHint: 'Mejor para habitaciones ruidosas. Ignora los sonidos de fondo pero requiere una voz más fuerte.',
+      sensitivityMediumHint: 'Ajuste estándar para la mayoría de oficinas tranquilas.',
+      sensitivityHighHint: 'Extremadamente sensible. Hace una pausa en el instante en que dejas de hablar.',
     },
     appearance: {
       title: 'Apariencia',

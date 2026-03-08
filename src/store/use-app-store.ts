@@ -40,8 +40,9 @@ import type {
   SessionSummary,
   ThemeMode,
   ToastMessage,
-  ToastVariant
+  ToastVariant,
 } from '../types';
+import { VadSensitivity } from '../types';
 
 type PlaybackState = 'paused' | 'running';
 
@@ -68,6 +69,8 @@ interface AppStoreState {
   readonly lineSpacing: number;
   readonly shortcutWarning: string | null;
   readonly toastMessage: ToastMessage | null;
+  readonly vadEnabled: boolean;
+  readonly vadSensitivity: VadSensitivity;
   readonly initialized: boolean;
   readonly hasCompletedOnboarding: boolean;
   readonly completeOnboarding: () => Promise<void>;
@@ -104,6 +107,8 @@ interface AppStoreState {
   readonly setShortcutWarning: (value: string | null) => void;
   readonly showToast: (message: string, variant?: ToastVariant) => void;
   readonly clearToast: () => void;
+  readonly setVadEnabled: (value: boolean) => void;
+  readonly setVadSensitivity: (value: VadSensitivity) => void;
 }
 
 function readLocalOnboardingState(): boolean {
@@ -115,6 +120,32 @@ const themeModeStorageKey = 'glance-theme-mode-v1';
 const showReadingRulerStorageKey = 'glance-show-reading-ruler-v1';
 const speedStepStorageKey = 'glance-speed-step-v1';
 const languageStorageKey = 'glance-language-v1';
+const vadEnabledStorageKey = 'glance-vad-enabled-v1';
+const vadSensitivityStorageKey = 'glance-vad-sensitivity-v1';
+
+function readVadEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(vadEnabledStorageKey) === 'true';
+}
+
+function writeVadEnabled(value: boolean): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(vadEnabledStorageKey, value ? 'true' : 'false');
+}
+
+function readVadSensitivity(): VadSensitivity {
+  if (typeof window === 'undefined') return VadSensitivity.Medium;
+  const raw = window.localStorage.getItem(vadSensitivityStorageKey);
+  if (raw === 'low') return VadSensitivity.Low;
+  if (raw === 'medium') return VadSensitivity.Medium;
+  if (raw === 'high') return VadSensitivity.High;
+  return VadSensitivity.Medium;
+}
+
+function writeVadSensitivity(value: VadSensitivity): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(vadSensitivityStorageKey, value);
+}
 
 function readThemeMode(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -381,6 +412,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     speedStep: readSpeedStep(),
     shortcutWarning: null,
     toastMessage: null,
+    vadEnabled: readVadEnabled(),
+    vadSensitivity: readVadSensitivity(),
     initialized: false,
     hasCompletedOnboarding: readLocalOnboardingState(),
 
@@ -443,6 +476,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
               overlayFontScale: nextState.fontScale,
               showReadingRuler: nextState.showReadingRuler
             });
+          } else if (event.key === vadEnabledStorageKey) {
+            set({ vadEnabled: readVadEnabled() });
+          } else if (event.key === vadSensitivityStorageKey) {
+            set({ vadSensitivity: readVadSensitivity() });
           }
         });
       }
@@ -796,6 +833,15 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         persistOverlayState(nextState);
         return next;
       });
+    },
+    setVadEnabled: (value: boolean) => {
+      writeVadEnabled(value);
+      set({ vadEnabled: value });
+    },
+
+    setVadSensitivity: (value: VadSensitivity) => {
+      writeVadSensitivity(value);
+      set({ vadSensitivity: value });
     },
 
     setIsControlsCollapsed: (value: boolean) => {

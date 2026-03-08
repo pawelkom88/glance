@@ -294,7 +294,13 @@ export const plCatalog: TranslationCatalog = {
         mainAria: 'Nakładka Glance',
         timerDisplay: ({ mode, time }) => `Timer: ${mode === 'Count Up' ? 'wszerz' : 'w dół'}, czas: ${time}`,
         sectionCounter: ({ current, total }) => `Sekcja ${current} z ${total}`,
-        closeErrorToast: 'Nie udało się zamknąć promptera'
+        closeErrorToast: 'Nie udało się zamknąć promptera',
+        autoPauseToggleAria: 'Automatyczna pauza przy ciszy',
+        autoPauseSensitivityAria: 'Czułość automatycznej pauzy',
+        autoPauseSensitivityLow: 'Niska',
+        autoPauseSensitivityMedium: 'Średnio',
+        autoPauseSensitivityHigh: 'Wysoka',
+        autoPausePermissionError: 'Odmowa dostępu do mikrofonu'
     },
     settingsView: {
         title: 'Ustawienia',
@@ -302,6 +308,17 @@ export const plCatalog: TranslationCatalog = {
             general: 'Ogólne',
             shortcuts: 'Skróty',
             support: 'Wsparcie'
+        },
+        vad: {
+            title: 'Wykrywanie aktywności głosowej',
+            enabledTitle: 'Auto-pauza głosem',
+            enabledSubtitle: 'Automatycznie zatrzymuj prompter, gdy przestaniesz mówić.',
+            enabledAria: 'Włącz wykrywanie aktywności głosowej',
+            sensitivityTitle: 'Czułość VAD',
+            sensitivitySubtitle: 'Dostosuj, jak czułe powinno być wykrywanie.',
+            sensitivityLowHint: 'Lepsze dla głośnych pomieszczeń. Ignoruje dźwięki tła, ale wymaga głośniejszego głosu.',
+            sensitivityMediumHint: 'Standardowe ustawienie dla większości cichych biur.',
+            sensitivityHighHint: 'Ekstremalnie czułe. Przerywa natychmiast, gdy przestajesz mówić.',
         },
         appearance: {
             title: 'Wygląd',

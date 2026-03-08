@@ -34,6 +34,8 @@ import {
   MIN_SPEED_MULTIPLIER
 } from '../constants';
 import { ShortcutKeycaps } from './shortcut-keycaps';
+import { useVoiceActivity } from '../hooks/useVoiceActivity';
+import { VadSensitivity } from '../types';
 
 const baseLineHeight = 80;
 const overlayLineGapPx = 0;
@@ -303,6 +305,17 @@ function FastSpeedIcon() {
   );
 }
 
+function MicToggleIcon({ state }: { readonly state: 'off' | 'listening-silent' | 'listening-speaking' }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="11" rx="3" fill={state !== 'off' ? 'currentColor' : 'none'} opacity={state !== 'off' ? 0.15 : 1} />
+      <path d="M5 10a7 7 0 0 0 14 0" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="8" y1="22" x2="16" y2="22" />
+      {state === 'off' && <line x1="3" y1="3" x2="21" y2="21" strokeWidth="1.5" />}
+    </svg>
+  );
+}
 function currentSectionFromLine(lines: readonly { sectionIndex: number | null }[], lineIndex: number): number {
   if (lines.length === 0) {
     return 0;
@@ -377,6 +390,31 @@ export function OverlayPrompter() {
   const speedStep = useAppStore((state) => state.speedStep);
   const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const showToast = useAppStore((state) => state.showToast);
+
+  // Voice Activity Detection
+  const vadPausedByVadRef = useRef(false);
+  const { vadState, vadEnabled, vadSensitivity, setVadEnabled, setVadSensitivity, permissionError } = useVoiceActivity({
+    onSilence: useCallback(() => {
+      const currentPlayback = useAppStore.getState().playbackState;
+      if (currentPlayback === 'running') {
+        vadPausedByVadRef.current = true;
+        useAppStore.getState().setPlaybackState('paused');
+      }
+    }, []),
+    onSpeech: useCallback(() => {
+      if (vadPausedByVadRef.current) {
+        vadPausedByVadRef.current = false;
+        useAppStore.getState().setPlaybackState('running');
+      }
+    }, []),
+  });
+
+  // Show permission errors as toasts
+  useEffect(() => {
+    if (permissionError) {
+      showToast(t('overlay.autoPausePermissionError'), 'error');
+    }
+  }, [permissionError, showToast, t]);
 
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const sections = parsed.sections;
@@ -866,6 +904,66 @@ export function OverlayPrompter() {
     </>
   );
 
+  const renderVadControls = (isCompact = false) => {
+    if (!vadEnabled && isCompact) {
+      return (
+        <button
+          type="button"
+          className={`overlay-mic-toggle overlay-mic-toggle-compact overlay-mic-toggle--${vadState}`}
+          aria-label={t('overlay.autoPauseToggleAria')}
+          aria-pressed={vadEnabled}
+          onClick={() => setVadEnabled(!vadEnabled)}
+          data-overlay-no-drag="true"
+        >
+          <MicToggleIcon state={vadState} />
+        </button>
+      );
+    }
+
+    return (
+      <div className={`overlay-vad-group ${isCompact ? 'is-compact' : 'is-desktop'}`}>
+        <button
+          type="button"
+          className={`overlay-mic-toggle ${isCompact ? 'overlay-mic-toggle-compact' : 'overlay-mic-toggle-footer'} overlay-mic-toggle--${vadState}`}
+          aria-label={t('overlay.autoPauseToggleAria')}
+          aria-pressed={vadEnabled}
+          onClick={() => setVadEnabled(!vadEnabled)}
+          data-overlay-no-drag="true"
+        >
+          <MicToggleIcon state={vadState} />
+          {!isCompact && (
+            <span className="overlay-mic-toggle-label">
+              {vadState === 'off'
+                ? t('overlay.autoPauseToggleAria')
+                : vadState === 'listening-silent'
+                  ? t('overlay.pause')
+                  : t('overlay.play')}
+            </span>
+          )}
+        </button>
+        {vadEnabled && (
+          <div className="overlay-vad-pill-row" aria-label={t('overlay.autoPauseSensitivityAria')} role="group">
+            {([VadSensitivity.Low, VadSensitivity.Medium, VadSensitivity.High] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`overlay-vad-pill ${vadSensitivity === s ? 'is-active' : ''}`}
+                onClick={() => setVadSensitivity(s)}
+                data-overlay-no-drag="true"
+              >
+                {s === VadSensitivity.Low
+                  ? t('overlay.autoPauseSensitivityLow')
+                  : s === VadSensitivity.Medium
+                    ? t('overlay.autoPauseSensitivityMedium')
+                    : t('overlay.autoPauseSensitivityHigh')}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderTimerControls = () => (
     <div className="overlay-timer-row">
       <div className="overlay-timer-cluster">
@@ -968,7 +1066,14 @@ export function OverlayPrompter() {
     </div>
   );
 
-  const renderPlaybackControls = (className = '', showTimer = true) => (
+  const renderFooterStatus = (className = '', showVad = true) => (
+    <div className={`overlay-footer-status-center ${className}`.trim()}>
+      {renderTimerControls()}
+      {showVad ? renderVadControls(false) : null}
+    </div>
+  );
+
+  const renderPlaybackControls = (className = '', showStatus = true, showVadInStatus = true) => (
     <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
         <div className="overlay-control-hint" aria-hidden="true">
@@ -1018,11 +1123,11 @@ export function OverlayPrompter() {
           <ShortcutKeycaps shortcuts="Space" keycapClassName="overlay-control-keycap is-capsule" />
         </div>
       </div>
-      {showTimer ? renderTimerControls() : null}
+      {showStatus ? renderFooterStatus('', showVadInStatus) : null}
     </footer>
   );
 
-  const renderSpeedControls = (className: string, showTimer = false) => (
+  const renderSpeedControls = (className: string, showFooterStatus = false) => (
     <footer className={className}>
       <div className="overlay-speed-inline">
         <span
@@ -1079,7 +1184,7 @@ export function OverlayPrompter() {
           <FastSpeedIcon />
         </span>
       </div>
-      {showTimer ? renderTimerControls() : null}
+      {showFooterStatus ? renderFooterStatus('overlay-footer-status-center-desktop') : null}
     </footer>
   );
 
@@ -2456,7 +2561,7 @@ export function OverlayPrompter() {
                 className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
               >
                 <div className="overlay-compact-control-bar">
-                  {renderPlaybackControls('', true)}
+                  {renderPlaybackControls('', true, false)}
                   <div className="overlay-compact-speed-row">
                     {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
                   </div>
@@ -2504,6 +2609,8 @@ export function OverlayPrompter() {
                         {t('overlay.fontAplus')}
                       </button>
                     </div>
+                    <div className="overlay-compact-status-divider" />
+                    {renderVadControls(true)}
                   </div>
                 </div>
               </div>
@@ -2585,7 +2692,7 @@ export function OverlayPrompter() {
           : null}
 
         {!isCompactTopBar ? renderSpeedControls('overlay-speed-footer', true) : null}
-      </main>
+      </main >
       {!isOverlayFocused
         ? createPortal(
           <div className="overlay-unfocused-hint" aria-live="polite">
@@ -2595,7 +2702,8 @@ export function OverlayPrompter() {
           </div>,
           document.body
         )
-        : null}
+        : null
+      }
     </>
   );
 }

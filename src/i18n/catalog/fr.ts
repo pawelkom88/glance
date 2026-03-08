@@ -239,7 +239,13 @@ export const frCatalog: TranslationCatalog = {
     mainAria: 'Contenu du prompteur',
     timerDisplay: ({ mode, time }) => `Minuteur (${mode}) : ${time}`,
     sectionCounter: ({ current, total }) => `Section ${current} sur ${total}`,
-    closeErrorToast: 'Échec de la fermeture du prompteur'
+    closeErrorToast: 'Échec de la fermeture du prompteur',
+    autoPauseToggleAria: 'Pause automatique en silence',
+    autoPauseSensitivityAria: 'Sensibilité de la pause automatique',
+    autoPauseSensitivityLow: 'Faible',
+    autoPauseSensitivityMedium: 'Moyenne',
+    autoPauseSensitivityHigh: 'Élevée',
+    autoPausePermissionError: 'Accès au microphone refusé'
   },
   settingsView: {
     title: 'Réglages',
@@ -247,6 +253,17 @@ export const frCatalog: TranslationCatalog = {
       general: 'Général',
       shortcuts: 'Raccourcis',
       support: 'Assistance'
+    },
+    vad: {
+      title: 'Détection d\'activité vocale',
+      enabledTitle: 'Pause auto avec la voix',
+      enabledSubtitle: 'Met automatiquement en pause le prompteur quand vous arrêtez de parler.',
+      enabledAria: 'Activer la détection d\'activité vocale',
+      sensitivityTitle: 'Sensibilité VAD',
+      sensitivitySubtitle: 'Ajustez la sensibilité de la détection.',
+      sensitivityLowHint: 'Mieux pour les pièces bruyantes. Ignore les bruits de fond mais nécessite une voix plus forte.',
+      sensitivityMediumHint: 'Réglage standard pour la plupart des bureaux calmes.',
+      sensitivityHighHint: 'Extrêmement sensible. S\'arrête dès que vous arrêtez de parler.',
     },
     appearance: {
       title: 'Apparence',

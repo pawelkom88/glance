@@ -248,6 +248,12 @@ export interface TranslationCatalog {
     readonly timerDisplay: (params: { readonly mode: string; readonly time: string }) => string;
     readonly sectionCounter: (params: { readonly current: number; readonly total: number }) => string;
     readonly closeErrorToast: string;
+    readonly autoPauseToggleAria: string;
+    readonly autoPauseSensitivityAria: string;
+    readonly autoPauseSensitivityLow: string;
+    readonly autoPauseSensitivityMedium: string;
+    readonly autoPauseSensitivityHigh: string;
+    readonly autoPausePermissionError: string;
   };
   readonly settingsView: {
     readonly title: string;
@@ -255,6 +261,17 @@ export interface TranslationCatalog {
       readonly general: string;
       readonly shortcuts: string;
       readonly support: string;
+    };
+    readonly vad: {
+      readonly title: string;
+      readonly enabledTitle: string;
+      readonly enabledSubtitle: string;
+      readonly enabledAria: string;
+      readonly sensitivityTitle: string;
+      readonly sensitivitySubtitle: string;
+      readonly sensitivityLowHint: string;
+      readonly sensitivityMediumHint: string;
+      readonly sensitivityHighHint: string;
     };
     readonly appearance: {
       readonly title: string;

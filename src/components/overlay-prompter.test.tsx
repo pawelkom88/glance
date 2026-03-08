@@ -323,6 +323,26 @@ describe('OverlayPrompter behavior', () => {
     expect(overlayRoot?.style.getPropertyValue('--overlay-controls-opacity')).toBe('0.5');
   });
 
+  it('renders desktop timer and voice controls together in the footer', () => {
+    setViewport(1440, 900);
+    const { container } = render(<OverlayPrompter />);
+
+    const desktopStatus = container.querySelector('.overlay-speed-footer .overlay-footer-status-center-desktop');
+    expect(desktopStatus?.querySelector('.overlay-timer-chip')).toBeTruthy();
+    expect(desktopStatus?.querySelector('.overlay-vad-group.is-desktop')).toBeTruthy();
+    expect(container.querySelector('.overlay-controls-desktop .overlay-vad-group')).toBeNull();
+  });
+
+  it('keeps compact voice controls in the inline status row below 1200px', () => {
+    setViewport(1100, 900);
+    const { container } = render(<OverlayPrompter />);
+
+    const compactStatusRow = container.querySelector('.overlay-compact-status-row');
+    expect(compactStatusRow?.querySelector('.overlay-mic-toggle-compact')).toBeTruthy();
+    expect(container.querySelector('.overlay-controls .overlay-footer-status-center .overlay-vad-group')).toBeNull();
+    expect(container.querySelector('.overlay-speed-footer .overlay-footer-status-center-desktop')).toBeNull();
+  });
+
   it('shows error toast when close request fails', async () => {
     const user = userEvent.setup();
     tauriMocks.closeOverlayWindow.mockRejectedValue(new Error('close failed'));

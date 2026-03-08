@@ -239,7 +239,13 @@ export const enCatalog: TranslationCatalog = {
     mainAria: 'Glance overlay',
     timerDisplay: ({ mode, time }) => `${mode} timer ${time}`,
     sectionCounter: ({ current, total }) => `${current}/${total}`,
-    closeErrorToast: 'Failed to close prompter'
+    closeErrorToast: 'Failed to close prompter',
+    autoPauseToggleAria: 'Auto-pause when silent',
+    autoPauseSensitivityAria: 'Auto-pause sensitivity',
+    autoPauseSensitivityLow: 'Low',
+    autoPauseSensitivityMedium: 'Medium',
+    autoPauseSensitivityHigh: 'High',
+    autoPausePermissionError: 'Microphone access denied'
   },
   settingsView: {
     title: 'Settings',
@@ -247,6 +253,17 @@ export const enCatalog: TranslationCatalog = {
       general: 'General',
       shortcuts: 'Shortcuts',
       support: 'Support'
+    },
+    vad: {
+      title: 'Voice Activity Detection',
+      enabledTitle: 'Auto-Pause with Voice',
+      enabledSubtitle: 'Automatically pause the prompter when you stop talking.',
+      enabledAria: 'Enable voice activity detection',
+      sensitivityTitle: 'VAD Sensitivity',
+      sensitivitySubtitle: 'Adjust how sensitive the detection should be.',
+      sensitivityLowHint: 'Better for noisy rooms. Ignores background sounds but requires a louder voice.',
+      sensitivityMediumHint: 'Standard setting for most quiet offices.',
+      sensitivityHighHint: 'Extremely sensitive. Pauses the instant you stop talking.',
     },
     appearance: {
       title: 'Appearance',

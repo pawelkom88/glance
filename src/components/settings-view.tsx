@@ -28,6 +28,7 @@ import {
 import { useAppStore } from '../store/use-app-store';
 import { useAppLicense } from '../hooks/useAppLicense';
 import type { AppLanguage } from '../i18n/types';
+import { VadSensitivity } from '../types';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 
@@ -186,6 +187,10 @@ export function SettingsView() {
   const speedStep = useAppStore((state) => state.speedStep);
   const setSpeedStep = useAppStore((state) => state.setSpeedStep);
   const setShortcutWarning = useAppStore((state) => state.setShortcutWarning);
+  const vadEnabled = useAppStore((state) => state.vadEnabled);
+  const vadSensitivity = useAppStore((state) => state.vadSensitivity);
+  const setVadEnabled = useAppStore((state) => state.setVadEnabled);
+  const setVadSensitivity = useAppStore((state) => state.setVadSensitivity);
   const { t } = useI18n();
   const {
     status: licenseStatus,
@@ -801,7 +806,63 @@ export function SettingsView() {
             ) : null}
           </div>
         </section>
-      </div>
+
+        <section className="settings-group" aria-labelledby="settings-vad-label">
+          <h3 id="settings-vad-label" className="settings-group-label">{t('settingsView.vad.title')}</h3>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">{t('settingsView.vad.enabledTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.vad.enabledSubtitle')}</span>
+              </div>
+              <button
+                type="button"
+                className={`setting-switch ${vadEnabled ? 'is-on' : ''}`}
+                role="switch"
+                aria-checked={vadEnabled}
+                aria-label={t('settingsView.vad.enabledAria')}
+                onClick={() => setVadEnabled(!vadEnabled)}
+              >
+                <span className="setting-switch-thumb" />
+              </button>
+            </div>
+
+            {vadEnabled ? (
+              <div className="setting-row">
+                <div className="setting-copy">
+                  <span className="setting-title">{t('settingsView.vad.sensitivityTitle')}</span>
+                  <span className="setting-subtitle">{t('settingsView.vad.sensitivitySubtitle')}</span>
+                  <p className="setting-hint">
+                    {vadSensitivity === VadSensitivity.Low && t('settingsView.vad.sensitivityLowHint')}
+                    {vadSensitivity === VadSensitivity.Medium && t('settingsView.vad.sensitivityMediumHint')}
+                    {vadSensitivity === VadSensitivity.High && t('settingsView.vad.sensitivityHighHint')}
+                  </p>
+                </div>
+                <div className="theme-segmented">
+                  {([VadSensitivity.Low, VadSensitivity.Medium, VadSensitivity.High] as const).map((value) => {
+                    const labels: Record<VadSensitivity, string> = {
+                      low: t('overlay.autoPauseSensitivityLow'),
+                      medium: t('overlay.autoPauseSensitivityMedium'),
+                      high: t('overlay.autoPauseSensitivityHigh')
+                    };
+                    const isSelected = vadSensitivity === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`theme-segmented-option ${isSelected ? 'is-selected' : ''}`}
+                        onClick={() => setVadSensitivity(value)}
+                      >
+                        {labels[value]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </div >
 
       <div className={`tab-content ${activeTab === 'shortcuts' ? 'visible' : ''}`}>
         <section className="shortcut-settings">
@@ -1003,6 +1064,6 @@ export function SettingsView() {
           </div>
         </section> */}
       </div>
-    </section>
+    </section >
   );
 }
