@@ -103,6 +103,14 @@
             },
             {
               "@type": "Question",
+              "name": "Can Glance auto-pause when I stop speaking?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Turn on Auto-Pause with Voice and Glance will pause after a short silence delay, then resume when you start speaking again. Audio is analysed locally on your device and never recorded."
+              }
+            },
+            {
+              "@type": "Question",
               "name": "Do I need an account?",
               "acceptedAnswer": {
                 "@type": "Answer",
@@ -2920,12 +2928,13 @@
         <div class="card card-2">
           <span class="card-num">02</span>
           <h3>Dynamic delivery.</h3>
-          <p>Adjust scrolling speed and font size on the fly without breaking your flow or looking away.</p>
+          <p>Adjust scrolling speed, font size, and voice-aware auto-pause on the fly without breaking your flow or
+            looking away.</p>
         </div>
         <div class="card card-3">
           <span class="card-num">03</span>
           <h3>Discreet opacity.</h3>
-          <p>Fine-tune transparency for a subtle overlay that stays readable but won't distract you or others.</p>
+          <p>Move from barely-there transparency to a more solid reading surface without losing the overlay feel.</p>
         </div>
         <div class="card card-4">
           <span class="card-num">04</span>
@@ -3241,6 +3250,22 @@
           <div id="faq-answer-5" class="faq-panel">
             <p class="faq-answer">Yes. You can adjust speed and font size on the fly using keyboard shortcuts or the
               settings menu.</p>
+          </div>
+        </div>
+        <div class="faq-item" style="transition-delay: 270ms;">
+          <button class="faq-trigger" aria-expanded="false" aria-controls="faq-answer-5b">
+            <span class="faq-question">Can Glance auto-pause when I stop speaking?</span>
+            <div class="faq-icon">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="5" x2="10" y2="5" />
+                <line x1="5" y1="0" x2="5" y2="10" />
+              </svg>
+            </div>
+          </button>
+          <div id="faq-answer-5b" class="faq-panel">
+            <p class="faq-answer">Yes. Turn on Auto-Pause with Voice and Glance will pause after a short silence delay,
+              then resume when you start speaking again. Audio is analysed locally on your device and never
+              recorded.</p>
           </div>
         </div>
         <div class="faq-item" style="transition-delay: 300ms;">

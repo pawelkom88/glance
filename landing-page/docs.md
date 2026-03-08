@@ -33,7 +33,7 @@ Glance is designed to be learned in seconds. When you first launch the app, foll
 
 - **Prepare your script:** Paste or import your text directly or drop a Markdown file into the editor.
 - **Automatic Positioning:** The prompter launches at the top center under your camera. You can adjust the height or collapse controls to fit your setup.
-- **Control your flow:** Adjust speed and font size on the fly, or hide the prompter instantly using keyboard shortcuts.
+- **Control your flow:** Adjust speed, font size, and opacity on the fly, enable Auto-Pause with Voice, or hide the prompter instantly using keyboard shortcuts.
 
 ## Managing Scripts
 
@@ -63,7 +63,14 @@ Once your settings are dialled in, hide the controls completely to enjoy a distr
 Instantly align your text directly under your camera lens to guarantee flawless, natural eye contact with your audience.
 
 ### Adjust Opacity
-Dim the prompter background so it blends seamlessly into your screen, or make it fully opaque for maximum readability.
+Move from a barely-there overlay to a more solid reading surface depending on the call, your background, and your screen brightness.
+
+### Auto-Pause with Voice
+Let Glance pause the scroll automatically when you stop speaking, then continue when you start again. It is built for live calls where your pace changes as you explain, answer questions, or improvise.
+
+When enabled, Glance asks for microphone permission. Audio is analysed locally on your device to detect speech and silence only. Nothing is recorded or uploaded.
+
+Choose a pause delay of **1s**, **2s**, or **3s** depending on how quickly you want Glance to pause after silence.
 
 ### Elapsed Timer
 Keep track of your presentation length in real-time. Ensure you hit your marks and never accidentally run over time.

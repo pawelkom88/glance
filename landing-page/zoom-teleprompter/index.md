@@ -44,7 +44,7 @@ Glance keeps your cues close to the webcam so you can stay present while you spe
 
 1) **Paste your script** or drop a Markdown file  
 2) Glance appears as a **topmost overlay** near your camera  
-3) **Control delivery in real time** — speed, size, opacity, and section jumps
+3) **Control delivery in real time** — speed, size, opacity range, voice-aware auto-pause, and section jumps
 
 You stay on message. Your eyes stay forward.
 
@@ -57,7 +57,8 @@ Live calls aren’t linear. Someone interrupts. A question changes the order. Yo
 - **Play / Pause** instantly  
 - **Adjust speed** to match your speaking rhythm  
 - **Font size** that stays readable  
-- **Opacity control** for a discreet overlay  
+- **Opacity range** from subtle to solid  
+- **Auto-pause with voice** when you stop speaking  
 - **Snap to center** under your camera  
 - **Quick hide** when you’re done  
 - **Elapsed timer** for pacing
@@ -98,6 +99,9 @@ Never. Glance has no recording capabilities.
 
 ### Can I change scroll speed and font size while I’m speaking?
 Yes. You can adjust speed and font size on the fly.
+
+### Can Glance auto-pause when I stop speaking?
+Yes. Turn on **Auto-Pause with Voice** and Glance will pause after a short silence delay, then resume when you start speaking again. Audio is analysed locally on your device and never recorded.
 
 ### Do I need an account?
 No account required.
