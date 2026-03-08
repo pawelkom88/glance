@@ -1679,7 +1679,7 @@ export function OverlayPrompter() {
 
       if (event.key === 'ArrowDown' && event.shiftKey) {
         event.preventDefault();
-        setDimLevel(Math.max(30, useAppStore.getState().dimLevel - 5));
+        setDimLevel(Math.max(0, useAppStore.getState().dimLevel - 5));
         return;
       }
 
@@ -2294,7 +2294,7 @@ export function OverlayPrompter() {
                   <input
                     className="overlay-popover-slider overlay-black-slider"
                     type="range"
-                    min={30}
+                    min={0}
                     max={100}
                     step={5}
                     value={dimLevel}
@@ -2473,14 +2473,14 @@ export function OverlayPrompter() {
                       <input
                         className="overlay-compact-opacity-slider"
                         type="range"
-                        min={30}
+                        min={0}
                         max={100}
                         step={5}
                         value={dimLevel}
                         onChange={(e) => setDimLevel(Number(e.target.value))}
                         onPointerUp={(e) => { e.currentTarget.blur(); overlayRootRef.current?.focus({ preventScroll: true }); }}
                         aria-label={t('overlay.opacityAria')}
-                        style={{ '--overlay-opacity-progress': `${((dimLevel - 30) / 70) * 100}%` } as CSSProperties}
+                        style={{ '--overlay-opacity-progress': `${dimLevel}%` } as CSSProperties}
                       />
                       <span className="overlay-compact-opacity-value">{dimLevel}%</span>
                     </div>

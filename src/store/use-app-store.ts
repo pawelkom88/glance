@@ -251,7 +251,7 @@ function readOverlayPersistentState() {
       running: Boolean(parsed.running),
       fontScale: Number.isFinite(parsed.fontScale) ? parsed.fontScale : 1,
       showReadingRuler: typeof parsed.showReadingRuler === 'boolean' ? parsed.showReadingRuler : true,
-      dimLevel: Number.isFinite(parsed.dimLevel) ? (parsed.dimLevel <= 3 ? 100 : Math.max(10, Math.min(100, parsed.dimLevel))) : 100,
+      dimLevel: Number.isFinite(parsed.dimLevel) ? (parsed.dimLevel < 0 ? 100 : Math.max(0, Math.min(100, parsed.dimLevel))) : 100,
       isControlsCollapsed: typeof parsed.isControlsCollapsed === 'boolean' ? parsed.isControlsCollapsed : false,
       lineSpacing: Number.isFinite(parsed.lineSpacing) ? Math.max(0.5, Math.min(3.0, parsed.lineSpacing)) : 1.0
     };

@@ -4260,7 +4260,7 @@ body.is-session-dragging * {
   display: grid;
   grid-template-columns: var(--overlay-left-sidebar-width) minmax(0, 1fr) 88px;
   grid-template-rows: minmax(0, 1fr) auto;
-  background: var(--overlay-lane-bg);
+  background: color-mix(in srgb, var(--overlay-lane-bg), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%));
   overflow: hidden;
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -4313,7 +4313,7 @@ body.is-session-dragging * {
 }
 
 .overlay-root.overlay-unfocused .reading-ruler {
-  opacity: 0.55;
+  opacity: 1;
   transition:
     opacity .3s cubic-bezier(0.22, 1, 0.36, 1),
     backdrop-filter .3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -4400,7 +4400,7 @@ body.is-session-dragging * {
   justify-items: center;
   align-content: start;
   gap: 10px;
-  background: var(--overlay-controls-bg);
+  background: color-mix(in srgb, var(--overlay-controls-bg), transparent calc(100% - (var(--overlay-controls-opacity, 1) * 100%)));
   border-right: 1px solid var(--overlay-divider);
   padding: 10px 8px;
   user-select: none;
@@ -4498,12 +4498,12 @@ body.is-session-dragging * {
 
 .overlay-rail-current {
   color: var(--text-on-accent);
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%));
 }
 
 .overlay-rail-next {
   color: var(--overlay-chip-neutral-text);
-  background: var(--overlay-chip-neutral-bg);
+  background: color-mix(in srgb, var(--overlay-chip-neutral-bg), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%));
 }
 
 .overlay-top-actions {
@@ -5199,7 +5199,7 @@ body.is-session-dragging * {
   min-height: 0;
   overflow: hidden;
   padding: 24px;
-  background: var(--overlay-lane-bg);
+  background: color-mix(in srgb, var(--overlay-lane-bg), transparent calc(100% - (var(--overlay-controls-opacity, 1) * 100%)));
   color: var(--overlay-lane-text);
 }
 
@@ -5215,14 +5215,14 @@ body.is-session-dragging * {
   --clear-end: calc(var(--spotlight-top, 0px) + var(--spotlight-height, 50px) + 6px);
 
   background: linear-gradient(to bottom,
-      var(--overlay-dim-strong) 0%,
-      var(--overlay-dim-mid) calc(var(--clear-start) - 120px),
-      var(--overlay-dim-soft) calc(var(--clear-start) - 40px),
+      color-mix(in srgb, var(--overlay-dim-strong), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%)) 0%,
+      color-mix(in srgb, var(--overlay-dim-mid), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%)) calc(var(--clear-start) - 120px),
+      color-mix(in srgb, var(--overlay-dim-soft), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%)) calc(var(--clear-start) - 40px),
       transparent var(--clear-start),
       transparent var(--clear-end),
-      var(--overlay-dim-soft) calc(var(--clear-end) + 40px),
-      var(--overlay-dim-mid) calc(var(--clear-end) + 120px),
-      var(--overlay-dim-strong) 100%);
+      color-mix(in srgb, var(--overlay-dim-soft), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%)) calc(var(--clear-end) + 40px),
+      color-mix(in srgb, var(--overlay-dim-mid), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%)) calc(var(--clear-end) + 120px),
+      color-mix(in srgb, var(--overlay-dim-strong), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%)) 100%);
 }
 
 .overlay-content.overlay-content-no-ruler::before {
@@ -5242,8 +5242,8 @@ body.is-session-dragging * {
   border-radius: 0;
   background: linear-gradient(to right,
       transparent 0%,
-      rgba(0, 145, 254, 0.04) 25%,
-      rgba(0, 145, 254, 0.04) 75%,
+      rgba(0, 145, 254, clamp(0.12, calc(0.32 - var(--overlay-controls-opacity, 1) * 0.4), 0.32)) 25%,
+      rgba(0, 145, 254, clamp(0.12, calc(0.32 - var(--overlay-controls-opacity, 1) * 0.4), 0.32)) 75%,
       transparent 100%);
   border: none;
   box-shadow: none;
@@ -5412,7 +5412,7 @@ body.is-session-dragging * {
   z-index: 4;
   grid-column: 3;
   grid-row: 1;
-  background: var(--overlay-controls-bg);
+  background: color-mix(in srgb, var(--overlay-controls-bg), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%));
   display: grid;
   place-items: center;
   padding: 10px 8px;
@@ -5667,7 +5667,7 @@ body.is-session-dragging * {
   grid-column: 2 / 4;
   grid-row: 2;
   border-top: 1px solid var(--overlay-divider);
-  background: var(--overlay-controls-bg);
+  background: color-mix(in srgb, var(--overlay-controls-bg), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%));
   display: grid;
   place-items: center;
   padding: 10px 16px;
@@ -6012,7 +6012,7 @@ body.is-session-dragging * {
     bottom: 0;
     border-left: 0;
     border-top: 1px solid var(--overlay-divider);
-    background: var(--overlay-controls-bg);
+    background: color-mix(in srgb, var(--overlay-controls-bg), transparent calc(100% - var(--overlay-controls-opacity, 1) * 100%));
     padding: 14px 16px;
     display: block;
     z-index: 30;
