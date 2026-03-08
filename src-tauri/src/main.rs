@@ -16,6 +16,7 @@ use tauri_plugin_updater::UpdaterExt;
 
 const APP_READY_EVENT: &str = "app_ready";
 const MAIN_WINDOW_LABEL: &str = "main";
+const OVERLAY_WINDOW_LABEL: &str = "overlay";
 const MAIN_WINDOW_SHOW_FALLBACK_MS: u64 = 3000;
 const MONITOR_MOVE_DEBOUNCE_MS: u64 = 150;
 const MONITOR_MOVE_POLL_MS: u64 = 100;
@@ -29,15 +30,19 @@ pub struct AppState {
 }
 
 fn should_keep_only_global_hide_shortcut(window_label: &str, focused: bool) -> bool {
-    !focused || window_label != "overlay"
+    !focused || window_label != OVERLAY_WINDOW_LABEL
+}
+
+fn should_exit_on_close_requested(window_label: &str) -> bool {
+    matches!(window_label, MAIN_WINDOW_LABEL | OVERLAY_WINDOW_LABEL)
 }
 
 fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
-    if app.get_webview_window("overlay").is_some() {
+    if app.get_webview_window(OVERLAY_WINDOW_LABEL).is_some() {
         return Ok(());
     }
 
-    WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("/#overlay".into()))
+    WebviewWindowBuilder::new(app, OVERLAY_WINDOW_LABEL, WebviewUrl::App("/#overlay".into()))
         .title("Glance Overlay")
         .always_on_top(true)
         .visible(false)
@@ -176,26 +181,35 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Focused(focused) = event {
-                let window_label = window.label();
-                if window_label == "overlay" && *focused {
-                    // Re-register active bindings when overlay gains focus
-                    if let Some(state) = window.try_state::<AppState>() {
-                        if let Ok(bindings) = state.active_bindings.lock() {
-                            let _ =
-                                commands::apply_bindings(window.app_handle(), &bindings, &state);
+            match event {
+                tauri::WindowEvent::Focused(focused) => {
+                    let window_label = window.label();
+                    if window_label == OVERLAY_WINDOW_LABEL && *focused {
+                        if let Some(state) = window.try_state::<AppState>() {
+                            if let Ok(bindings) = state.active_bindings.lock() {
+                                let _ =
+                                    commands::apply_bindings(window.app_handle(), &bindings, &state);
+                            }
+                        }
+                        return;
+                    }
+
+                    if should_keep_only_global_hide_shortcut(window_label, *focused) {
+                        if let Some(state) = window.try_state::<AppState>() {
+                            let _ = commands::apply_hide_overlay_binding_only(
+                                window.app_handle(),
+                                &state,
+                            );
                         }
                     }
-                    return;
                 }
-
-                if should_keep_only_global_hide_shortcut(window_label, *focused) {
-                    // When overlay is unfocused, keep only the global hide shortcut registered.
-                    if let Some(state) = window.try_state::<AppState>() {
-                        let _ =
-                            commands::apply_hide_overlay_binding_only(window.app_handle(), &state);
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    if should_exit_on_close_requested(window.label()) {
+                        api.prevent_close();
+                        window.app_handle().exit(0);
                     }
                 }
+                _ => {}
             }
         })
         .setup(|app| {
@@ -273,18 +287,30 @@ fn main() {
             commands::snap_overlay_to_top_center,
             commands::export_session_to_path,
             commands::export_diagnostics,
+            commands::quit_app,
             license::check_status,
             license::purchase_unlock,
             license::restore_purchases,
             license::get_unlock_product
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to run Glance application");
+        .build(tauri::generate_context!())
+        .expect("failed to build Glance application")
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen {
+                has_visible_windows: false,
+                ..
+            } = event
+            {
+                let state = app.state::<AppState>();
+                let _ = commands::toggle_glance_visibility(app, &state);
+            }
+        });
 }
 
 #[cfg(test)]
 mod tests {
-    use super::should_keep_only_global_hide_shortcut;
+    use super::{should_exit_on_close_requested, should_keep_only_global_hide_shortcut};
 
     #[test]
     fn keeps_shortcuts_only_for_focused_overlay() {
@@ -292,5 +318,12 @@ mod tests {
         assert!(should_keep_only_global_hide_shortcut("overlay", false));
         assert!(should_keep_only_global_hide_shortcut("main", true));
         assert!(should_keep_only_global_hide_shortcut("main", false));
+    }
+
+    #[test]
+    fn exits_when_close_requested_for_app_windows() {
+        assert!(should_exit_on_close_requested("main"));
+        assert!(should_exit_on_close_requested("overlay"));
+        assert!(!should_exit_on_close_requested("settings"));
     }
 }

@@ -17,6 +17,7 @@ import {
   getLastActiveSessionId,
   getLastOverlayMonitorName,
   listenForShortcutEvents,
+  quitApp,
   recoverOverlayFocus,
   saveOverlayBoundsForMonitor,
   snapOverlayToTopCenter,
@@ -1440,6 +1441,20 @@ export function OverlayPrompter() {
     }, fadeDurationMs);
   }, [isClosing, persistActiveSession, setPlaybackState, showToast]);
 
+  const requestQuitApp = useCallback(() => {
+    setPlaybackState('paused');
+
+    void (async () => {
+      try {
+        await persistActiveSession();
+        await quitApp();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to quit app';
+        showToast(message, 'error');
+      }
+    })();
+  }, [persistActiveSession, setPlaybackState, showToast]);
+
   const shortcutHandlersRef = useRef({
     changeScrollSpeedBy,
     changeFontScaleBy,
@@ -1686,6 +1701,10 @@ export function OverlayPrompter() {
 
       if (event.key.toLowerCase() === 'w') {
         event.preventDefault();
+        if (tauriRuntime) {
+          requestQuitApp();
+          return;
+        }
         requestCloseOverlay();
         return;
       }
@@ -1777,6 +1796,7 @@ export function OverlayPrompter() {
     isJumpMenuOpen,
     isTimerMenuOpen,
     requestCloseOverlay,
+    requestQuitApp,
     resetPresentationTimer,
     setPlaybackState,
     setScrollPosition,

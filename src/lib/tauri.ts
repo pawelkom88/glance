@@ -682,6 +682,13 @@ export async function showMainWindow(): Promise<void> {
   await invoke('show_main_window');
 }
 
+export async function quitApp(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+  await invoke('quit_app');
+}
+
 export async function startOverlayDrag(): Promise<void> {
   if (!inTauri()) {
     return;

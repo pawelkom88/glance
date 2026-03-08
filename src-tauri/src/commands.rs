@@ -20,6 +20,8 @@ const MAIN_WINDOW_MOVE_SETTLE_MS: u64 = 50;
 const HIDE_OVERLAY_ACTION: &str = "hide-overlay";
 const LEGACY_TOGGLE_OVERLAY_ACTION: &str = "toggle-overlay";
 const HIDE_OVERLAY_DEFAULT_ACCELERATOR: &str = "CmdOrCtrl+Shift+K";
+const MAIN_WINDOW_LABEL: &str = "main";
+const OVERLAY_WINDOW_LABEL: &str = "overlay";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -95,6 +97,13 @@ pub struct ShortcutAction {
 pub struct ShortcutBinding {
     pub action: String,
     pub accelerator: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GlanceVisibilityAction {
+    HideAll,
+    RestoreOverlay,
+    Noop,
 }
 
 pub fn apply_bindings(
@@ -193,6 +202,21 @@ fn find_hide_overlay_binding(bindings: &[ShortcutBinding]) -> Option<ShortcutBin
             binding.action == HIDE_OVERLAY_ACTION || binding.action == LEGACY_TOGGLE_OVERLAY_ACTION
         })
         .cloned()
+}
+
+fn resolve_glance_visibility_action(
+    overlay_visible: bool,
+    main_visible: bool,
+) -> GlanceVisibilityAction {
+    if overlay_visible {
+        return GlanceVisibilityAction::HideAll;
+    }
+
+    if !main_visible {
+        return GlanceVisibilityAction::RestoreOverlay;
+    }
+
+    GlanceVisibilityAction::Noop
 }
 
 pub fn apply_hide_overlay_binding_only(app: &AppHandle, state: &AppState) -> Result<(), String> {
@@ -434,7 +458,7 @@ pub fn hide_overlay_window(app: AppHandle, state: State<'_, AppState>) -> Result
 
 fn hide_overlay_window_inner(app: &AppHandle, state: &AppState) -> Result<(), String> {
     let overlay = app
-        .get_webview_window("overlay")
+        .get_webview_window(OVERLAY_WINDOW_LABEL)
         .ok_or_else(|| String::from("Overlay window is not available"))?;
 
     overlay.hide().map_err(|error| error.to_string())?;
@@ -445,47 +469,43 @@ fn hide_overlay_window_inner(app: &AppHandle, state: &AppState) -> Result<(), St
 #[tauri::command]
 pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
     let main_window = app
-        .get_webview_window("main")
+        .get_webview_window(MAIN_WINDOW_LABEL)
         .ok_or_else(|| String::from("Main window is not available"))?;
 
     main_window.hide().map_err(|error| error.to_string())
 }
 
-fn hide_glance_when_overlay_visible(app: &AppHandle, state: &AppState) -> Result<(), String> {
+pub fn toggle_glance_visibility(app: &AppHandle, state: &AppState) -> Result<(), String> {
     let overlay = app
-        .get_webview_window("overlay")
+        .get_webview_window(OVERLAY_WINDOW_LABEL)
         .ok_or_else(|| String::from("Overlay window is not available"))?;
     let main_window = app
-        .get_webview_window("main")
+        .get_webview_window(MAIN_WINDOW_LABEL)
         .ok_or_else(|| String::from("Main window is not available"))?;
     let is_overlay_visible = overlay.is_visible().map_err(|error| error.to_string())?;
     let is_main_visible = main_window
         .is_visible()
         .map_err(|error| error.to_string())?;
 
-    if is_overlay_visible {
-        hide_overlay_window_inner(app, state)?;
-        main_window.hide().map_err(|error| error.to_string())?;
-        return Ok(());
+    match resolve_glance_visibility_action(is_overlay_visible, is_main_visible) {
+        GlanceVisibilityAction::HideAll => {
+            hide_overlay_window_inner(app, state)?;
+            main_window.hide().map_err(|error| error.to_string())?;
+        }
+        GlanceVisibilityAction::RestoreOverlay => {
+            overlay.show().map_err(|error| error.to_string())?;
+            overlay.set_focus().map_err(|error| error.to_string())?;
+            recover_overlay_focus_inner(app, state)?;
+        }
+        GlanceVisibilityAction::Noop => {}
     }
-
-    // If both windows are hidden (shortcut-hidden state), restore only the
-    // overlay and return focus there for instant resume.
-    if !is_overlay_visible && !is_main_visible {
-        overlay.show().map_err(|error| error.to_string())?;
-        overlay.set_focus().map_err(|error| error.to_string())?;
-        recover_overlay_focus_inner(app, state)?;
-    }
-
-    // If overlay is hidden while main is visible, keep this as no-op. This
-    // avoids unexpectedly opening overlay when user is just in the editor.
     Ok(())
 }
 
 #[tauri::command]
 pub fn show_main_window(saved_monitor_key: Option<String>, app: AppHandle) -> Result<(), String> {
     let main_window = app
-        .get_webview_window("main")
+        .get_webview_window(MAIN_WINDOW_LABEL)
         .ok_or_else(|| String::from("Main window is not available"))?;
 
     let tracked_monitor_key = read_saved_main_monitor_key(&app);
@@ -729,7 +749,7 @@ pub fn get_main_window_current_monitor(app: AppHandle) -> Result<Option<MonitorI
 #[tauri::command]
 pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(), String> {
     let overlay = app
-        .get_webview_window("overlay")
+        .get_webview_window(OVERLAY_WINDOW_LABEL)
         .ok_or_else(|| String::from("Overlay window is not available"))?;
     let was_visible = overlay.is_visible().map_err(|error| error.to_string())?;
 
@@ -968,7 +988,7 @@ pub fn export_diagnostics(app: AppHandle, path: String) -> Result<String, String
 }
 
 pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
-    let Some(overlay_window) = app.get_webview_window("overlay") else {
+    let Some(overlay_window) = app.get_webview_window(OVERLAY_WINDOW_LABEL) else {
         return;
     };
 
@@ -990,7 +1010,7 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
                 let app_for_main_thread = app_handle.clone();
                 let _ = app_handle.run_on_main_thread(move || {
                     let state = app_for_main_thread.state::<AppState>();
-                    let _ = hide_glance_when_overlay_visible(&app_for_main_thread, &state);
+                    let _ = toggle_glance_visibility(&app_for_main_thread, &state);
                 });
             });
             return;
@@ -1004,6 +1024,12 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut_text: &str) {
         let _ = app.emit("shortcut-event", action);
         return;
     }
+}
+
+#[tauri::command]
+pub fn quit_app(app: AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
 }
 
 fn monitor_composite_key(
@@ -2552,5 +2578,21 @@ mod tests {
         )
         .unwrap();
         assert_eq!(fallback_first.id, "id-only");
+    }
+
+    #[test]
+    fn test_resolve_glance_visibility_action_prefers_hide_then_restore() {
+        assert_eq!(
+            resolve_glance_visibility_action(true, true),
+            GlanceVisibilityAction::HideAll
+        );
+        assert_eq!(
+            resolve_glance_visibility_action(false, false),
+            GlanceVisibilityAction::RestoreOverlay
+        );
+        assert_eq!(
+            resolve_glance_visibility_action(false, true),
+            GlanceVisibilityAction::Noop
+        );
     }
 }
