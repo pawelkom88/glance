@@ -134,16 +134,11 @@ export interface ShowOverlayResult {
   readonly usedSavedBounds: boolean;
 }
 
-export type AppLicenseState = 'trial' | 'expired' | 'purchased';
+export type AppLicenseState = 'unlicensed' | 'licensed';
 
 export interface AppLicenseStatus {
   readonly state: AppLicenseState;
-  readonly daysRemaining: number | null;
-}
-
-export interface UnlockProductInfo {
-  readonly productId: string;
-  readonly priceDisplay: string | null;
+  readonly licenseId: string | null;
 }
 
 export type ToastVariant = 'info' | 'success' | 'warning' | 'error';

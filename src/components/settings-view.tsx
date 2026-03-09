@@ -178,6 +178,7 @@ export function SettingsView() {
   const [shortcutConfig, setShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [savedShortcutConfig, setSavedShortcutConfig] = useState<ShortcutConfig>(loadShortcutConfig);
   const [shortcutErrors, setShortcutErrors] = useState<Record<string, string>>({});
+  const [licenseKeyInput, setLicenseKeyInput] = useState('');
   const [isDisplayMenuOpen, setIsDisplayMenuOpen] = useState(false);
   const [showAdvancedJumpMappings, setShowAdvancedJumpMappings] = useState(false);
   const displayMenuRef = useRef<HTMLDivElement | null>(null);
@@ -199,11 +200,10 @@ export function SettingsView() {
   const { t } = useI18n();
   const {
     status: licenseStatus,
-    product: licenseProduct,
     actionPending: licenseActionPending,
     error: licenseError,
-    onPurchase: onLicensePurchase,
-    onRestore: onLicenseRestore
+    onActivate: onLicenseActivate,
+    onClear: onLicenseClear
   } = useAppLicense();
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
@@ -957,47 +957,90 @@ export function SettingsView() {
       </div>
 
       <div className={`tab-content support-settings ${activeTab === 'support' ? 'visible' : ''}`}>
-        {/* 1.2 — Proactive "Buy Now" in Settings, hidden when already purchased */}
-        {licenseStatus && licenseStatus.state !== 'purchased' ? (
+        {licenseStatus ? (
           <section className="settings-group" aria-labelledby="support-license">
             <h3 id="support-license" className="settings-group-label">License</h3>
             <div className="settings-card">
-              <div className="setting-row">
+              <div className="setting-row settings-license-row">
                 <div className="setting-copy">
                   <span className="setting-title">
-                    {licenseStatus.state === 'trial'
-                      ? `Trial active — ${licenseStatus.daysRemaining ?? 0} day${licenseStatus.daysRemaining === 1 ? '' : 's'} remaining`
-                      : 'Trial expired'}
+                    {licenseStatus.state === 'licensed'
+                      ? 'License active'
+                      : 'License key required'}
                   </span>
                   <span className="setting-subtitle">
-                    Unlock the full app forever with a one-time purchase.
+                    {licenseStatus.state === 'licensed'
+                      ? `This Mac is unlocked${licenseStatus.licenseId ? ` with license ${licenseStatus.licenseId}.` : '.'}`
+                      : 'Paste the serial key you received after purchase to unlock the app.'}
                   </span>
                 </div>
-                <div className="settings-license-actions">
+                {licenseStatus.state === 'licensed' ? (
+                  <div className="settings-license-actions">
+                    <button
+                      type="button"
+                      id="settings-clear-license-button"
+                      className="cancel-button"
+                      disabled={licenseActionPending}
+                      onClick={() => {
+                        void (async () => {
+                          const cleared = await onLicenseClear();
+                          if (cleared) {
+                            setLicenseKeyInput('');
+                            showToast('Saved license removed from this Mac.', 'success');
+                          }
+                        })();
+                      }}
+                    >
+                      {licenseActionPending ? 'Clearing…' : 'Clear saved key'}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="settings-license-form">
+                <label className="settings-license-label" htmlFor="settings-license-key">
+                  License key
+                </label>
+                <textarea
+                  id="settings-license-key"
+                  className="modal-input settings-license-input"
+                  value={licenseKeyInput}
+                  onChange={(event) => {
+                    setLicenseKeyInput(event.target.value);
+                  }}
+                  rows={4}
+                  placeholder={licenseStatus.state === 'licensed'
+                    ? 'Paste a different license key to replace the current one'
+                    : 'Paste your Glance license key'}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <div className="settings-license-actions settings-license-actions-inline">
                   <button
                     type="button"
-                    id="settings-buy-now-button"
+                    id="settings-activate-license-button"
                     className="primary-button settings-license-buy-btn"
                     disabled={licenseActionPending}
-                    onClick={() => { void onLicensePurchase(); }}
+                    onClick={() => {
+                      void (async () => {
+                        const activated = await onLicenseActivate(licenseKeyInput);
+                        if (activated) {
+                          setLicenseKeyInput('');
+                          showToast('License activated on this Mac.', 'success');
+                        }
+                      })();
+                    }}
                   >
                     {licenseActionPending
-                      ? 'Processing…'
-                      : licenseProduct?.priceDisplay
-                        ? `Buy — ${licenseProduct.priceDisplay}`
-                        : 'Buy Now'}
-                  </button>
-                  <button
-                    type="button"
-                    id="settings-restore-button"
-                    className="cancel-button"
-                    disabled={licenseActionPending}
-                    onClick={() => { void onLicenseRestore(); }}
-                  >
-                    Restore Purchase
+                      ? 'Activating…'
+                      : licenseStatus.state === 'licensed'
+                        ? 'Replace saved key'
+                        : 'Activate license'}
                   </button>
                 </div>
               </div>
+
               {licenseError ? (
                 <p className="settings-license-error" role="alert">{licenseError}</p>
               ) : null}

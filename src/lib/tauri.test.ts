@@ -3,6 +3,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  activateLicenseKey,
+  clearStoredLicense,
+  checkLicenseStatus,
   emitLanguageChanged,
   getMonitors,
   listenForLanguageChanged,
@@ -259,5 +262,32 @@ describe('tauri monitor bridge behavior', () => {
 
     unlisten();
     expect(detach).toHaveBeenCalled();
+  });
+
+  it('checkLicenseStatus invokes the backend license status command', async () => {
+    invokeMock.mockResolvedValue({ state: 'licensed', licenseId: 'license-123' });
+
+    const status = await checkLicenseStatus();
+
+    expect(status).toEqual({ state: 'licensed', licenseId: 'license-123' });
+    expect(invokeMock).toHaveBeenCalledWith('check_status');
+  });
+
+  it('activateLicenseKey passes the pasted key to the backend activation command', async () => {
+    invokeMock.mockResolvedValue({ state: 'licensed', licenseId: 'license-123' });
+
+    const status = await activateLicenseKey('signed-license-key');
+
+    expect(status).toEqual({ state: 'licensed', licenseId: 'license-123' });
+    expect(invokeMock).toHaveBeenCalledWith('activate_license_key', { key: 'signed-license-key' });
+  });
+
+  it('clearStoredLicense invokes the backend clear command', async () => {
+    invokeMock.mockResolvedValue({ state: 'unlicensed', licenseId: null });
+
+    const status = await clearStoredLicense();
+
+    expect(status).toEqual({ state: 'unlicensed', licenseId: null });
+    expect(invokeMock).toHaveBeenCalledWith('clear_stored_license');
   });
 });

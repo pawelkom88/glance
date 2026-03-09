@@ -4,18 +4,15 @@ import { Paywall } from './paywall';
 
 interface LicenseGateProps {
   readonly children: ReactNode;
-  readonly showTrialBanner?: boolean;
 }
 
-export function LicenseGate({ children, showTrialBanner = true }: LicenseGateProps) {
+export function LicenseGate({ children }: LicenseGateProps) {
   const {
     loading,
     status,
-    product,
     actionPending,
     error,
-    onPurchase,
-    onRestore
+    onActivate,
   } = useAppLicense();
 
   if (loading || !status) {
@@ -26,45 +23,13 @@ export function LicenseGate({ children, showTrialBanner = true }: LicenseGatePro
     );
   }
 
-  if (status.state === 'expired') {
+  if (status.state === 'unlicensed') {
     return (
       <Paywall
         pending={actionPending}
         error={error}
-        onPurchase={() => {
-          void onPurchase();
-        }}
-        onRestore={() => {
-          void onRestore();
-        }}
+        onActivate={onActivate}
       />
-    );
-  }
-
-  if (status.state === 'trial') {
-    const daysText = status.daysRemaining === 1
-      ? '1 day left in your trial'
-      : `${status.daysRemaining ?? 0} days left in your trial`;
-    const isCloseToExpiry = (status.daysRemaining ?? 0) <= 3;
-    const shouldDisplayBanner = showTrialBanner && isCloseToExpiry;
-
-    return (
-      <>
-        {/* 1.2 — Proactive "Buy Now" trial banner — only shown in last 3 days */}
-        {shouldDisplayBanner && <div className="license-trial-banner" role="status" aria-live="polite">
-          <span className="license-trial-banner__text">{daysText}</span>
-          <button
-            type="button"
-            id="trial-banner-buy-now"
-            className="license-trial-banner__cta"
-            disabled={actionPending}
-            onClick={() => { void onPurchase(); }}
-          >
-            {actionPending ? 'Processing…' : (product?.priceDisplay ? `Buy — ${product.priceDisplay}` : 'Buy Now')}
-          </button>
-        </div>}
-        {children}
-      </>
     );
   }
 

@@ -21,8 +21,7 @@ import type {
   SessionSummary,
   ShortcutEventPayload,
   ShowOverlayResult,
-  ThemeMode,
-  UnlockProductInfo
+  ThemeMode
 } from '../types';
 
 interface OverlayLayoutEntry extends OverlayBounds {
@@ -349,39 +348,34 @@ export async function listSessions(): Promise<readonly SessionSummary[]> {
 export async function checkLicenseStatus(): Promise<AppLicenseStatus> {
   if (!inTauri()) {
     return {
-      state: 'purchased',
-      daysRemaining: null
+      state: 'licensed',
+      licenseId: 'developer-mode'
     };
   }
 
   return invoke<AppLicenseStatus>('check_status');
 }
 
-export async function purchaseUnlock(): Promise<boolean> {
-  if (!inTauri()) {
-    return true;
-  }
-
-  return invoke<boolean>('purchase_unlock');
-}
-
-export async function restorePurchases(key?: string): Promise<boolean> {
-  if (!inTauri()) {
-    return true;
-  }
-
-  return invoke<boolean>('restore_purchases', { key: key ?? null });
-}
-
-export async function getUnlockProduct(): Promise<UnlockProductInfo> {
+export async function activateLicenseKey(key: string): Promise<AppLicenseStatus> {
   if (!inTauri()) {
     return {
-      productId: 'dev-unlock',
-      priceDisplay: null
+      state: 'licensed',
+      licenseId: 'developer-mode'
     };
   }
 
-  return invoke<UnlockProductInfo>('get_unlock_product');
+  return invoke<AppLicenseStatus>('activate_license_key', { key });
+}
+
+export async function clearStoredLicense(): Promise<AppLicenseStatus> {
+  if (!inTauri()) {
+    return {
+      state: 'unlicensed',
+      licenseId: null
+    };
+  }
+
+  return invoke<AppLicenseStatus>('clear_stored_license');
 }
 
 export async function listFolders(): Promise<readonly SessionFolder[]> {

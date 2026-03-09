@@ -6889,6 +6889,28 @@ body.is-session-dragging * {
   line-height: 1.45;
 }
 
+.license-paywall-form {
+  margin-top: 24px;
+}
+
+.license-paywall-label,
+.settings-license-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4f5e7e;
+}
+
+.license-paywall-input,
+.settings-license-input {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+}
+
 .license-paywall-price {
   margin: 20px 0 0;
   font-size: 20px;
@@ -7017,6 +7039,19 @@ body.is-session-dragging * {
   align-items: flex-end;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.settings-license-row {
+  align-items: flex-start;
+}
+
+.settings-license-form {
+  padding: 0 16px 16px;
+}
+
+.settings-license-actions-inline {
+  margin-top: 12px;
+  align-items: stretch;
 }
 
 .settings-license-buy-btn {
