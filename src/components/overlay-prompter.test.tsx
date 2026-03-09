@@ -94,6 +94,7 @@ function resetStore(): void {
     scrollPosition: 0,
     scrollSpeed: 42,
     overlayFontScale: 1,
+    isControlsCollapsed: false,
     showReadingRuler: true,
     vadEnabled: true,
     voicePauseDelayMs: 1500,
@@ -505,6 +506,54 @@ describe('OverlayPrompter behavior', () => {
     });
   });
 
+  it('grows the compact window by the controls height and restores the previous height on collapse', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    setViewport(1100, 900);
+    windowMocks.scaleFactor.mockResolvedValue(1);
+    windowMocks.innerSize.mockResolvedValue({ width: 1000, height: 300 });
+
+    const scrollHeightSpy = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function scrollHeight(this: HTMLElement) {
+      if (this instanceof HTMLElement && this.classList.contains('overlay-compact-control-bar')) {
+        return 240;
+      }
+      return 0;
+    });
+
+    useAppStore.setState({ isControlsCollapsed: true });
+    const user = userEvent.setup();
+    render(<OverlayPrompter />);
+
+    try {
+      await waitFor(() => {
+        expect(windowMocks.setMinSize).toHaveBeenCalledWith(expect.objectContaining({ height: 200 }));
+      });
+
+      windowMocks.setMinSize.mockClear();
+      windowMocks.setSize.mockClear();
+
+      await user.click(screen.getByRole('button', { name: 'Toggle controls' }));
+
+      await waitFor(() => {
+        expect(windowMocks.setSize).toHaveBeenCalledWith(expect.objectContaining({ height: 540 }));
+      });
+      expect(windowMocks.setMinSize).toHaveBeenCalledWith(expect.objectContaining({ height: 540 }));
+      expect(useAppStore.getState().isControlsCollapsed).toBe(false);
+
+      windowMocks.setMinSize.mockClear();
+      windowMocks.setSize.mockClear();
+
+      await user.click(screen.getByRole('button', { name: 'Toggle controls' }));
+
+      await waitFor(() => {
+        expect(windowMocks.setSize).toHaveBeenCalledWith(expect.objectContaining({ height: 300 }));
+      });
+      expect(windowMocks.setMinSize).toHaveBeenCalledWith(expect.objectContaining({ height: 200 }));
+      expect(useAppStore.getState().isControlsCollapsed).toBe(true);
+    } finally {
+      scrollHeightSpy.mockRestore();
+    }
+  });
+
   it('toggles controls when the toggle-controls shortcut event is received', async () => {
     let shortcutCallback: (payload: { action: string }) => void = () => { };
     tauriMocks.listenForShortcutEvents.mockImplementation(async (cb: (payload: { action: string }) => void) => {
@@ -532,6 +581,56 @@ describe('OverlayPrompter behavior', () => {
     });
     expect(useAppStore.getState().isControlsCollapsed).toBe(false);
     expect(tauriMocks.listenForShortcutEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the same compact resize path for toggle-controls shortcuts', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    setViewport(1100, 900);
+    windowMocks.scaleFactor.mockResolvedValue(1);
+    windowMocks.innerSize.mockResolvedValue({ width: 1000, height: 300 });
+
+    const scrollHeightSpy = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function scrollHeight(this: HTMLElement) {
+      if (this instanceof HTMLElement && this.classList.contains('overlay-compact-control-bar')) {
+        return 240;
+      }
+      return 0;
+    });
+
+    useAppStore.setState({ isControlsCollapsed: true });
+
+    let shortcutCallback: (payload: { action: string }) => void = () => { };
+    tauriMocks.listenForShortcutEvents.mockImplementation(async (cb: (payload: { action: string }) => void) => {
+      shortcutCallback = cb;
+      return () => { };
+    });
+
+    render(<OverlayPrompter />);
+
+    try {
+      await waitFor(() => {
+        expect(tauriMocks.listenForShortcutEvents).toHaveBeenCalledTimes(1);
+      });
+
+      await act(async () => {
+        shortcutCallback({ action: 'toggle-controls' });
+      });
+      await waitFor(() => {
+        expect(windowMocks.setSize).toHaveBeenCalledWith(expect.objectContaining({ height: 540 }));
+      });
+      expect(useAppStore.getState().isControlsCollapsed).toBe(false);
+
+      windowMocks.setSize.mockClear();
+
+      await act(async () => {
+        shortcutCallback({ action: 'toggle-controls' });
+      });
+      await waitFor(() => {
+        expect(windowMocks.setSize).toHaveBeenCalledWith(expect.objectContaining({ height: 300 }));
+      });
+      expect(useAppStore.getState().isControlsCollapsed).toBe(true);
+    } finally {
+      scrollHeightSpy.mockRestore();
+    }
   });
 
   it('switches from snap to lock controls at the home position and restores snap after a 1px move', async () => {

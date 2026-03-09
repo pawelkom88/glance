@@ -6243,10 +6243,6 @@ body.is-session-dragging * {
     pointer-events: none;
   }
 
-  .overlay-controls-collapsible.is-collapsed {
-    display: none;
-  }
-
   .overlay-compact-control-bar .overlay-controls {
     width: 100%;
     justify-items: center;

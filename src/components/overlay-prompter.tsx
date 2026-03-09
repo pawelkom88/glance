@@ -549,6 +549,7 @@ export function OverlayPrompter() {
   const fontMenuRef = useRef<HTMLDivElement | null>(null);
   const timerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const timerMenuRef = useRef<HTMLDivElement | null>(null);
+  const compactControlsContentRef = useRef<HTMLDivElement | null>(null);
   const timerTickStartRef = useRef<number | null>(null);
   const fontPersistTimeoutRef = useRef<number | null>(null);
   const speedIconAnimationTimeoutRef = useRef<number | null>(null);
@@ -568,6 +569,8 @@ export function OverlayPrompter() {
   const isJumpMenuOpenRef = useRef(isJumpMenuOpen);
   const isFontMenuOpenRef = useRef(isFontMenuOpen);
   const isTimerMenuOpenRef = useRef(isTimerMenuOpen);
+  const compactCollapsedHeightRef = useRef<number | null>(null);
+  const compactExpandedHeightRef = useRef<number | null>(null);
 
   useEffect(() => { isJumpMenuOpenRef.current = isJumpMenuOpen; }, [isJumpMenuOpen]);
   useEffect(() => { isFontMenuOpenRef.current = isFontMenuOpen; }, [isFontMenuOpen]);
@@ -752,6 +755,11 @@ export function OverlayPrompter() {
   const compactContextNext = nextSection
     ? t('overlay.nextSection', { title: nextSection.title })
     : t('overlay.waitingForHeadings');
+
+  const getCompactControlsHeight = useCallback(() => {
+    const controlsHeight = compactControlsContentRef.current?.scrollHeight ?? 0;
+    return Math.max(0, Math.ceil(controlsHeight));
+  }, []);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -941,12 +949,15 @@ export function OverlayPrompter() {
     if (!isTauriRuntime()) return;
 
     const appWindow = getCurrentWindow();
-    const minHeight = isControlsCollapsed ? 200 : 400;
+    const compactExpandedHeight = compactExpandedHeightRef.current;
+    const minHeight = isCompactTopBar
+      ? (isControlsCollapsed ? 200 : compactExpandedHeight ?? 200)
+      : (isControlsCollapsed ? 200 : 400);
 
     try {
       await appWindow.setMinSize(new LogicalSize(500, minHeight));
 
-      if (!isControlsCollapsed) {
+      if (!isCompactTopBar && !isControlsCollapsed) {
         const [currentSize, scaleFactor] = await Promise.all([
           appWindow.innerSize(),
           appWindow.scaleFactor()
@@ -962,11 +973,47 @@ export function OverlayPrompter() {
     } catch (error) {
       console.warn('Failed to update window constraints:', error);
     }
-  }, [isControlsCollapsed]);
+  }, [isCompactTopBar, isControlsCollapsed]);
 
   useEffect(() => {
     void updateWindowConstraints();
   }, [updateWindowConstraints]);
+
+  useEffect(() => {
+    if (!isCompactTopBar || isControlsCollapsed || !isTauriRuntime() || compactExpandedHeightRef.current !== null) {
+      return;
+    }
+
+    void (async () => {
+      const controlsHeight = getCompactControlsHeight();
+      if (controlsHeight <= 0) {
+        return;
+      }
+
+      try {
+        const appWindow = getCurrentWindow();
+        const [currentSize, scaleFactor] = await Promise.all([
+          appWindow.innerSize(),
+          appWindow.scaleFactor()
+        ]);
+
+        const logicalHeight = currentSize.height / scaleFactor;
+        const logicalWidth = currentSize.width / scaleFactor;
+        const collapsedHeight = Math.max(200, logicalHeight - controlsHeight);
+        const expandedHeight = collapsedHeight + controlsHeight;
+
+        compactCollapsedHeightRef.current = collapsedHeight;
+        compactExpandedHeightRef.current = expandedHeight;
+
+        if (logicalHeight < expandedHeight) {
+          await appWindow.setSize(new LogicalSize(logicalWidth, expandedHeight));
+        }
+        await appWindow.setMinSize(new LogicalSize(500, expandedHeight));
+      } catch (error) {
+        console.warn('Failed compact controls mount sizing:', error);
+      }
+    })();
+  }, [getCompactControlsHeight, isCompactTopBar, isControlsCollapsed]);
 
   const handleSnapToCentre = useCallback(async () => {
     if (isSnapping) return;
@@ -1021,7 +1068,32 @@ export function OverlayPrompter() {
     const currentState = useAppStore.getState();
     const nextCollapsed = !currentState.isControlsCollapsed;
 
-    if (!nextCollapsed && isTauriRuntime()) {
+    if (isCompactTopBar && isTauriRuntime()) {
+      const appWindow = getCurrentWindow();
+      try {
+        const [currentSize, scaleFactor] = await Promise.all([
+          appWindow.innerSize(),
+          appWindow.scaleFactor()
+        ]);
+
+        const logicalHeight = currentSize.height / scaleFactor;
+        const logicalWidth = currentSize.width / scaleFactor;
+
+        if (!nextCollapsed) {
+          const controlsHeight = getCompactControlsHeight();
+          if (controlsHeight > 0) {
+            compactCollapsedHeightRef.current = logicalHeight;
+            compactExpandedHeightRef.current = logicalHeight + controlsHeight;
+            await appWindow.setSize(new LogicalSize(logicalWidth, logicalHeight + controlsHeight));
+          }
+        } else if (compactCollapsedHeightRef.current !== null) {
+          await appWindow.setSize(new LogicalSize(logicalWidth, compactCollapsedHeightRef.current));
+          compactExpandedHeightRef.current = null;
+        }
+      } catch (error) {
+        console.warn('Failed compact controls resize:', error);
+      }
+    } else if (!nextCollapsed && isTauriRuntime()) {
       const appWindow = getCurrentWindow();
       try {
         const [currentSize, scaleFactor] = await Promise.all([
@@ -1039,10 +1111,12 @@ export function OverlayPrompter() {
       } catch (error) {
         console.warn('Failed proactive expansion:', error);
       }
+    } else if (!isCompactTopBar) {
+      compactExpandedHeightRef.current = null;
     }
 
     currentState.setIsControlsCollapsed(nextCollapsed);
-  }, []);
+  }, [getCompactControlsHeight, isCompactTopBar]);
 
 
   const renderTopActions = () => (
@@ -2897,7 +2971,10 @@ export function OverlayPrompter() {
                   id="overlay-controls-area"
                   className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
                 >
-                  <div className="overlay-compact-control-bar">
+                  <div
+                    ref={compactControlsContentRef}
+                    className="overlay-compact-control-bar"
+                  >
                     <div className="overlay-compact-status-row">
                       {renderTimerControls('overlay-timer-row--compact')}
                       {renderVoiceToggle()}
