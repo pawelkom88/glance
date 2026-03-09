@@ -226,6 +226,8 @@ export interface TranslationCatalog {
     readonly jump: string;
     readonly reset: string;
     readonly snapToCentre: string;
+    readonly lockWindowPosition: string;
+    readonly unlockWindowPosition: string;
     readonly snapError: string;
     readonly toggleControls: string;
     readonly close: string;

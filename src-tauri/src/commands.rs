@@ -808,11 +808,14 @@ pub fn snap_overlay_to_center(app: AppHandle) -> Result<SnapOverlayResult, Strin
         });
     };
 
-    let (x, y) = top_center_window_on_monitor(&overlay, &target_monitor)?;
+    let _ = top_center_window_on_monitor(&overlay, &target_monitor)?;
+    let settled_position = overlay
+        .outer_position()
+        .map_err(|error| error.to_string())?;
 
     Ok(SnapOverlayResult {
-        x,
-        y,
+        x: settled_position.x,
+        y: settled_position.y,
         monitor_name: monitor_key(&target_monitor),
     })
 }

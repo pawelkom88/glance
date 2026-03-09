@@ -22,6 +22,9 @@ const windowMocks = vi.hoisted(() => ({
   onResized: vi.fn(),
   isFocused: vi.fn(),
   currentMonitor: vi.fn(),
+  outerPosition: vi.fn(),
+  outerSize: vi.fn(),
+  setFocus: vi.fn(),
   setMinSize: vi.fn(),
   setSize: vi.fn(),
   scaleFactor: vi.fn(),
@@ -29,15 +32,16 @@ const windowMocks = vi.hoisted(() => ({
 }));
 
 let focusChangedListener: ((event: { payload: boolean }) => void) | null = null;
+let movedListener: ((event: { payload: { x: number; y: number } }) => void) | null = null;
 
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
-    outerPosition: vi.fn().mockResolvedValue({ x: 0, y: 0 }),
-    outerSize: vi.fn().mockResolvedValue({ width: 1120, height: 400 }),
+    outerPosition: windowMocks.outerPosition,
+    outerSize: windowMocks.outerSize,
     innerSize: windowMocks.innerSize,
     currentMonitor: windowMocks.currentMonitor,
     setPosition: vi.fn().mockResolvedValue(undefined),
-    setFocus: vi.fn().mockResolvedValue(undefined),
+    setFocus: windowMocks.setFocus,
     isFocused: windowMocks.isFocused,
     onMoved: windowMocks.onMoved,
     onResized: windowMocks.onResized,
@@ -105,6 +109,7 @@ beforeEach(() => {
   resetStore();
 
   focusChangedListener = null;
+  movedListener = null;
   windowMocks.isFocused.mockResolvedValue(true);
   windowMocks.currentMonitor.mockResolvedValue({
     name: 'Display A',
@@ -112,7 +117,13 @@ beforeEach(() => {
     position: { x: 0, y: 0 },
     scaleFactor: 1
   });
-  windowMocks.onMoved.mockImplementation(() => Promise.resolve(() => undefined));
+  windowMocks.outerPosition.mockResolvedValue({ x: 0, y: 0 });
+  windowMocks.outerSize.mockResolvedValue({ width: 1120, height: 400 });
+  windowMocks.setFocus.mockResolvedValue(undefined);
+  windowMocks.onMoved.mockImplementation((listener: (event: { payload: { x: number; y: number } }) => void) => {
+    movedListener = listener;
+    return Promise.resolve(() => undefined);
+  });
   windowMocks.onResized.mockImplementation(() => Promise.resolve(() => undefined));
   windowMocks.onFocusChanged.mockImplementation(
     (listener: (event: { payload: boolean }) => void) => {
@@ -125,10 +136,13 @@ beforeEach(() => {
   tauriMocks.showMainWindow.mockResolvedValue(undefined);
   tauriMocks.listenForShortcutEvents.mockResolvedValue(() => undefined);
   tauriMocks.recoverOverlayFocus.mockResolvedValue(undefined);
-  tauriMocks.snapOverlayToTopCenter.mockResolvedValue({
-    x: 0,
-    y: 0,
-    monitorName: 'display-a'
+  tauriMocks.snapOverlayToTopCenter.mockImplementation(async () => {
+    windowMocks.outerPosition.mockResolvedValue({ x: 400, y: 0 });
+    return {
+      x: 400,
+      y: 0,
+      monitorName: 'display-a'
+    };
   });
   tauriMocks.startOverlayDrag.mockResolvedValue(undefined);
 
@@ -518,5 +532,100 @@ describe('OverlayPrompter behavior', () => {
     });
     expect(useAppStore.getState().isControlsCollapsed).toBe(false);
     expect(tauriMocks.listenForShortcutEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches from snap to lock controls at the home position and restores snap after a 1px move', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    const user = userEvent.setup();
+    tauriMocks.snapOverlayToTopCenter.mockImplementation(async () => {
+      windowMocks.outerPosition.mockResolvedValue({ x: 401, y: 0 });
+      return {
+        x: 400,
+        y: 0,
+        monitorName: 'display-a'
+      };
+    });
+
+    render(<OverlayPrompter />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lock window position' })).toBeTruthy();
+    });
+
+    windowMocks.outerPosition.mockResolvedValue({ x: 402, y: 0 });
+    act(() => {
+      movedListener?.({ payload: { x: 402, y: 0 } });
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Snap to top' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lock window position' })).toBeTruthy();
+    });
+
+    expect(tauriMocks.snapOverlayToTopCenter).toHaveBeenCalledTimes(1);
+
+    windowMocks.outerPosition.mockResolvedValue({ x: 403, y: 0 });
+    act(() => {
+      movedListener?.({ payload: { x: 403, y: 0 } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Snap to top' })).toBeTruthy();
+    });
+  });
+
+  it('treats the initial runtime position as home when the frontend cannot resolve the current monitor', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    windowMocks.currentMonitor.mockResolvedValue(null);
+    windowMocks.outerPosition.mockResolvedValue({ x: 350, y: 76 });
+
+    render(<OverlayPrompter />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lock window position' })).toBeTruthy();
+    });
+  });
+
+  it('adopts the settled runtime position as home when launch coordinates shift without a resolved monitor', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    windowMocks.currentMonitor.mockResolvedValue(null);
+    windowMocks.outerPosition.mockResolvedValue({ x: 350, y: 310 });
+
+    render(<OverlayPrompter />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lock window position' })).toBeTruthy();
+    });
+
+    windowMocks.outerPosition.mockResolvedValue({ x: 350, y: 76 });
+    act(() => {
+      movedListener?.({ payload: { x: 350, y: 76 } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lock window position' })).toBeTruthy();
+    });
+  });
+
+  it('blocks dragging while the snapped position is pinned', async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    const user = userEvent.setup();
+    const { container } = render(<OverlayPrompter />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Lock window position' })).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Lock window position' }));
+    expect(screen.getByRole('button', { name: 'Unlock window position' })).toBeTruthy();
+
+    const dragSurface = container.querySelector('.overlay-right-sidebar') as HTMLElement | null;
+    expect(dragSurface).not.toBeNull();
+
+    fireEvent.mouseDown(dragSurface as HTMLElement, { button: 0, clientX: 10, clientY: 10 });
+    fireEvent.mouseMove(window, { clientX: 18, clientY: 18 });
+
+    expect(tauriMocks.startOverlayDrag).not.toHaveBeenCalled();
   });
 });

@@ -4730,9 +4730,19 @@ body.is-session-dragging * {
   overflow: visible;
 }
 
+.overlay-snap-button.is-locked {
+  background: color-mix(in srgb, var(--overlay-chip-neutral-bg), var(--accent) 16%) !important;
+  border-color: color-mix(in srgb, var(--overlay-chip-neutral-border), var(--accent) 38%) !important;
+}
+
+.overlay-snap-button:disabled {
+  cursor: default;
+  opacity: 0.76;
+}
+
 .overlay-snap-button svg {
-  width: 14px !important;
-  height: 14px !important;
+  width: 17px !important;
+  height: 17px !important;
   overflow: visible;
 }
 

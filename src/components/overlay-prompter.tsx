@@ -72,6 +72,7 @@ interface MonitorSnapshot {
   readonly scaleFactor?: number;
 }
 
+type OverlayAnchorControlMode = 'snap' | 'lock-open' | 'lock-closed';
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -119,6 +120,37 @@ function calculateSnapTarget(
   };
 }
 
+function areWindowPositionsEqual(
+  left: { x: number; y: number } | null,
+  right: { x: number; y: number } | null
+): boolean {
+  if (!left || !right) {
+    return false;
+  }
+
+  return left.x === right.x && left.y === right.y;
+}
+
+function isWithinHomePositionTolerance(
+  left: { x: number; y: number },
+  right: { x: number; y: number },
+  tolerance = 2
+): boolean {
+  return Math.abs(left.x - right.x) <= tolerance && Math.abs(left.y - right.y) <= tolerance;
+}
+
+function resolveOverlayAnchorControlMode(options: {
+  readonly isAtHomePosition: boolean;
+  readonly isWindowPinned: boolean;
+}): OverlayAnchorControlMode {
+  const { isAtHomePosition, isWindowPinned } = options;
+  if (!isAtHomePosition) {
+    return 'snap';
+  }
+
+  return isWindowPinned ? 'lock-closed' : 'lock-open';
+}
+
 function monitorIdFromSnapshot(monitor: MonitorSnapshot, unnamedLabel: string): string {
   const label = monitor.name ?? unnamedLabel;
   const scale = typeof monitor.scaleFactor === 'number' && Number.isFinite(monitor.scaleFactor)
@@ -131,14 +163,40 @@ function logSnapDebug(message: string, payload?: Record<string, unknown>): void 
   if (typeof window === 'undefined') {
     return;
   }
-  if (window.localStorage.getItem('glance-snap-debug') !== '1') {
-    return;
-  }
+
+  const sink = window as typeof window & {
+    __GLANCE_SNAP_DEBUG__?: Array<Record<string, unknown>>;
+  };
+  const entry = {
+    message,
+    ...(payload ?? {}),
+    timestamp: new Date().toISOString()
+  };
+  sink.__GLANCE_SNAP_DEBUG__ = [...(sink.__GLANCE_SNAP_DEBUG__ ?? []).slice(-79), entry];
+
+  const serialized = payload ? JSON.stringify(entry, (_, value) => {
+    if (value && typeof value === 'object') {
+      if ('x' in (value as Record<string, unknown>) && 'y' in (value as Record<string, unknown>)) {
+        const point = value as { x?: unknown; y?: unknown };
+        return { x: point.x, y: point.y };
+      }
+      if (
+        'width' in (value as Record<string, unknown>)
+        && 'height' in (value as Record<string, unknown>)
+      ) {
+        const size = value as { width?: unknown; height?: unknown };
+        return { width: size.width, height: size.height };
+      }
+    }
+    return value;
+  }) : '';
+
   if (payload) {
-    console.debug(`[snap-debug] ${message}`, payload);
+    console.info(`[overlay-anchor-debug] ${message}`, payload);
+    console.info(`[overlay-anchor-debug-json] ${serialized}`);
     return;
   }
-  console.debug(`[snap-debug] ${message}`);
+  console.info(`[overlay-anchor-debug] ${message}`);
 }
 
 function readTimerPrefs(): TimerPrefs {
@@ -254,6 +312,28 @@ function SnapToCentreIcon() {
       <line x1="2.5" y1="10" x2="5.4" y2="10" />
       <line x1="14.6" y1="10" x2="17.5" y2="10" />
       <circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function LockedPadlockIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.25 8V6.9a3.75 3.75 0 1 1 7.5 0V8" />
+      <rect x="4.75" y="8" width="10.5" height="8" rx="2.2" />
+      <circle cx="10" cy="12" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function UnlockedPadlockIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.2 8.35V6.95a3.8 3.8 0 0 1 6.2-2.98" />
+      <path d="M12.4 3.97h2.2v2.2" />
+      <rect x="4.65" y="8.35" width="10.7" height="8.15" rx="2.15" />
+      <circle cx="10" cy="12.1" r="1.05" fill="currentColor" stroke="none" />
+      <path d="M10 13.1v1.35" />
     </svg>
   );
 }
@@ -493,11 +573,12 @@ export function OverlayPrompter() {
   useEffect(() => { isFontMenuOpenRef.current = isFontMenuOpen; }, [isFontMenuOpen]);
   useEffect(() => { isTimerMenuOpenRef.current = isTimerMenuOpen; }, [isTimerMenuOpen]);
   const [windowPosition, setWindowPosition] = useState<{ x: number; y: number } | null>(null);
-  const [snapTarget, setSnapTarget] = useState<{ x: number; y: number } | null>(null);
+  const [homePosition, setHomePosition] = useState<{ x: number; y: number } | null>(null);
   const [isSnapping, setIsSnapping] = useState(false);
-  const [shouldRenderSnap, setShouldRenderSnap] = useState(false);
-  const [isSnapExiting, setIsSnapExiting] = useState(false);
-  const snapTargetRef = useRef<{ x: number; y: number } | null>(null);
+  const [isWindowPinned, setIsWindowPinned] = useState(false);
+  const homePositionRef = useRef<{ x: number; y: number } | null>(null);
+  const hasBootstrappedHomePositionRef = useRef(false);
+  const hasUserDraggedWindowRef = useRef(false);
   const isSnappingRef = useRef(false);
 
   const [animatedSpeedIcon, setAnimatedSpeedIcon] = useState<'slow' | 'fast' | null>(null);
@@ -672,27 +753,67 @@ export function OverlayPrompter() {
     ? t('overlay.nextSection', { title: nextSection.title })
     : t('overlay.waitingForHeadings');
 
-  const isSnapButtonVisible = useMemo(() => {
-    if (!windowPosition || isSnapping) return false;
-    if (!snapTarget) return true;
-    const dx = Math.abs(windowPosition.x - snapTarget.x);
-    const dy = Math.abs(windowPosition.y - snapTarget.y);
-    return dx > 2 || dy > 2;
-  }, [windowPosition, snapTarget, isSnapping]);
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    logSnapDebug('resetting home state on overlay mount');
+    homePositionRef.current = null;
+    hasBootstrappedHomePositionRef.current = false;
+    hasUserDraggedWindowRef.current = false;
+    setHomePosition(null);
+    setWindowPosition(null);
+    setIsWindowPinned(false);
+  }, []);
+
+  const isAtHomePosition = useMemo(
+    () => areWindowPositionsEqual(windowPosition, homePosition),
+    [homePosition, windowPosition]
+  );
+  const isOverlayAnchorReady = windowPosition !== null && homePosition !== null;
+
+  const overlayAnchorControlMode = useMemo(
+    () => resolveOverlayAnchorControlMode({
+      isAtHomePosition,
+      isWindowPinned
+    }),
+    [isAtHomePosition, isWindowPinned]
+  );
 
   useEffect(() => {
-    snapTargetRef.current = snapTarget;
-  }, [snapTarget]);
+    homePositionRef.current = homePosition;
+  }, [homePosition]);
 
   useEffect(() => {
     isSnappingRef.current = isSnapping;
   }, [isSnapping]);
 
-  const refreshWindowPlacement = useCallback(async () => {
+  useEffect(() => {
+    if (overlayAnchorControlMode === 'snap' && isWindowPinned) {
+      setIsWindowPinned(false);
+    }
+  }, [isWindowPinned, overlayAnchorControlMode]);
+
+  useEffect(() => {
+    logSnapDebug('anchor control evaluated', {
+      actualOuterPosition: windowPosition,
+      storedHomePosition: homePosition,
+      isAtHomePosition,
+      isOverlayAnchorReady,
+      overlayAnchorControlMode,
+      isWindowPinned
+    });
+  }, [homePosition, isAtHomePosition, isOverlayAnchorReady, isWindowPinned, overlayAnchorControlMode, windowPosition]);
+
+  const refreshWindowPlacement = useCallback(async (options?: {
+    readonly synchronizeHomePosition?: boolean;
+  }) => {
     if (!isTauriRuntime()) {
       return;
     }
 
+    const synchronizeHomePosition = options?.synchronizeHomePosition ?? false;
     const appWindow = getCurrentWindow();
     const monitorAware = appWindow as unknown as {
       currentMonitor?: () => Promise<MonitorSnapshot | null>;
@@ -704,55 +825,117 @@ export function OverlayPrompter() {
         appWindow.outerSize()
       ]);
 
+      const nextWindowPosition = { x: position.x, y: position.y };
+      const currentHomePosition = homePositionRef.current;
+
       setWindowPosition((previous) => {
         if (previous && previous.x === position.x && previous.y === position.y) {
           return previous;
         }
-        return { x: position.x, y: position.y };
+        return nextWindowPosition;
       });
 
-      let nextTarget: { x: number; y: number } | null = null;
+      let nextHomeCandidate: { x: number; y: number } | null = null;
       if (typeof monitorAware.currentMonitor === 'function') {
         const monitor = await monitorAware.currentMonitor().catch(() => null);
         if (monitor) {
-          nextTarget = calculateSnapTarget(monitor, windowSize);
+          nextHomeCandidate = calculateSnapTarget(monitor, windowSize);
           logSnapDebug('refresh target computed', {
             windowPosition: position,
             windowSize,
             monitorPosition: monitor.position,
             monitorSize: monitor.size,
-            target: nextTarget
+            target: nextHomeCandidate
           });
         }
       }
 
-      if (nextTarget) {
-        snapTargetRef.current = nextTarget;
-        setSnapTarget((previous) => {
-          if (previous && previous.x === nextTarget.x && previous.y === nextTarget.y) {
+      logSnapDebug('refresh placement snapshot', {
+        actualOuterPosition: nextWindowPosition,
+        storedHomePosition: currentHomePosition,
+        isAtHomePosition: areWindowPositionsEqual(nextWindowPosition, currentHomePosition),
+        synchronizeHomePosition,
+        target: nextHomeCandidate
+      });
+
+      const shouldBootstrapHomePosition = !hasBootstrappedHomePositionRef.current;
+      const shouldInitializeHomePosition = !currentHomePosition;
+      const shouldAdoptSettledRuntimePosition =
+        !hasUserDraggedWindowRef.current
+        && !isSnappingRef.current
+        && !nextHomeCandidate
+        && !!currentHomePosition
+        && !areWindowPositionsEqual(nextWindowPosition, currentHomePosition);
+      const shouldSynchronizeHomePosition =
+        synchronizeHomePosition
+        && nextHomeCandidate
+        && isWithinHomePositionTolerance(nextWindowPosition, nextHomeCandidate);
+
+      logSnapDebug('refresh placement decision', {
+        actualOuterPosition: nextWindowPosition,
+        storedHomePosition: currentHomePosition,
+        target: nextHomeCandidate,
+        shouldBootstrapHomePosition,
+        shouldInitializeHomePosition,
+        shouldAdoptSettledRuntimePosition,
+        shouldSynchronizeHomePosition,
+        toleranceDelta: nextHomeCandidate
+          ? {
+            dx: Math.abs(nextWindowPosition.x - nextHomeCandidate.x),
+            dy: Math.abs(nextWindowPosition.y - nextHomeCandidate.y)
+          }
+          : null
+      });
+
+      if (
+        shouldBootstrapHomePosition
+        || shouldInitializeHomePosition
+        || shouldAdoptSettledRuntimePosition
+        || shouldSynchronizeHomePosition
+      ) {
+        if (shouldBootstrapHomePosition) {
+          logSnapDebug('home position bootstrapped from first runtime observation', {
+            previousHomePosition: currentHomePosition,
+            actualOuterPosition: nextWindowPosition,
+            target: nextHomeCandidate
+          });
+        } else if (shouldInitializeHomePosition) {
+          logSnapDebug('home position initialized from first runtime observation', {
+            actualOuterPosition: nextWindowPosition,
+            target: nextHomeCandidate
+          });
+        } else if (shouldAdoptSettledRuntimePosition) {
+          logSnapDebug('home position adopted from settled runtime observation', {
+            previousHomePosition: currentHomePosition,
+            actualOuterPosition: nextWindowPosition,
+            target: nextHomeCandidate
+          });
+        }
+
+        if (
+          currentHomePosition
+          && (currentHomePosition.x !== nextWindowPosition.x || currentHomePosition.y !== nextWindowPosition.y)
+        ) {
+          logSnapDebug('home position synchronized to runtime', {
+            previousHomePosition: currentHomePosition,
+            actualOuterPosition: nextWindowPosition,
+            target: nextHomeCandidate
+          });
+        }
+
+        hasBootstrappedHomePositionRef.current = true;
+        homePositionRef.current = nextWindowPosition;
+        setHomePosition((previous) => {
+          if (previous && previous.x === nextWindowPosition.x && previous.y === nextWindowPosition.y) {
             return previous;
           }
-          return nextTarget;
+          return nextWindowPosition;
         });
       }
     } catch {
       // Ignore transient window/monitor lookup failures.
     }
   }, []);
-
-  useEffect(() => {
-    if (isSnapButtonVisible) {
-      setShouldRenderSnap(true);
-      setIsSnapExiting(false);
-    } else if (shouldRenderSnap) {
-      setIsSnapExiting(true);
-      const timer = window.setTimeout(() => {
-        setShouldRenderSnap(false);
-        setIsSnapExiting(false);
-      }, 100);
-      return () => window.clearTimeout(timer);
-    }
-  }, [isSnapButtonVisible, shouldRenderSnap]);
 
   const updateWindowConstraints = useCallback(async () => {
     if (!isTauriRuntime()) return;
@@ -790,18 +973,49 @@ export function OverlayPrompter() {
 
     setIsSnapping(true);
     try {
-      await snapOverlayToTopCenter();
+      const snappedPosition = await snapOverlayToTopCenter();
+      const nextPosition = {
+        x: snappedPosition.x,
+        y: snappedPosition.y
+      };
+      logSnapDebug('snap command resolved', {
+        snappedPosition,
+        nextPositionBeforeRefresh: nextPosition
+      });
+      setWindowPosition(nextPosition);
+      setHomePosition(nextPosition);
+      homePositionRef.current = nextPosition;
+      hasBootstrappedHomePositionRef.current = true;
+      hasUserDraggedWindowRef.current = false;
+      setIsWindowPinned(false);
+      if (snappedPosition.monitorName) {
+        monitorNameRef.current = snappedPosition.monitorName;
+        setLastOverlayMonitorName(snappedPosition.monitorName);
+      }
       await updateWindowConstraints();
-      await refreshWindowPlacement();
+      await refreshWindowPlacement({ synchronizeHomePosition: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : t('overlay.snapError');
       showToast(message, 'error');
     } finally {
       setIsSnapping(false);
       void updateWindowConstraints();
-      void refreshWindowPlacement();
+      void refreshWindowPlacement({ synchronizeHomePosition: true });
     }
-  }, [isSnapping, refreshWindowPlacement, showToast]);
+  }, [isSnapping, refreshWindowPlacement, showToast, t, updateWindowConstraints]);
+
+  const handleOverlayAnchorControl = useCallback(async () => {
+    if (!isOverlayAnchorReady) {
+      return;
+    }
+
+    if (overlayAnchorControlMode === 'snap') {
+      await handleSnapToCentre();
+      return;
+    }
+
+    setIsWindowPinned((previous) => !previous);
+  }, [handleSnapToCentre, isOverlayAnchorReady, overlayAnchorControlMode]);
 
   const toggleControls = useCallback(async () => {
     const currentState = useAppStore.getState();
@@ -869,16 +1083,33 @@ export function OverlayPrompter() {
           <JumpSectionsIcon open={isJumpMenuOpen} />
         </button>
       ) : null}
-      <div className={`overlay-snap-wrapper ${shouldRenderSnap ? 'is-visible' : ''} ${isSnapExiting ? 'is-exiting' : ''}`}>
+      <div className={`overlay-snap-wrapper ${isOverlayAnchorReady ? 'is-visible' : ''}`}>
         <button
           type="button"
-          className="overlay-top-action overlay-snap-button"
-          onClick={handleSnapToCentre}
-          aria-label={t('overlay.snapToCentre')}
-          title={t('overlay.snapToCentre')}
-          tabIndex={shouldRenderSnap ? 0 : -1}
+          className={`overlay-top-action overlay-snap-button ${overlayAnchorControlMode === 'lock-closed' ? 'is-locked' : ''}`}
+          onClick={() => {
+            void handleOverlayAnchorControl();
+          }}
+          aria-label={
+            overlayAnchorControlMode === 'snap'
+              ? t('overlay.snapToCentre')
+              : overlayAnchorControlMode === 'lock-closed'
+                ? t('overlay.unlockWindowPosition')
+                : t('overlay.lockWindowPosition')
+          }
+          title={
+            overlayAnchorControlMode === 'snap'
+              ? t('overlay.snapToCentre')
+              : overlayAnchorControlMode === 'lock-closed'
+                ? t('overlay.unlockWindowPosition')
+                : t('overlay.lockWindowPosition')
+          }
+          aria-pressed={overlayAnchorControlMode === 'snap' ? undefined : overlayAnchorControlMode === 'lock-closed'}
+          disabled={isSnapping || !isOverlayAnchorReady}
         >
-          <SnapToCentreIcon />
+          {overlayAnchorControlMode === 'snap' ? <SnapToCentreIcon /> : null}
+          {overlayAnchorControlMode === 'lock-open' ? <UnlockedPadlockIcon /> : null}
+          {overlayAnchorControlMode === 'lock-closed' ? <LockedPadlockIcon /> : null}
         </button>
       </div>
       <button
@@ -2200,7 +2431,10 @@ export function OverlayPrompter() {
       // setPosition() has settled. Updating here would create a race where
       // stale state triggers a spurious re-appearance of the snap button.
       if (!isSnappingRef.current) {
-        logSnapDebug('window moved', { position: pos });
+        logSnapDebug('window moved', {
+          position: pos,
+          storedHomePosition: homePositionRef.current
+        });
         setWindowPosition({ x: pos.x, y: pos.y });
         persistBounds();
         if (moveTimeoutRef.current !== null) {
@@ -2251,6 +2485,11 @@ export function OverlayPrompter() {
   }, []);
 
   const startWindowDrag = useCallback(() => {
+    if (isWindowPinned) {
+      return;
+    }
+
+    hasUserDraggedWindowRef.current = true;
     queueFocusRecovery();
     void startOverlayDrag().finally(() => {
       queueFocusRecovery();
@@ -2258,7 +2497,7 @@ export function OverlayPrompter() {
         void refreshWindowPlacement();
       }, 180);
     });
-  }, [queueFocusRecovery, refreshWindowPlacement]);
+  }, [isWindowPinned, queueFocusRecovery, refreshWindowPlacement]);
 
   const handleDragMouseDown = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 0 || isJumpMenuOpen || isFontMenuOpen || isTimerMenuOpen) {
