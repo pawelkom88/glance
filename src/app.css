@@ -4653,7 +4653,7 @@ body.is-session-dragging * {
 }
 
 .overlay-collapse-toggle svg {
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: none;
 }
 
 .overlay-collapse-toggle.is-collapsed svg {
@@ -4664,7 +4664,6 @@ body.is-session-dragging * {
   width: 100%;
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
 }
 
@@ -6231,9 +6230,6 @@ body.is-session-dragging * {
     padding: 0 14px 14px;
     border: 0;
     background: transparent;
-    transition:
-      padding 320ms cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .overlay-controls-collapsible.is-collapsed .overlay-compact-control-bar {
