@@ -1427,15 +1427,15 @@ dependencies = [
 
 [[package]]
 name = "glance"
-version = "0.2.2"
+version = "0.3.3"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "ed25519-dalek",
  "hex",
+ "security-framework",
  "serde",
  "serde_json",
- "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

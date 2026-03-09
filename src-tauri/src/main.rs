@@ -2,7 +2,6 @@
 
 mod commands;
 mod license;
-#[cfg(target_os = "windows")]
 mod offline_license;
 mod sessions;
 
@@ -289,9 +288,8 @@ fn main() {
             commands::export_diagnostics,
             commands::quit_app,
             license::check_status,
-            license::purchase_unlock,
-            license::restore_purchases,
-            license::get_unlock_product
+            license::activate_license_key,
+            license::clear_stored_license
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Glance application")
