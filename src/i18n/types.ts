@@ -243,6 +243,9 @@ export interface TranslationCatalog {
     readonly inactiveToast: string;
     readonly sizeAria: string;
     readonly currentSpeedAria: string;
+    readonly controlSpeedLabel: string;
+    readonly controlContrastLabel: string;
+    readonly controlTextSizeLabel: string;
     readonly rulerIntensityAria: string;
     readonly mainAria: string;
     readonly timerDisplay: (params: { readonly mode: string; readonly time: string }) => string;
@@ -254,6 +257,10 @@ export interface TranslationCatalog {
     readonly autoPauseDelayTwoSeconds: string;
     readonly autoPauseDelayThreeSeconds: string;
     readonly autoPausePermissionError: string;
+    readonly autoPauseStatusLabel: string;
+    readonly autoPauseStatusListening: string;
+    readonly autoPauseStatusSilent: string;
+    readonly autoPauseStatusStarting: string;
   };
   readonly settingsView: {
     readonly title: string;

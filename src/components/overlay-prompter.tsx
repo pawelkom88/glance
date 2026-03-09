@@ -234,6 +234,17 @@ function CloseIcon() {
   );
 }
 
+function MicrophoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15.5a3.5 3.5 0 0 0 3.5-3.5V8a3.5 3.5 0 1 0-7 0v4a3.5 3.5 0 0 0 3.5 3.5Z" />
+      <path d="M6.5 11.5a5.5 5.5 0 0 0 11 0" />
+      <path d="M12 17v3.5" />
+      <path d="M8.5 20.5h7" />
+    </svg>
+  );
+}
+
 function SnapToCentreIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -360,6 +371,7 @@ function formatCompactShortcutHint(accelerator: string): string {
 export function OverlayPrompter() {
   const { t } = useI18n();
   const activeSessionId = useAppStore((state) => state.activeSessionId);
+  const activeSessionTitle = useAppStore((state) => state.activeSessionTitle);
   const markdown = useAppStore((state) => state.markdown);
   const playbackState = useAppStore((state) => state.playbackState);
   const scrollPosition = useAppStore((state) => state.scrollPosition);
@@ -382,7 +394,7 @@ export function OverlayPrompter() {
 
   // Voice Activity Detection
   const vadPausedByVadRef = useRef(false);
-  const { permissionError, vadEnabled, vadState } = useVoiceActivity({
+  const { permissionError, vadEnabled, vadState, setVadEnabled } = useVoiceActivity({
     onSilence: useCallback(() => {
       const currentPlayback = useAppStore.getState().playbackState;
       if (currentPlayback === 'running') {
@@ -641,6 +653,7 @@ export function OverlayPrompter() {
 
   const normalizedSpeed = scrollSpeed;
   const currentFontSize = Math.round(28 * overlayFontScale);
+  const formattedSpeedValue = normalizedSpeed.toFixed(normalizedSpeed % 0.1 === 0 ? 1 : 2);
   const speedProgress = ((scrollSpeed - MIN_SPEED_MULTIPLIER) / (MAX_SPEED_MULTIPLIER - MIN_SPEED_MULTIPLIER)) * 100;
   const timerTargetMs = timerTargetSeconds * 1000;
   const timerRemainingMs = Math.max(0, timerTargetMs - timerElapsedMs);
@@ -654,6 +667,10 @@ export function OverlayPrompter() {
   const timerTargetRemainderSeconds = timerTargetSeconds % 60;
   const showSectionTitlesInRail = overlaySize.width <= 1200;
   const isCompactTopBar = overlaySize.width <= 1200;
+  const compactContextTitle = currentSection?.title ?? activeSessionTitle ?? t('overlay.waitingForHeadings');
+  const compactContextNext = nextSection
+    ? t('overlay.nextSection', { title: nextSection.title })
+    : t('overlay.waitingForHeadings');
 
   const isSnapButtonVisible = useMemo(() => {
     if (!windowPosition || isSnapping) return false;
@@ -887,30 +904,8 @@ export function OverlayPrompter() {
     </div>
   );
 
-  const renderSectionRail = () => (
-    <>
-      <span className="overlay-section-counter">
-        {sections.length > 0 ? t('overlay.sectionCounter', { current: currentSectionIndex + 1, total: sections.length }) : t('overlay.sectionCounter', { current: 0, total: 0 })}
-      </span>
-
-      <div className="overlay-section-rail" aria-label={t('overlay.currentSection')}>
-        <span className="overlay-rail-pill overlay-rail-current" title={currentSection?.title ?? t('overlay.currentSection')}>
-          {showSectionTitlesInRail
-            ? (currentSection?.title ?? t('overlay.waitingForHeadings'))
-            : (currentSectionIndex + 1)}
-        </span>
-
-        {nextSection ? (
-          <span className="overlay-rail-pill overlay-rail-next" title={nextSection.title}>
-            {showSectionTitlesInRail ? t('overlay.nextSection', { title: nextSection.title }) : (currentSectionIndex + 2)}
-          </span>
-        ) : null}
-      </div>
-    </>
-  );
-
-  const renderTimerControls = () => (
-    <div className="overlay-timer-row">
+  const renderTimerControls = (className = '') => (
+    <div className={['overlay-timer-row', className].filter(Boolean).join(' ')}>
       <div className="overlay-timer-cluster">
         <button
           ref={timerTriggerRef}
@@ -1030,6 +1025,33 @@ export function OverlayPrompter() {
     );
   };
 
+  const renderVoiceToggle = () => {
+    const voiceToggleState = vadEnabled ? vadState : 'off';
+    const voiceToggleLabel = vadEnabled ? voiceStatusAriaLabel : t('overlay.autoPauseToggleAria');
+
+    return (
+      <button
+        type="button"
+        className={`overlay-voice-toggle overlay-voice-toggle--${voiceToggleState}`}
+        role="switch"
+        aria-checked={vadEnabled}
+        aria-label={t('overlay.autoPauseToggleAria')}
+        title={voiceToggleLabel}
+        onClick={(event) => {
+          setVadEnabled(!vadEnabled);
+          event.currentTarget.blur();
+          overlayRootRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        <span className="overlay-voice-toggle-dot" aria-hidden="true" />
+        <span className="overlay-voice-toggle-icon" aria-hidden="true">
+          <MicrophoneIcon />
+        </span>
+        <span className="overlay-voice-toggle-label">{t('overlay.autoPauseStatusLabel')}</span>
+      </button>
+    );
+  };
+
   const renderFooterStatus = (className = '') => (
     <div className={`overlay-footer-status-center ${className}`.trim()}>
       {renderTimerControls()}
@@ -1037,11 +1059,15 @@ export function OverlayPrompter() {
     </div>
   );
 
-  const renderPlaybackControls = (className = '', showStatus = true) => (
+  const renderPlaybackControls = (className = '', showStatus = true, usePlainShortcutHints = false) => (
     <footer className={`overlay-controls ${className}`.trim()}>
       <div className="overlay-controls-row">
         <div className="overlay-control-hint" aria-hidden="true">
-          <ShortcutKeycaps shortcuts="R" keycapClassName="overlay-control-keycap" />
+          {usePlainShortcutHints ? (
+            <span className="overlay-control-shortcut-label">R</span>
+          ) : (
+            <ShortcutKeycaps shortcuts="R" keycapClassName="overlay-control-keycap" />
+          )}
         </div>
 
         <button
@@ -1059,7 +1085,7 @@ export function OverlayPrompter() {
           <RestartIcon />
         </button>
 
-        <div className="overlay-controls-divider" aria-hidden="true" />
+        {!usePlainShortcutHints ? <div className="overlay-controls-divider" aria-hidden="true" /> : null}
 
         <div className="overlay-primary-button-wrap">
           <button
@@ -1084,11 +1110,98 @@ export function OverlayPrompter() {
         </div>
 
         <div className="overlay-control-hint" aria-hidden="true">
-          <ShortcutKeycaps shortcuts="Space" keycapClassName="overlay-control-keycap is-capsule" />
+          {usePlainShortcutHints ? (
+            <span className="overlay-control-shortcut-label">Space</span>
+          ) : (
+            <ShortcutKeycaps shortcuts="Space" keycapClassName="overlay-control-keycap is-capsule" />
+          )}
         </div>
       </div>
       {showStatus ? renderFooterStatus() : null}
     </footer>
+  );
+
+  const renderCompactSettings = () => (
+    <div className="overlay-compact-settings-section" aria-label={t('overlay.fontSizeSettings')}>
+      <div className="overlay-compact-setting-row">
+        <span className="overlay-compact-setting-label">{t('overlay.controlSpeedLabel')}</span>
+        <div className="overlay-compact-setting-control">
+          <input
+            className="overlay-speed-slider overlay-compact-setting-slider"
+            type="range"
+            min={MIN_SPEED_MULTIPLIER}
+            max={MAX_SPEED_MULTIPLIER}
+            step={speedStep}
+            value={scrollSpeed}
+            onChange={(event) => {
+              setScrollSpeed(Number(event.target.value));
+            }}
+            aria-label={t('overlay.scrollSpeedAria')}
+            onPointerUp={(event) => {
+              event.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
+            }}
+            style={{
+              '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
+            } as CSSProperties}
+          />
+        </div>
+        <span className="overlay-compact-setting-value">{formattedSpeedValue}×</span>
+      </div>
+
+      <div className="overlay-compact-setting-row">
+        <span className="overlay-compact-setting-label">{t('overlay.controlContrastLabel')}</span>
+        <div className="overlay-compact-setting-control">
+          <input
+            className="overlay-compact-opacity-slider overlay-compact-setting-slider"
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={dimLevel}
+            onChange={(event) => setDimLevel(Number(event.target.value))}
+            onPointerUp={(event) => {
+              event.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
+            }}
+            aria-label={t('overlay.opacityAria')}
+            style={{ '--overlay-opacity-progress': `${dimLevel}%` } as CSSProperties}
+          />
+        </div>
+        <span className={`overlay-compact-setting-value ${dimLevel === 100 ? 'is-accent' : ''}`.trim()}>{dimLevel}%</span>
+      </div>
+
+      <div className="overlay-compact-text-size-row">
+        <span className="overlay-compact-setting-label">{t('overlay.controlTextSizeLabel')}</span>
+        <div className="overlay-compact-stepper" role="group" aria-label={t('overlay.fontSize')}>
+          <button
+            type="button"
+            className="overlay-compact-stepper-button"
+            onClick={(event) => {
+              changeFontScaleBy(-1);
+              event.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
+            }}
+            aria-label={t('overlay.decreaseFontSize')}
+          >
+            -
+          </button>
+          <span className="overlay-compact-stepper-value">{currentFontSize}</span>
+          <button
+            type="button"
+            className="overlay-compact-stepper-button"
+            onClick={(event) => {
+              changeFontScaleBy(1);
+              event.currentTarget.blur();
+              overlayRootRef.current?.focus({ preventScroll: true });
+            }}
+            aria-label={t('overlay.increaseFontSize')}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </div>
   );
 
   const renderSpeedControls = (className: string, showFooterStatus = false) => (
@@ -2530,68 +2643,29 @@ export function OverlayPrompter() {
         <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
           {isCompactTopBar ? (
             <div className={`overlay-compact-dock ${isControlsCollapsed ? 'is-collapsed' : ''}`}>
-              <div className="overlay-compact-context-bar">
-                <div className="overlay-compact-context-main">
-                  {renderSectionRail()}
-                </div>
-                <div className="overlay-compact-utility-cluster">
-                  {renderTopActions()}
-                </div>
-              </div>
-
-              <div
-                id="overlay-controls-area"
-                className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
-              >
-                <div className="overlay-compact-control-bar">
-                  {renderPlaybackControls()}
-                  <div className="overlay-compact-speed-row">
-                    {renderSpeedControls('overlay-speed-footer overlay-speed-footer-compact', false)}
+              <div className="overlay-compact-panel">
+                <div className="overlay-compact-context-bar">
+                  <div className="overlay-compact-context-main">
+                    <span className="overlay-compact-context-title" title={compactContextTitle}>{compactContextTitle}</span>
+                    <span className="overlay-compact-context-next" title={compactContextNext}>{compactContextNext}</span>
                   </div>
-                  <div className="overlay-compact-status-row">
-                    <span className="overlay-compact-speed-display" aria-label={t('overlay.currentSpeedAria')}>
-                      {normalizedSpeed.toFixed(normalizedSpeed % 0.1 === 0 ? 1 : 2)}x
-                    </span>
-                    <div className="overlay-compact-status-divider" />
-                    <div className="overlay-compact-opacity-group" role="group" aria-label={t('overlay.opacityAria')}>
-                      <svg className="overlay-compact-opacity-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z" stroke="currentColor" strokeWidth="2" />
-                        <path d="M12 2a10 10 0 0 0 0 20V2Z" fill="currentColor" />
-                      </svg>
-                      <input
-                        className="overlay-compact-opacity-slider"
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={dimLevel}
-                        onChange={(e) => setDimLevel(Number(e.target.value))}
-                        onPointerUp={(e) => { e.currentTarget.blur(); overlayRootRef.current?.focus({ preventScroll: true }); }}
-                        aria-label={t('overlay.opacityAria')}
-                        style={{ '--overlay-opacity-progress': `${dimLevel}%` } as CSSProperties}
-                      />
-                      <span className="overlay-compact-opacity-value">{dimLevel}%</span>
+                  <div className="overlay-compact-utility-cluster">
+                    {renderTopActions()}
+                  </div>
+                </div>
+
+                <div
+                  id="overlay-controls-area"
+                  className={`overlay-controls-collapsible ${isControlsCollapsed ? 'is-collapsed' : ''}`}
+                >
+                  <div className="overlay-compact-control-bar">
+                    <div className="overlay-compact-status-row">
+                      {renderTimerControls('overlay-timer-row--compact')}
+                      {renderVoiceToggle()}
                     </div>
-                    <div className="overlay-compact-status-divider" />
-                    <div className="overlay-compact-font-group">
-                      <button
-                        type="button"
-                        className="overlay-compact-font-btn"
-                        onClick={() => changeFontScaleBy(-1)}
-                        aria-label={t('overlay.decreaseFontSize')}
-                      >
-                        {t('overlay.fontAminus')}
-                      </button>
-                      <span className="overlay-compact-font-size">{Math.round(28 * overlayFontScale)}</span>
-                      <button
-                        type="button"
-                        className="overlay-compact-font-btn"
-                        onClick={() => changeFontScaleBy(1)}
-                        aria-label={t('overlay.increaseFontSize')}
-                      >
-                        {t('overlay.fontAplus')}
-                      </button>
-                    </div>
+                    {renderPlaybackControls('overlay-compact-transport', false, true)}
+                    <div className="overlay-compact-settings-divider" aria-hidden="true" />
+                    {renderCompactSettings()}
                   </div>
                 </div>
               </div>
