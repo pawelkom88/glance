@@ -153,8 +153,8 @@
         }
 
         .purchase-success-icon {
-            width: 118px;
-            height: 118px;
+            width: 128px;
+            height: 128px;
             border-radius: 999px;
             border: 2px solid var(--success-border);
             background: var(--success-surface);
@@ -375,29 +375,33 @@
             display: none;
         }
 
-        .purchase-status-spinner {
-            fill: none;
-            stroke: var(--blue);
-            stroke-width: 3;
-            stroke-linecap: round;
-            stroke-dasharray: 40 18;
-            transform-origin: center;
-            transform-box: fill-box;
-            animation: purchaseSpinnerRotate 1s linear infinite;
+        .purchase-status-pending-gif {
+            display: none;
+            width: 128px;
+            height: 128px;
+            object-fit: contain;
         }
 
         .purchase-success-modal[data-state="pending"] .purchase-success-icon {
-            border-color: rgba(0, 122, 255, 0.18);
-            background: var(--blue-soft);
+            border-color: transparent;
+            background: transparent;
+            box-shadow: none;
         }
 
         .purchase-success-modal[data-state="pending"] .purchase-success-checkmark,
-        .purchase-success-modal[data-state="pending"] .purchase-status-cross {
+        .purchase-success-modal[data-state="pending"] .purchase-status-cross,
+        .purchase-success-modal[data-state="pending"] .purchase-status-spinner {
             display: none;
         }
 
+        .purchase-success-modal[data-state="pending"] .purchase-status-pending-gif {
+            display: block;
+        }
+
         .purchase-success-modal[data-state="success"] .purchase-status-spinner,
-        .purchase-success-modal[data-state="error"] .purchase-status-spinner {
+        .purchase-success-modal[data-state="error"] .purchase-status-spinner,
+        .purchase-success-modal[data-state="success"] .purchase-status-pending-gif,
+        .purchase-success-modal[data-state="error"] .purchase-status-pending-gif {
             display: none;
         }
 
@@ -988,8 +992,13 @@
             }
 
             .purchase-success-icon {
-                width: 104px;
-                height: 104px;
+                width: 75px;
+                height: 75px;
+            }
+
+            .purchase-status-pending-gif {
+                width: 75px;
+                height: 75px;
             }
         }
 
@@ -1004,7 +1013,8 @@
             .purchase-success-actions,
             .purchase-success-checkmark,
             .purchase-status-cross,
-            .purchase-status-spinner {
+            .purchase-status-spinner,
+            .purchase-status-pending-gif {
                 animation: none;
                 opacity: 1;
                 transform: none;
@@ -1024,6 +1034,7 @@
             aria-describedby="purchaseSuccessText">
             <div class="purchase-success-icon-wrap" aria-hidden="true">
                 <div class="purchase-success-icon">
+                    <img class="purchase-status-pending-gif" src="glance-eye.gif" alt="">
                     <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
                         <circle class="purchase-status-spinner" cx="20" cy="20" r="8.5"></circle>
                         <path class="purchase-success-checkmark" d="M11 20.5l6 6L29.5 14"></path>
@@ -1040,7 +1051,8 @@
                     <p class="purchase-license-label">License key</p>
                     <p class="purchase-license-key" id="purchaseLicenseValue"></p>
                     <p class="purchase-license-meta" id="purchaseLicenseMeta"></p>
-                    <button class="purchase-license-copy" id="purchaseLicenseCopy" type="button">Copy license key</button>
+                    <button class="purchase-license-copy" id="purchaseLicenseCopy" type="button">Copy license
+                        key</button>
                 </div>
             </div>
             <div class="purchase-success-actions">
@@ -1327,9 +1339,11 @@
                             continue when you start again. Ideal for live calls where your pace changes as you explain,
                             answer questions, or improvise.</p>
                         <p class="control-desc">When enabled, Glance asks for microphone permission. Audio is analysed
-                            locally on your device to detect speech and silence only. Nothing is recorded or uploaded.</p>
+                            locally on your device to detect speech and silence only. Nothing is recorded or uploaded.
+                        </p>
                         <p class="control-desc">Choose a pause delay of <strong>1s</strong>, <strong>2s</strong>, or
-                            <strong>3s</strong> depending on how quickly you want Glance to pause after silence.</p>
+                            <strong>3s</strong> depending on how quickly you want Glance to pause after silence.
+                        </p>
                         <div class="image-placeholder">
                             <span>Auto-Pause with Voice</span>
                             <p>Suggested: Image of the voice pause control</p>
@@ -1574,8 +1588,6 @@
                 });
             };
 
-            const checkoutPendingIcon =
-                '<circle class="purchase-status-spinner" cx="8" cy="8" r="5.25"></circle>';
             const checkoutSuccessIcon =
                 '<path d="M8 2.5v7"></path><path d="m4.75 6.75 3.25 3.5 3.25-3.5"></path><path d="M2.5 12.5h11"></path>';
             const checkoutRetryIcon =
@@ -1628,7 +1640,7 @@
                     title: 'Confirming your payment...',
                     bodyHtml: 'Please keep this tab open while we verify your Paddle transaction. This usually takes a few seconds.',
                     primaryLabel: 'Checking payment...',
-                    primaryIcon: checkoutPendingIcon,
+                    primaryIcon: '',
                     primaryHref: '#',
                     primaryDisabled: true,
                     secondaryLabel: 'Back to homepage',
