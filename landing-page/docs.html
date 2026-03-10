@@ -66,6 +66,15 @@
         :root {
             --blue: #007AFF;
             --blue-soft: #E8F2FF;
+            --green: #00C978;
+            --success-surface: #F3FBF7;
+            --success-border: rgba(0, 201, 120, 0.22);
+            --red: #F25555;
+            --error-surface: #FFF5F5;
+            --error-border: rgba(242, 85, 85, 0.22);
+            --warm-border: #dfdbd4;
+            --warm-muted: #8b847c;
+            --warm-fill: rgba(245, 241, 236, 0.72);
             --text-1: #1d1d1f;
             --text-2: #424245;
             --bg: #ffffff;
@@ -99,6 +108,387 @@
             color: var(--text-1);
             line-height: 1.5;
             letter-spacing: -0.005em;
+        }
+
+        body.checkout-modal-active {
+            overflow: hidden;
+        }
+
+        .purchase-success-modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(248, 246, 242, 0.74);
+            backdrop-filter: blur(14px);
+            z-index: 1400;
+        }
+
+        .purchase-success-modal[hidden] {
+            display: none;
+        }
+
+        .purchase-success-card {
+            width: min(100%, 560px);
+            border-radius: 18px;
+            border: 1px solid var(--warm-border);
+            background: #ffffff;
+            box-shadow: 0 26px 70px rgba(41, 36, 30, 0.12);
+            padding: 44px 40px 36px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(26px);
+            animation: purchaseCardIn 560ms var(--easing) forwards;
+        }
+
+        .purchase-success-icon-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 28px;
+            opacity: 0;
+            transform: scale(0.84);
+            animation: purchasePopIn 620ms cubic-bezier(0.18, 1.2, 0.32, 1) 100ms forwards;
+        }
+
+        .purchase-success-icon {
+            width: 118px;
+            height: 118px;
+            border-radius: 999px;
+            border: 2px solid var(--success-border);
+            background: var(--success-surface);
+            display: grid;
+            place-items: center;
+        }
+
+        .purchase-success-icon svg {
+            width: 44px;
+            height: 44px;
+        }
+
+        .purchase-success-checkmark {
+            fill: none;
+            stroke: var(--green);
+            stroke-width: 3.25;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 36;
+            stroke-dashoffset: 36;
+            animation: purchaseDrawCheck 720ms ease-out 340ms forwards;
+        }
+
+        .purchase-status-cross {
+            fill: none;
+            stroke: var(--red);
+            stroke-width: 3.25;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .purchase-status-support-link {
+            color: var(--blue);
+            text-decoration: none;
+            transition: color 180ms ease, text-decoration-color 180ms ease;
+        }
+
+        .purchase-status-support-link:hover {
+            text-decoration: underline;
+        }
+
+        .purchase-success-copy {
+            opacity: 0;
+            transform: translateY(12px);
+            animation: purchaseContentIn 420ms var(--easing) 220ms forwards;
+        }
+
+        .purchase-success-title {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 1.35rem;
+            line-height: 1.1;
+            font-weight: 600;
+            color: #1a1916;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .purchase-success-text {
+            max-width: 360px;
+            margin: 0 auto;
+            color: var(--warm-muted);
+            font-size: 0.875rem;
+            line-height: 1.75;
+        }
+
+        .purchase-license-panel {
+            max-width: 360px;
+            margin: 20px auto 0;
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid var(--warm-border);
+            background: rgba(248, 246, 242, 0.82);
+        }
+
+        .purchase-license-panel[hidden] {
+            display: none;
+        }
+
+        .purchase-license-label {
+            margin: 0 0 10px;
+            color: var(--warm-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .purchase-license-key {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            background: #ffffff;
+            color: #1a1916;
+            font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            word-break: break-word;
+        }
+
+        .purchase-license-meta {
+            margin: 10px 0 0;
+            color: var(--warm-muted);
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .purchase-license-copy {
+            width: 100%;
+            min-height: 44px;
+            margin-top: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 122, 255, 0.18);
+            background: #ffffff;
+            color: var(--blue);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .purchase-license-copy:hover {
+            background: var(--blue-soft);
+        }
+
+        .purchase-success-actions {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            opacity: 0;
+            transform: translateY(12px);
+            animation: purchaseContentIn 420ms var(--easing) 340ms forwards;
+        }
+
+        .purchase-success-button {
+            width: 100%;
+            min-height: 56px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 0 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+        }
+
+        .purchase-success-button:focus-visible {
+            outline: 2px solid rgba(0, 122, 255, 0.35);
+            outline-offset: 3px;
+        }
+
+        .purchase-success-button-primary {
+            background: var(--blue);
+            color: #ffffff;
+            box-shadow: 0 12px 26px rgba(0, 122, 255, 0.24);
+        }
+
+        .purchase-success-button-primary:hover {
+            background: #0067d8;
+            box-shadow: 0 16px 30px rgba(0, 122, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .purchase-success-button-secondary {
+            background: transparent;
+            border-color: var(--warm-border);
+            color: var(--warm-muted);
+        }
+
+        .purchase-success-button-secondary:hover {
+            background: var(--warm-fill);
+            border-color: #cfc8bf;
+            color: #1a1916;
+        }
+
+        .purchase-success-download-icon {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            flex-shrink: 0;
+        }
+
+        .purchase-success-button[aria-disabled="true"] {
+            pointer-events: none;
+            opacity: 0.72;
+            box-shadow: none;
+        }
+
+        .purchase-success-modal[data-state="error"] .purchase-success-icon {
+            border-color: var(--error-border);
+            background: var(--error-surface);
+        }
+
+        .purchase-success-modal[data-state="error"] .purchase-success-icon-wrap {
+            animation: purchaseErrorIconIn 760ms cubic-bezier(0.18, 1.2, 0.32, 1) 100ms forwards;
+        }
+
+        .purchase-success-modal[data-state="error"] .purchase-success-checkmark {
+            display: none;
+        }
+
+        .purchase-success-modal[data-state="error"] .purchase-status-cross {
+            display: block;
+        }
+
+        .purchase-success-modal[data-state="success"] .purchase-status-cross {
+            display: none;
+        }
+
+        .purchase-status-spinner {
+            fill: none;
+            stroke: var(--blue);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-dasharray: 40 18;
+            transform-origin: center;
+            transform-box: fill-box;
+            animation: purchaseSpinnerRotate 1s linear infinite;
+        }
+
+        .purchase-success-modal[data-state="pending"] .purchase-success-icon {
+            border-color: rgba(0, 122, 255, 0.18);
+            background: var(--blue-soft);
+        }
+
+        .purchase-success-modal[data-state="pending"] .purchase-success-checkmark,
+        .purchase-success-modal[data-state="pending"] .purchase-status-cross {
+            display: none;
+        }
+
+        .purchase-success-modal[data-state="success"] .purchase-status-spinner,
+        .purchase-success-modal[data-state="error"] .purchase-status-spinner {
+            display: none;
+        }
+
+        @keyframes purchaseCardIn {
+            from {
+                opacity: 0;
+                transform: translateY(26px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes purchasePopIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.84);
+            }
+
+            68% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes purchaseDrawCheck {
+            from {
+                stroke-dashoffset: 36;
+            }
+
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes purchaseContentIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes purchaseErrorIconIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.84);
+            }
+
+            58% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+
+            72% {
+                transform: translateX(-6px) scale(1.02);
+            }
+
+            82% {
+                transform: translateX(6px) scale(1.01);
+            }
+
+            90% {
+                transform: translateX(-4px) scale(1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        @keyframes purchaseSpinnerRotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* ─── NAVIGATION ─── */
@@ -587,10 +977,89 @@
                 padding: 32px 24px;
             }
         }
+
+        @media (max-width: 640px) {
+            .purchase-success-modal {
+                padding: 16px;
+            }
+
+            .purchase-success-card {
+                padding: 36px 24px 24px;
+            }
+
+            .purchase-success-icon {
+                width: 104px;
+                height: 104px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            .purchase-success-card,
+            .purchase-success-icon-wrap,
+            .purchase-success-copy,
+            .purchase-success-actions,
+            .purchase-success-checkmark,
+            .purchase-status-cross,
+            .purchase-status-spinner {
+                animation: none;
+                opacity: 1;
+                transform: none;
+                stroke-dashoffset: 0;
+            }
+
+            .purchase-success-button {
+                transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div class="purchase-success-modal" id="purchaseSuccessModal" hidden>
+        <div class="purchase-success-card" role="dialog" aria-modal="true" aria-labelledby="purchaseSuccessTitle"
+            aria-describedby="purchaseSuccessText">
+            <div class="purchase-success-icon-wrap" aria-hidden="true">
+                <div class="purchase-success-icon">
+                    <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+                        <circle class="purchase-status-spinner" cx="20" cy="20" r="8.5"></circle>
+                        <path class="purchase-success-checkmark" d="M11 20.5l6 6L29.5 14"></path>
+                        <path class="purchase-status-cross" d="M13.5 13.5 26.5 26.5"></path>
+                        <path class="purchase-status-cross" d="M26.5 13.5 13.5 26.5"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="purchase-success-copy">
+                <h1 class="purchase-success-title" id="purchaseSuccessTitle">You're all set!</h1>
+                <p class="purchase-success-text" id="purchaseSuccessText">Your purchase was successful. Check your inbox
+                    for the download link and license key.</p>
+                <div class="purchase-license-panel" id="purchaseLicensePanel" hidden>
+                    <p class="purchase-license-label">License key</p>
+                    <p class="purchase-license-key" id="purchaseLicenseValue"></p>
+                    <p class="purchase-license-meta" id="purchaseLicenseMeta"></p>
+                    <button class="purchase-license-copy" id="purchaseLicenseCopy" type="button">Copy license key</button>
+                </div>
+            </div>
+            <div class="purchase-success-actions">
+                <a class="purchase-success-button purchase-success-button-primary" id="purchaseSuccessDownload"
+                    href="https://github.com/pawelkom88/glance/releases/download/v0.2.2/Glance_0.2.2_aarch64.dmg">
+                    <svg class="purchase-success-download-icon" viewBox="0 0 16 16" aria-hidden="true"
+                        focusable="false">
+                        <path d="M8 2.5v7"></path>
+                        <path d="m4.75 6.75 3.25 3.5 3.25-3.5"></path>
+                        <path d="M2.5 12.5h11"></path>
+                    </svg>
+                    <span id="purchaseSuccessPrimaryLabel">Download At Glance</span>
+                </a>
+                <a class="purchase-success-button purchase-success-button-secondary" id="purchaseSuccessSecondary"
+                    href="index.html">Back to
+                    homepage</a>
+            </div>
+        </div>
+    </div>
     <nav>
         <div class="nav-inner">
             <a href="index.html" class="logo">
@@ -1007,6 +1476,269 @@
         document.querySelector('.mobile-menu-toggle').addEventListener('click', () => {
             document.querySelector('.nav-links').classList.toggle('active');
         });
+    </script>
+    <script>
+        (() => {
+            const RELEASE_VERSION = 'v0.2.2';
+            const CHECKOUT_STATUS_ENDPOINT = 'https://glance-payments.paulus-react.workers.dev/checkout-status';
+            const LICENSE_REVEAL_ENDPOINT = 'https://glance-payments.paulus-react.workers.dev/license/reveal';
+            const STATUS_POLL_INTERVAL_MS = 1500;
+            const STATUS_POLL_TIMEOUT_MS = 120000;
+            const WINDOWS_URL = `https://github.com/pawelkom88/glance/releases/download/${RELEASE_VERSION}/Glance_0.2.2_x64-setup.exe`;
+            const MAC_ARM_URL = `https://github.com/pawelkom88/glance/releases/download/${RELEASE_VERSION}/Glance_0.2.2_aarch64.dmg`;
+            const MAC_INTEL_URL = `https://github.com/pawelkom88/glance/releases/download/${RELEASE_VERSION}/Glance_0.2.2_x64.dmg`;
+
+            const modal = document.getElementById('purchaseSuccessModal');
+            const primaryAction = document.getElementById('purchaseSuccessDownload');
+            const primaryLabel = document.getElementById('purchaseSuccessPrimaryLabel');
+            const secondaryAction = document.getElementById('purchaseSuccessSecondary');
+            const licensePanel = document.getElementById('purchaseLicensePanel');
+            const licenseValue = document.getElementById('purchaseLicenseValue');
+            const licenseMeta = document.getElementById('purchaseLicenseMeta');
+            const copyLicenseButton = document.getElementById('purchaseLicenseCopy');
+            const title = document.getElementById('purchaseSuccessTitle');
+            const text = document.getElementById('purchaseSuccessText');
+
+            if (!modal || !primaryAction || !primaryLabel || !secondaryAction || !licensePanel || !licenseValue || !licenseMeta || !copyLicenseButton || !title || !text) {
+                return;
+            }
+
+            const getDownloadUrl = async (purchasePlatform) => {
+                if (purchasePlatform === 'windows') {
+                    return WINDOWS_URL;
+                }
+
+                if (purchasePlatform && purchasePlatform !== 'macos') {
+                    return MAC_ARM_URL;
+                }
+
+                let isAppleSilicon = false;
+
+                try {
+                    if (navigator.userAgentData?.getHighEntropyValues) {
+                        const hints = await navigator.userAgentData.getHighEntropyValues(['architecture']);
+                        isAppleSilicon = hints.architecture === 'arm' || hints.architecture === 'arm64';
+                    } else {
+                        isAppleSilicon = (navigator.platform.indexOf('Mac') > -1 && navigator.maxTouchPoints > 0) ||
+                            (window.screen.width >= 2560 && window.devicePixelRatio >= 2 && !/Intel/.test(navigator.userAgent));
+                    }
+                } catch (_error) {
+                    isAppleSilicon = false;
+                }
+
+                return isAppleSilicon ? MAC_ARM_URL : MAC_INTEL_URL;
+            };
+
+            let activeTransactionId = null;
+            let revealedLicenseKey = null;
+
+            const hideLicensePanel = () => {
+                revealedLicenseKey = null;
+                licensePanel.hidden = true;
+                licenseValue.textContent = '';
+                licenseMeta.textContent = '';
+                copyLicenseButton.textContent = 'Copy license key';
+            };
+
+            const showLicensePanel = (license) => {
+                revealedLicenseKey = license.licenseKey;
+                licensePanel.hidden = false;
+                licenseValue.textContent = license.licenseKey;
+                licenseMeta.textContent = `Platform: ${license.platform}${license.email ? ` • Issued to ${license.email}` : ''}`;
+            };
+
+            const showModal = (modalState) => {
+                modal.dataset.state = modalState.state;
+                title.textContent = modalState.title;
+                text.innerHTML = modalState.bodyHtml;
+                hideLicensePanel();
+                primaryLabel.textContent = modalState.primaryLabel;
+                primaryAction.querySelector('svg').innerHTML = modalState.primaryIcon;
+                primaryAction.setAttribute('href', modalState.primaryHref || '#');
+                primaryAction.setAttribute('aria-disabled', modalState.primaryDisabled ? 'true' : 'false');
+                secondaryAction.textContent = modalState.secondaryLabel || 'Back to homepage';
+                secondaryAction.setAttribute('href', modalState.secondaryHref || 'index.html');
+
+                document.body.classList.add('checkout-modal-active');
+                modal.hidden = false;
+
+                window.requestAnimationFrame(() => {
+                    if (modalState.primaryDisabled) {
+                        secondaryAction.focus();
+                        return;
+                    }
+
+                    primaryAction.focus();
+                });
+            };
+
+            const checkoutPendingIcon =
+                '<circle class="purchase-status-spinner" cx="8" cy="8" r="5.25"></circle>';
+            const checkoutSuccessIcon =
+                '<path d="M8 2.5v7"></path><path d="m4.75 6.75 3.25 3.5 3.25-3.5"></path><path d="M2.5 12.5h11"></path>';
+            const checkoutRetryIcon =
+                '<path d="M2.75 8A5.25 5.25 0 1 0 4.3 4.29"></path><path d="M2.75 2.75v3.5h3.5"></path>';
+
+            const showSuccessState = async (purchasePlatform, transactionId) => {
+                showModal({
+                    state: 'success',
+                    title: "You're all set!",
+                    bodyHtml: 'Your payment is confirmed. Copy your license key below, then download the installer.',
+                    primaryLabel: 'Download At Glance',
+                    primaryIcon: checkoutSuccessIcon,
+                    primaryHref: '#',
+                    primaryDisabled: false,
+                    secondaryLabel: 'Back to homepage',
+                    secondaryHref: 'index.html',
+                });
+
+                primaryAction.href = await getDownloadUrl(purchasePlatform);
+                const license = await getLicenseReveal(transactionId);
+                showLicensePanel(license);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            };
+
+            const showErrorState = (options = {}) => {
+                const canRetryVerification = Boolean(options.canRetryVerification && activeTransactionId);
+
+                showModal({
+                    state: 'error',
+                    title: canRetryVerification ? 'Still waiting for payment confirmation.' : 'We could not confirm payment yet.',
+                    bodyHtml: canRetryVerification
+                        ? 'Your payment may still be processing. Try verification again or <a class="purchase-status-support-link" href="mailto:hello@atglance.app">contact support</a> with your Paddle receipt.'
+                        : 'We could not verify a completed payment for this session. Please try again in a moment or <a class="purchase-status-support-link" href="mailto:hello@atglance.app">contact support</a> with your Paddle receipt.',
+                    primaryLabel: canRetryVerification ? 'Check again' : 'Try again',
+                    primaryIcon: checkoutRetryIcon,
+                    primaryHref: canRetryVerification ? '#' : 'index.html',
+                    primaryDisabled: false,
+                    secondaryLabel: 'Back to homepage',
+                    secondaryHref: 'index.html',
+                });
+
+                if (!canRetryVerification) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            };
+
+            const showPendingState = () => {
+                showModal({
+                    state: 'pending',
+                    title: 'Confirming your payment...',
+                    bodyHtml: 'Please keep this tab open while we verify your Paddle transaction. This usually takes a few seconds.',
+                    primaryLabel: 'Checking payment...',
+                    primaryIcon: checkoutPendingIcon,
+                    primaryHref: '#',
+                    primaryDisabled: true,
+                    secondaryLabel: 'Back to homepage',
+                    secondaryHref: 'index.html',
+                });
+            };
+
+            const getCheckoutStatus = async (transactionId) => {
+                const response = await fetch(`${CHECKOUT_STATUS_ENDPOINT}?transaction_id=${encodeURIComponent(transactionId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`status_request_failed:${response.status}`);
+                }
+
+                return response.json();
+            };
+
+            const getLicenseReveal = async (transactionId) => {
+                const response = await fetch(`${LICENSE_REVEAL_ENDPOINT}?transaction_id=${encodeURIComponent(transactionId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`license_reveal_failed:${response.status}`);
+                }
+
+                return response.json();
+            };
+
+            const pollForVerifiedPurchase = async (transactionId) => {
+                showPendingState();
+
+                const deadline = Date.now() + STATUS_POLL_TIMEOUT_MS;
+
+                while (Date.now() < deadline) {
+                    const checkoutStatus = await getCheckoutStatus(transactionId);
+
+                    if (checkoutStatus?.state === 'completed') {
+                        await showSuccessState(checkoutStatus.platform, transactionId);
+                        return;
+                    }
+
+                    if (checkoutStatus?.state === 'failed' || checkoutStatus?.state === 'canceled') {
+                        showErrorState();
+                        return;
+                    }
+
+                    await new Promise((resolve) => {
+                        window.setTimeout(resolve, STATUS_POLL_INTERVAL_MS);
+                    });
+                }
+
+                showErrorState({ canRetryVerification: true });
+            };
+
+            const searchParams = new URLSearchParams(window.location.search);
+            const checkoutState = searchParams.get('checkout');
+            const transactionId = searchParams.get('transaction_id');
+            activeTransactionId = transactionId;
+
+            primaryAction.addEventListener('click', (event) => {
+                if (!(modal.dataset.state === 'error' && activeTransactionId && primaryAction.getAttribute('href') === '#')) {
+                    return;
+                }
+
+                event.preventDefault();
+                pollForVerifiedPurchase(activeTransactionId).catch(() => {
+                    showErrorState({ canRetryVerification: true });
+                });
+            });
+
+            copyLicenseButton.addEventListener('click', async () => {
+                if (!revealedLicenseKey) {
+                    return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(revealedLicenseKey);
+                    copyLicenseButton.textContent = 'Copied';
+                } catch (_error) {
+                    copyLicenseButton.textContent = 'Copy failed';
+                }
+            });
+
+            if (checkoutState !== 'pending' && checkoutState !== 'error' && checkoutState !== 'failed') {
+                return;
+            }
+
+            if (checkoutState === 'pending') {
+                if (!transactionId) {
+                    showErrorState({ canRetryVerification: false });
+                    return;
+                }
+
+                pollForVerifiedPurchase(transactionId).catch(() => {
+                    showErrorState({ canRetryVerification: true });
+                });
+                return;
+            }
+
+            showErrorState({ canRetryVerification: false });
+        })();
     </script>
     <script>
         const year = new Date().getFullYear();

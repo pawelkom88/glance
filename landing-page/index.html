@@ -2700,11 +2700,9 @@
 
       <div class="btn-group reveal">
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay"
-            data-theme="light" data-locale="en"
+          <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
             data-items='[{"priceId":"pri_01kk9wcy5j7a693sv9hjnymehx","quantity":1}]'
-            data-custom-data='{"platform":"macos"}'
-            data-success-url="https://atglance.app/docs.html?checkout=success">
+            data-custom-data='{"platform":"macos"}'>
             <span class="btn-text">Buy for Mac</span>
             <span class="btn-subtext dl-mac-subtext">Detecting...</span>
           </a>
@@ -2712,11 +2710,9 @@
         </div>
 
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-secondary dl-win-btn" data-display-mode="overlay"
-            data-theme="light" data-locale="en"
-            data-items='[{"priceId":"pro_01kk9xw21rzxf1ke75dcv6qq2h","quantity":1}]'
-            data-custom-data='{"platform":"windows"}'
-            data-success-url="https://atglance.app/docs.html?checkout=success">
+          <a href="#" class="btn btn-secondary dl-win-btn" data-display-mode="overlay" data-theme="light"
+            data-locale="en" data-items='[{"priceId":"pri_01kk9xwtfq4hvgzxzz4y4ppqs7","quantity":1}]'
+            data-custom-data='{"platform":"windows"}'>
             <span class="btn-text">Buy for Windows</span>
             <span class="btn-subtext dl-win-subtext">v0.2.2 · 64-bit</span>
           </a>
@@ -3102,18 +3098,15 @@
 
       <div class="dl-footer-group reveal">
         <div class="dl-btn-row">
-          <a href="#" class="btn-mac dl-mac-btn" data-display-mode="overlay" data-theme="light"
-            data-locale="en" data-items='[{"priceId":"pri_01kk9wcy5j7a693sv9hjnymehx","quantity":1}]'
-            data-custom-data='{"platform":"macos"}'
-            data-success-url="https://atglance.app/docs.html?checkout=success">
+          <a href="#" class="btn-mac dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
+            data-items='[{"priceId":"pri_01kk9wcy5j7a693sv9hjnymehx","quantity":1}]'
+            data-custom-data='{"platform":"macos"}'>
             <span class="btn-title">Buy for Mac</span>
             <span class="btn-sub dl-mac-subtext">v0.2.2 · Apple Silicon</span>
           </a>
-          <a href="#" class="btn-win dl-win-btn" data-display-mode="overlay"
-            data-theme="light" data-locale="en"
-            data-items='[{"priceId":"pro_01kk9xw21rzxf1ke75dcv6qq2h","quantity":1}]'
-            data-custom-data='{"platform":"windows"}'
-            data-success-url="https://atglance.app/docs.html?checkout=success">
+          <a href="#" class="btn-win dl-win-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
+            data-items='[{"priceId":"pri_01kk9xwtfq4hvgzxzz4y4ppqs7","quantity":1}]'
+            data-custom-data='{"platform":"windows"}'>
             <span class="btn-title">Buy for Windows</span>
             <span class="btn-sub dl-win-subtext">v0.2.2 · 64-bit</span>
           </a>
@@ -3333,11 +3326,9 @@
       <h2 class="headline">Ready to look <br>more confident?</h2>
       <div class="btn-group">
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay"
-            data-theme="light" data-locale="en"
+          <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
             data-items='[{"priceId":"pri_01kk9wcy5j7a693sv9hjnymehx","quantity":1}]'
-            data-custom-data='{"platform":"macos"}'
-            data-success-url="https://atglance.app/docs.html?checkout=success">
+            data-custom-data='{"platform":"macos"}'>
             <span class="btn-text">Buy for Mac</span>
             <span class="btn-subtext dl-mac-subtext">Detecting...</span>
           </a>
@@ -3345,11 +3336,9 @@
         </div>
 
         <div class="cta-wrapper">
-          <a href="#" class="btn btn-secondary dl-win-btn" data-display-mode="overlay"
-            data-theme="light" data-locale="en"
-            data-items='[{"priceId":"pro_01kk9xw21rzxf1ke75dcv6qq2h","quantity":1}]'
-            data-custom-data='{"platform":"windows"}'
-            data-success-url="https://atglance.app/docs.html?checkout=success">
+          <a href="#" class="btn btn-secondary dl-win-btn" data-display-mode="overlay" data-theme="light"
+            data-locale="en" data-items='[{"priceId":"pri_01kk9xwtfq4hvgzxzz4y4ppqs7","quantity":1}]'
+            data-custom-data='{"platform":"windows"}'>
             <span class="btn-text">Buy for Windows</span>
             <span class="btn-subtext dl-win-subtext">v0.2.2 · 64-bit</span>
           </a>
@@ -3794,9 +3783,38 @@
   </script>
   <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
   <script type="text/javascript">
-    Paddle.Environment.set("sandbox");
+    const PADDLE_CLIENT_TOKEN = "test_ed3995062157cc1b5a51e192569";
+    const DOCS_CHECKOUT_URL = new URL('docs.html', window.location.href);
+
+    if (PADDLE_CLIENT_TOKEN.startsWith('test_')) {
+      Paddle.Environment.set("sandbox");
+    }
+
     Paddle.Initialize({
-      token: "test_ed3995062157cc1b5a51e192569"
+      token: PADDLE_CLIENT_TOKEN,
+      eventCallback(event) {
+        if (event?.name !== 'checkout.completed') {
+          return;
+        }
+
+        const transactionId = event?.data?.transaction_id;
+
+        if (!transactionId) {
+          window.location.assign(`${DOCS_CHECKOUT_URL.pathname}?checkout=error`);
+          return;
+        }
+
+        try {
+          Paddle.Checkout.close();
+        } catch (_error) {
+          // Ignore close failures and continue the secure redirect flow.
+        }
+
+        const redirectUrl = new URL(DOCS_CHECKOUT_URL.href);
+        redirectUrl.searchParams.set('checkout', 'pending');
+        redirectUrl.searchParams.set('transaction_id', transactionId);
+        window.location.assign(redirectUrl.toString());
+      }
     });
 
     function parseCheckoutJsonAttribute(value, fallback) {
@@ -3821,8 +3839,7 @@
         settings: {
           displayMode: element.getAttribute('data-display-mode') || 'overlay',
           theme: element.getAttribute('data-theme') || 'light',
-          locale: element.getAttribute('data-locale') || 'en',
-          successUrl: element.getAttribute('data-success-url') || undefined
+          locale: element.getAttribute('data-locale') || 'en'
         }
       });
     }
