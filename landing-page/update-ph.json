@@ -5,11 +5,11 @@
   "platforms": {
     "darwin-aarch64": {
       "signature": "REPLACE_WITH_MAC_AARCH64_SIG_CONTENT",
-      "url": "https://atglance.app/downloads/Glance_Trial_0.3.8-2_aarch64.tar.gz"
+      "url": "https://atglance.app/downloads/Glance.Trial_0.3.8-2_aarch64.tar.gz"
     },
     "windows-x86_64": {
       "signature": "REPLACE_WITH_WIN_X64_SIG_CONTENT",
-      "url": "https://atglance.app/downloads/Glance_Trial_0.3.8-2_x64_en-US.msi.zip"
+      "url": "https://atglance.app/downloads/Glance.Trial_0.3.8-2_x64_en-US.msi.zip"
     }
   }
 }

@@ -18,7 +18,7 @@ const channelConfig = {
   product_hunt: {
     releaseConfigPath: path.join(repoRoot, 'landing-page/assets/release-config-ph.js'),
     updaterManifestPath: path.join(repoRoot, 'landing-page/update-ph.json'),
-    artifactBaseName: (versionNumber) => `Glance_Trial_${versionNumber}`,
+    artifactBaseName: (versionNumber) => `Glance.Trial_${versionNumber}`,
     windowsLabel: (versionTag) => `${versionTag} · Trial · 64-bit`,
     globalName: 'window.__GLANCE_RELEASE_PH__',
   }
