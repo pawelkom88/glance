@@ -134,11 +134,14 @@ export interface ShowOverlayResult {
   readonly usedSavedBounds: boolean;
 }
 
-export type AppLicenseState = 'unlicensed' | 'licensed';
+export type AppLicenseState = 'unlicensed' | 'licensed' | 'trial_active' | 'trial_expired';
 
 export interface AppLicenseStatus {
   readonly state: AppLicenseState;
   readonly licenseId: string | null;
+  readonly trialStartedAt?: string | null;
+  readonly trialExpiresAt?: string | null;
+  readonly trialDaysRemaining?: number | null;
 }
 
 export interface AppActivationRecord {

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearActivationRecord,
   clearStoredLicense,
+  clearTrialState,
   emitLanguageChanged,
   getOrCreateLicenseDeviceId,
   getMonitors,
@@ -17,6 +18,8 @@ import {
   moveWindowToMonitor,
   openOverlayWindow,
   quitApp,
+  loadTrialStatus,
+  startTrial,
   storeActivationRecord,
   storeLicenseKey,
   validateActivationRecord,
@@ -378,5 +381,49 @@ describe('tauri monitor bridge behavior', () => {
 
     expect(status).toEqual({ state: 'unlicensed', licenseId: null });
     expect(invokeMock).toHaveBeenCalledWith('clear_stored_license');
+  });
+
+  it('loadTrialStatus reads trial metadata from the backend', async () => {
+    invokeMock.mockResolvedValue({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 4
+    });
+
+    const status = await loadTrialStatus();
+
+    expect(status).toEqual({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 4
+    });
+    expect(invokeMock).toHaveBeenCalledWith('load_trial_status');
+  });
+
+  it('startTrial invokes the backend command once', async () => {
+    invokeMock.mockResolvedValue({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 7
+    });
+
+    const status = await startTrial();
+
+    expect(status.state).toBe('trial_active');
+    expect(invokeMock).toHaveBeenCalledWith('start_trial');
+  });
+
+  it('clearTrialState invokes the backend clear command', async () => {
+    invokeMock.mockResolvedValue(undefined);
+
+    await clearTrialState();
+
+    expect(invokeMock).toHaveBeenCalledWith('clear_trial_state');
   });
 });

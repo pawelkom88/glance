@@ -1,5 +1,6 @@
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
+use chrono::{DateTime, Duration, Utc};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -11,17 +12,24 @@ use uuid::Uuid;
 const ACCOUNT_NAME: &str = "license-key-v1";
 const DEVICE_ID_FILE_NAME: &str = "device-id.txt";
 const ACTIVATION_FILE_NAME: &str = "activation.json";
+const TRIAL_FILE_NAME: &str = "trial.json";
 const LICENSE_BYPASS_ENV: &str = "GLANCE_LICENSE_DEV_BYPASS";
+const LICENSE_DEV_STATE_ENV: &str = "GLANCE_LICENSE_DEV_STATE";
 const LICENSE_PUBLIC_KEY_ENV: &str = "GLANCE_LICENSE_PUBLIC_KEY";
+const PRODUCT_HUNT_CHANNEL: &str = "product_hunt";
+const TRIAL_DAYS_ENV: &str = "GLANCE_TRIAL_DAYS";
 const RECEIPT_DIR_NAME: &str = "license";
 const RECEIPT_FILE_NAME: &str = "license-key.txt";
 const ACTIVATION_TOKEN_VERSION: u8 = 1;
+const DEFAULT_TRIAL_DAYS: i64 = 7;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum LicenseState {
     Unlicensed,
     Licensed,
+    TrialActive,
+    TrialExpired,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -29,6 +37,12 @@ pub enum LicenseState {
 pub struct LicenseStatus {
     pub state: LicenseState,
     pub license_id: Option<String>,
+    #[serde(default)]
+    pub trial_started_at: Option<String>,
+    #[serde(default)]
+    pub trial_expires_at: Option<String>,
+    #[serde(default)]
+    pub trial_days_remaining: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -52,10 +66,27 @@ struct ActivationTokenClaims {
     pub issued_at: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TrialSource {
+    ProductHunt,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TrialRecord {
+    pub started_at: String,
+    pub expires_at: String,
+    pub source: TrialSource,
+    #[serde(default)]
+    pub activated_license_id: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 struct LicenseConfig {
     bundle_id: String,
     dev_bypass_enabled: bool,
+    trial_enabled: bool,
 }
 
 impl LicenseConfig {
@@ -63,6 +94,7 @@ impl LicenseConfig {
         Self {
             bundle_id: app.config().identifier.clone(),
             dev_bypass_enabled: env_flag_enabled(LICENSE_BYPASS_ENV),
+            trial_enabled: build_channel() == PRODUCT_HUNT_CHANNEL,
         }
     }
 
@@ -78,10 +110,10 @@ pub fn check_status(app: AppHandle) -> Result<LicenseStatus, String> {
         return Ok(licensed_status(String::from("developer-bypass")));
     }
 
-    let saved_key = load_saved_license_key(app)?;
+    let saved_key = load_saved_license_key(app.clone())?;
     Ok(match saved_key {
         Some(key) => licensed_status(masked_license_id(&key)),
-        None => unlicensed_status(),
+        None => load_trial_status_with_config(&app, &config)?.unwrap_or_else(unlicensed_status),
     })
 }
 
@@ -99,6 +131,10 @@ pub fn store_license_key(app: AppHandle, key: String) -> Result<(), String> {
 
     if let Err(error) = platform::persist_license_key(&config, key.trim()) {
         tracing::warn!("Failed to persist license key in secure storage: {error}");
+    }
+
+    if let Err(error) = mark_trial_record_as_activated(&trial_record_path(&app)?, masked_license_id(&key)) {
+        tracing::warn!("Failed to update trial conversion state: {error}");
     }
 
     Ok(())
@@ -147,6 +183,32 @@ pub fn load_activation_record(app: AppHandle) -> Result<Option<ActivationRecord>
 #[tauri::command]
 pub fn clear_activation_record(app: AppHandle) -> Result<(), String> {
     clear_text_value(&activation_record_path(&app)?)
+}
+
+#[tauri::command]
+pub fn load_trial_status(app: AppHandle) -> Result<Option<LicenseStatus>, String> {
+    let config = LicenseConfig::from_app(&app);
+    load_trial_status_with_config(&app, &config)
+}
+
+#[tauri::command]
+pub fn start_trial(app: AppHandle) -> Result<LicenseStatus, String> {
+    let config = LicenseConfig::from_app(&app);
+    if !config.trial_enabled {
+        return Err(String::from("Free trial is not available in this build."));
+    }
+
+    let status = start_trial_at_path(
+        &trial_record_path(&app)?,
+        configured_trial_days(),
+        Utc::now(),
+    )?;
+    Ok(status)
+}
+
+#[tauri::command]
+pub fn clear_trial_state(app: AppHandle) -> Result<(), String> {
+    clear_text_value(&trial_record_path(&app)?)
 }
 
 #[tauri::command]
@@ -227,6 +289,10 @@ fn activation_record_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(license_dir(app)?.join(ACTIVATION_FILE_NAME))
 }
 
+fn trial_record_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(license_dir(app)?.join(TRIAL_FILE_NAME))
+}
+
 fn current_platform() -> &'static str {
     #[cfg(target_os = "windows")]
     {
@@ -242,6 +308,147 @@ fn current_platform() -> &'static str {
 fn license_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
     Ok(app_data_dir.join(RECEIPT_DIR_NAME))
+}
+
+fn build_channel() -> &'static str {
+    option_env!("GLANCE_BUILD_CHANNEL").unwrap_or("paid")
+}
+
+fn configured_trial_days() -> i64 {
+    std::env::var(TRIAL_DAYS_ENV)
+        .ok()
+        .and_then(|value| value.trim().parse::<i64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(DEFAULT_TRIAL_DAYS)
+}
+
+fn load_trial_status_with_config(
+    app: &AppHandle,
+    config: &LicenseConfig,
+) -> Result<Option<LicenseStatus>, String> {
+    if let Some(override_status) = dev_trial_status_override() {
+        return Ok(Some(override_status));
+    }
+
+    if !config.trial_enabled {
+        return Ok(None);
+    }
+
+    load_trial_status_at_path(&trial_record_path(app)?, Utc::now())
+}
+
+fn load_trial_status_at_path(
+    trial_path: &Path,
+    now: DateTime<Utc>,
+) -> Result<Option<LicenseStatus>, String> {
+    let Some(record) = load_json_value::<TrialRecord>(trial_path)? else {
+        return Ok(None);
+    };
+
+    Ok(Some(trial_status_from_record(&record, now)?))
+}
+
+fn start_trial_at_path(
+    trial_path: &Path,
+    trial_days: i64,
+    now: DateTime<Utc>,
+) -> Result<LicenseStatus, String> {
+    if let Some(existing) = load_json_value::<TrialRecord>(trial_path)? {
+        return trial_status_from_record(&existing, now);
+    }
+
+    let record = create_trial_record(now, trial_days);
+    save_json_value(trial_path, &record)?;
+    trial_status_from_record(&record, now)
+}
+
+fn create_trial_record(now: DateTime<Utc>, trial_days: i64) -> TrialRecord {
+    TrialRecord {
+        started_at: now.to_rfc3339(),
+        expires_at: (now + Duration::days(trial_days)).to_rfc3339(),
+        source: TrialSource::ProductHunt,
+        activated_license_id: None,
+    }
+}
+
+fn trial_status_from_record(
+    record: &TrialRecord,
+    now: DateTime<Utc>,
+) -> Result<LicenseStatus, String> {
+    let started_at = parse_timestamp(&record.started_at)?;
+    let expires_at = parse_timestamp(&record.expires_at)?;
+
+    if expires_at > now {
+        let remaining = expires_at.signed_duration_since(now).num_seconds();
+        let day_seconds = 24 * 60 * 60;
+        let days_remaining = ((remaining + day_seconds - 1) / day_seconds).max(1) as u64;
+        return Ok(trial_status(
+            LicenseState::TrialActive,
+            started_at,
+            expires_at,
+            days_remaining,
+        ));
+    }
+
+    Ok(trial_status(
+        LicenseState::TrialExpired,
+        started_at,
+        expires_at,
+        0,
+    ))
+}
+
+fn trial_status(
+    state: LicenseState,
+    started_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+    days_remaining: u64,
+) -> LicenseStatus {
+    LicenseStatus {
+        state,
+        license_id: None,
+        trial_started_at: Some(started_at.to_rfc3339()),
+        trial_expires_at: Some(expires_at.to_rfc3339()),
+        trial_days_remaining: Some(days_remaining),
+    }
+}
+
+fn parse_timestamp(value: &str) -> Result<DateTime<Utc>, String> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .map(|timestamp| timestamp.with_timezone(&Utc))
+        .map_err(|_| String::from("Trial state is invalid."))
+}
+
+fn mark_trial_record_as_activated(trial_path: &Path, license_id: String) -> Result<(), String> {
+    let Some(mut record) = load_json_value::<TrialRecord>(trial_path)? else {
+        return Ok(());
+    };
+
+    record.activated_license_id = Some(license_id);
+    save_json_value(trial_path, &record)
+}
+
+fn dev_trial_status_override() -> Option<LicenseStatus> {
+    let raw_state = std::env::var(LICENSE_DEV_STATE_ENV).ok()?;
+    let normalized = raw_state.trim().to_ascii_lowercase();
+    let now = Utc::now();
+    let days = configured_trial_days();
+
+    match normalized.as_str() {
+        "trial" => Some(trial_status(
+            LicenseState::TrialActive,
+            now,
+            now + Duration::days(days),
+            days as u64,
+        )),
+        "expired" => Some(trial_status(
+            LicenseState::TrialExpired,
+            now - Duration::days(days),
+            now - Duration::seconds(1),
+            0,
+        )),
+        _ => None,
+    }
 }
 
 fn verify_activation_token(token: &str) -> Result<ActivationTokenClaims, String> {
@@ -388,6 +595,9 @@ fn licensed_status(license_id: String) -> LicenseStatus {
     LicenseStatus {
         state: LicenseState::Licensed,
         license_id: Some(license_id),
+        trial_started_at: None,
+        trial_expires_at: None,
+        trial_days_remaining: None,
     }
 }
 
@@ -395,6 +605,9 @@ fn unlicensed_status() -> LicenseStatus {
     LicenseStatus {
         state: LicenseState::Unlicensed,
         license_id: None,
+        trial_started_at: None,
+        trial_expires_at: None,
+        trial_days_remaining: None,
     }
 }
 
@@ -453,10 +666,12 @@ mod platform {
 #[cfg(test)]
 mod tests {
     use super::{
-        clear_text_value, load_json_value, load_text_value, masked_license_id, save_json_value,
-        save_text_value, verify_activation_token_with_key, ActivationRecord, ActivationTokenClaims,
-        ACTIVATION_TOKEN_VERSION,
+        clear_text_value, create_trial_record, load_json_value, load_text_value, masked_license_id,
+        mark_trial_record_as_activated, save_json_value, save_text_value, start_trial_at_path,
+        trial_status_from_record, verify_activation_token_with_key, ActivationRecord,
+        ActivationTokenClaims, TrialRecord, TrialSource, ACTIVATION_TOKEN_VERSION,
     };
+    use chrono::{Duration, TimeZone, Utc};
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine;
     use ed25519_dalek::{Signer, SigningKey};
@@ -507,6 +722,61 @@ mod tests {
             load_json_value(&record_path).expect("load activation record");
 
         assert_eq!(restored, Some(record));
+    }
+
+    #[test]
+    fn starting_trial_once_persists_original_record() {
+        let dir = tempdir().expect("temp dir");
+        let trial_path = dir.path().join("license").join("trial.json");
+        let first_now = Utc.with_ymd_and_hms(2026, 3, 10, 12, 0, 0).unwrap();
+        let later_now = first_now + Duration::days(2);
+
+        let first_status = start_trial_at_path(&trial_path, 7, first_now).expect("start trial");
+        let second_status = start_trial_at_path(&trial_path, 7, later_now).expect("load existing trial");
+        let stored: Option<TrialRecord> = load_json_value(&trial_path).expect("load trial");
+
+        assert_eq!(first_status.state, super::LicenseState::TrialActive);
+        assert_eq!(stored, Some(create_trial_record(first_now, 7)));
+        assert_eq!(second_status.trial_started_at, Some(first_now.to_rfc3339()));
+        assert_eq!(
+            second_status.trial_days_remaining,
+            Some(5)
+        );
+    }
+
+    #[test]
+    fn expired_trial_reports_expired_status() {
+        let now = Utc.with_ymd_and_hms(2026, 3, 17, 12, 0, 1).unwrap();
+        let record = create_trial_record(Utc.with_ymd_and_hms(2026, 3, 10, 12, 0, 0).unwrap(), 7);
+
+        let status = trial_status_from_record(&record, now).expect("trial status");
+
+        assert_eq!(status.state, super::LicenseState::TrialExpired);
+        assert_eq!(status.trial_days_remaining, Some(0));
+    }
+
+    #[test]
+    fn trial_records_track_conversion_license_id() {
+        let dir = tempdir().expect("temp dir");
+        let trial_path = dir.path().join("license").join("trial.json");
+        let record = TrialRecord {
+            started_at: String::from("2026-03-10T12:00:00+00:00"),
+            expires_at: String::from("2026-03-17T12:00:00+00:00"),
+            source: TrialSource::ProductHunt,
+            activated_license_id: None,
+        };
+        save_json_value(&trial_path, &record).expect("save trial");
+
+        mark_trial_record_as_activated(&trial_path, String::from("3C49")).expect("mark activated");
+
+        let restored: Option<TrialRecord> = load_json_value(&trial_path).expect("load trial");
+        assert_eq!(
+            restored,
+            Some(TrialRecord {
+                activated_license_id: Some(String::from("3C49")),
+                ..record
+            })
+        );
     }
 
     #[test]

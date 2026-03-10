@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, product-hunt-trial]
     tags: ['v*']
     paths-ignore:
       - 'landing-page/**'
@@ -150,8 +150,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Resolve build channel
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "$VERSION" == *"-ph."* ]]; then
+            echo "GLANCE_BUILD_CHANNEL=product_hunt" >> "$GITHUB_ENV"
+            echo "VITE_GLANCE_BUILD_CHANNEL=product_hunt" >> "$GITHUB_ENV"
+            echo "TAURI_CONFIG_PATH=src-tauri/tauri.product-hunt.conf.json" >> "$GITHUB_ENV"
+            echo "RELEASE_NAME=Glance Trial v__VERSION__" >> "$GITHUB_ENV"
+            echo "RELEASE_BODY=See the attached assets to download and install Glance Trial." >> "$GITHUB_ENV"
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "GLANCE_BUILD_CHANNEL=paid" >> "$GITHUB_ENV"
+            echo "VITE_GLANCE_BUILD_CHANNEL=paid" >> "$GITHUB_ENV"
+            echo "TAURI_CONFIG_PATH=src-tauri/tauri.conf.json" >> "$GITHUB_ENV"
+            echo "RELEASE_NAME=Glance v__VERSION__" >> "$GITHUB_ENV"
+            echo "RELEASE_BODY=See the attached assets to download and install Glance." >> "$GITHUB_ENV"
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Build frontend
         run: pnpm run build
+        env:
+          VITE_GLANCE_BUILD_CHANNEL: ${{ env.VITE_GLANCE_BUILD_CHANNEL }}
 
       - name: Build Tauri (non-Windows)
         if: runner.os != 'Windows'
@@ -159,16 +181,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GLANCE_LICENSE_PUBLIC_KEY: ${{ secrets.GLANCE_LICENSE_PUBLIC_KEY }}
+          GLANCE_BUILD_CHANNEL: ${{ env.GLANCE_BUILD_CHANNEL }}
+          VITE_GLANCE_BUILD_CHANNEL: ${{ env.VITE_GLANCE_BUILD_CHANNEL }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           MACOSX_DEPLOYMENT_TARGET: "12.0"
         with:
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
           tagName: v__VERSION__
-          releaseName: 'Glance v__VERSION__'
-          releaseBody: 'See the attached assets to download and install Glance.'
+          releaseName: ${{ env.RELEASE_NAME }}
+          releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE }}
 
       - name: Upload macOS artifacts
         if: runner.os == 'macOS'
@@ -188,15 +212,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GLANCE_LICENSE_PUBLIC_KEY: ${{ secrets.GLANCE_LICENSE_PUBLIC_KEY }}
+          GLANCE_BUILD_CHANNEL: ${{ env.GLANCE_BUILD_CHANNEL }}
+          VITE_GLANCE_BUILD_CHANNEL: ${{ env.VITE_GLANCE_BUILD_CHANNEL }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
           tagName: v__VERSION__
-          releaseName: 'Glance v__VERSION__'
-          releaseBody: 'See the attached assets to download and install Glance.'
+          releaseName: ${{ env.RELEASE_NAME }}
+          releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE }}
 
       - name: Build Tauri (Windows retry)
         if: runner.os == 'Windows' && steps.tauri_windows_attempt_1.outcome == 'failure'
@@ -206,15 +232,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GLANCE_LICENSE_PUBLIC_KEY: ${{ secrets.GLANCE_LICENSE_PUBLIC_KEY }}
+          GLANCE_BUILD_CHANNEL: ${{ env.GLANCE_BUILD_CHANNEL }}
+          VITE_GLANCE_BUILD_CHANNEL: ${{ env.VITE_GLANCE_BUILD_CHANNEL }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
           tagName: v__VERSION__
-          releaseName: 'Glance v__VERSION__'
-          releaseBody: 'See the attached assets to download and install Glance.'
+          releaseName: ${{ env.RELEASE_NAME }}
+          releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE }}
 
       - name: Build Tauri (Windows final retry)
         if: runner.os == 'Windows' && steps.tauri_windows_attempt_2.outcome == 'failure'
@@ -222,15 +250,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GLANCE_LICENSE_PUBLIC_KEY: ${{ secrets.GLANCE_LICENSE_PUBLIC_KEY }}
+          GLANCE_BUILD_CHANNEL: ${{ env.GLANCE_BUILD_CHANNEL }}
+          VITE_GLANCE_BUILD_CHANNEL: ${{ env.VITE_GLANCE_BUILD_CHANNEL }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
           tagName: v__VERSION__
-          releaseName: 'Glance v__VERSION__'
-          releaseBody: 'See the attached assets to download and install Glance.'
+          releaseName: ${{ env.RELEASE_NAME }}
+          releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE }}
 
       - name: Upload Windows artifacts
         if: runner.os == 'Windows'

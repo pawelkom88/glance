@@ -293,7 +293,10 @@ fn main() {
             license::get_or_create_device_id,
             license::store_activation_record,
             license::load_activation_record,
+            license::load_trial_status,
+            license::start_trial,
             license::clear_activation_record,
+            license::clear_trial_state,
             license::validate_activation_record,
             license::clear_stored_license
         ])

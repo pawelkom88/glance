@@ -12,8 +12,12 @@ export function LicenseGate({ children }: LicenseGateProps) {
     status,
     actionPending,
     error,
+    trialEnabled,
     onActivate,
+    onStartTrial,
   } = useAppLicense();
+
+  const isOverlayWindow = typeof window !== 'undefined' && window.location.hash.includes('overlay');
 
   if (loading || !status) {
     return (
@@ -23,9 +27,12 @@ export function LicenseGate({ children }: LicenseGateProps) {
     );
   }
 
-  if (status.state === 'unlicensed') {
+  if (status.state === 'unlicensed' || status.state === 'trial_expired') {
     return (
       <Paywall
+        status={status.state}
+        trialEnabled={trialEnabled}
+        onStartTrial={onStartTrial}
         pending={actionPending}
         error={error}
         onActivate={onActivate}
@@ -33,5 +40,18 @@ export function LicenseGate({ children }: LicenseGateProps) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {!isOverlayWindow && status.state === 'trial_active' ? (
+        <div className="license-trial-banner" role="status" aria-live="polite">
+          <span className="license-trial-banner__text">
+            {status.trialDaysRemaining === 1
+              ? '1 day left in your 7-day free trial.'
+              : `${status.trialDaysRemaining ?? 7} days left in your 7-day free trial.`}
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
 }

@@ -7007,31 +7007,6 @@ body.is-session-dragging * {
   flex-shrink: 0;
 }
 
-.license-trial-banner__cta {
-  flex-shrink: 0;
-  height: 26px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background: #0f62fe;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.01em;
-  transition: opacity 120ms ease, transform 120ms ease;
-}
-
-.license-trial-banner__cta:hover:not(:disabled) {
-  opacity: 0.88;
-  transform: translateY(-0.5px);
-}
-
-.license-trial-banner__cta:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
 /* Settings-level license section */
 .settings-license-card {
   padding: 20px 16px 16px;

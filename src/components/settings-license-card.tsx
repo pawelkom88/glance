@@ -56,12 +56,25 @@ export function SettingsLicenseCard({
   onCancel
 }: SettingsLicenseCardProps) {
   const isLicensed = status.state === 'licensed';
+  const isTrialActive = status.state === 'trial_active';
+  const isUnlocked = isLicensed || isTrialActive;
   const licenseId = status.licenseId;
   const hasReplacementInput = licenseKeyInput.trim().length > 0;
-  const statusTitle = isLicensed ? 'License active' : 'License key required';
-  const statusMessage = isLicensed
-    ? `This device is unlocked${licenseId ? ` with a key ending in ${licenseId}.` : '.'}`
-    : 'Paste the serial key you received after purchase to unlock the app.';
+  let statusTitle = 'License key required';
+  let statusMessage = 'Paste the serial key you received after purchase to unlock the app.';
+
+  if (isLicensed) {
+    statusTitle = 'License active';
+    statusMessage = `This device is unlocked${licenseId ? ` with a key ending in ${licenseId}.` : '.'}`;
+  } else if (isTrialActive) {
+    statusTitle = 'Free trial active';
+    statusMessage = status.trialDaysRemaining === 1
+      ? 'You have 1 day left in your 7-day Product Hunt trial.'
+      : `You have ${status.trialDaysRemaining ?? 7} days left in your 7-day Product Hunt trial.`;
+  } else if (status.state === 'trial_expired') {
+    statusTitle = 'Trial expired';
+    statusMessage = 'Your 7-day Product Hunt trial has ended. Enter a paid license key to keep using this app.';
+  }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -75,10 +88,10 @@ export function SettingsLicenseCard({
 
         <div className="settings-license-card__status">
           <div
-            className={`settings-license-card__status-icon ${isLicensed ? 'is-active' : 'is-inactive'}`}
+            className={`settings-license-card__status-icon ${isUnlocked ? 'is-active' : 'is-inactive'}`}
             aria-hidden="true"
           >
-            <LicenseStatusIcon licensed={isLicensed} />
+            <LicenseStatusIcon licensed={isUnlocked} />
           </div>
           <div className="settings-license-card__status-copy">
             <p className="settings-license-card__status-title">{statusTitle}</p>

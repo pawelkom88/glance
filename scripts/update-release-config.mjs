@@ -3,28 +3,50 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const packageJsonPath = path.join(repoRoot, 'package.json');
-const releaseConfigPath = path.join(repoRoot, 'landing-page/assets/release-config.js');
-const updaterManifestPath = path.join(repoRoot, 'landing-page/update.json');
 
 const githubRepo = 'https://github.com/pawelkom88/glance/releases/download';
 const updaterDownloadBase = 'https://atglance.app/downloads';
 const defaultWorkerBaseUrl = 'https://glance-payments.paulus-react.workers.dev';
+const channelConfig = {
+  paid: {
+    releaseConfigPath: path.join(repoRoot, 'landing-page/assets/release-config.js'),
+    updaterManifestPath: path.join(repoRoot, 'landing-page/update.json'),
+    artifactBaseName: (versionNumber) => `Glance_${versionNumber}`,
+    windowsLabel: (versionTag) => `${versionTag} · 64-bit`,
+    globalName: 'window.__GLANCE_RELEASE__',
+  },
+  product_hunt: {
+    releaseConfigPath: path.join(repoRoot, 'landing-page/assets/release-config-ph.js'),
+    updaterManifestPath: path.join(repoRoot, 'landing-page/update-ph.json'),
+    artifactBaseName: (versionNumber) => `Glance_Trial_${versionNumber}`,
+    windowsLabel: (versionTag) => `${versionTag} · Trial · 64-bit`,
+    globalName: 'window.__GLANCE_RELEASE_PH__',
+  }
+};
 
 async function main() {
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
   const options = parseArgs(process.argv.slice(2));
+  const channel = options.channel || 'paid';
+  const selectedConfig = channelConfig[channel];
+  if (!selectedConfig) {
+    throw new Error(`Unsupported release channel: ${channel}`);
+  }
   const versionTag = normalizeVersion(options.version || packageJson.version);
   const versionNumber = versionTag.slice(1);
-  const artifactBaseName = `Glance_${versionNumber}`;
+  const artifactBaseName = selectedConfig.artifactBaseName(versionNumber);
   const workerBaseUrl = options.workerBaseUrl || defaultWorkerBaseUrl;
 
   await writeReleaseConfig({
+    releaseConfigPath: selectedConfig.releaseConfigPath,
     versionTag,
-    versionNumber,
     artifactBaseName,
     workerBaseUrl,
+    windowsLabel: selectedConfig.windowsLabel(versionTag),
+    globalName: selectedConfig.globalName,
   });
   await writeUpdaterManifest({
+    updaterManifestPath: selectedConfig.updaterManifestPath,
     versionNumber,
     artifactBaseName,
     notes: options.notes,
@@ -33,8 +55,8 @@ async function main() {
 
   process.stdout.write(
     `Updated release config for ${versionTag}\n` +
-    `- ${relativeToRepo(releaseConfigPath)}\n` +
-    `- ${relativeToRepo(updaterManifestPath)}\n`
+    `- ${relativeToRepo(selectedConfig.releaseConfigPath)}\n` +
+    `- ${relativeToRepo(selectedConfig.updaterManifestPath)}\n`
   );
 }
 
@@ -63,6 +85,12 @@ function parseArgs(args) {
       continue;
     }
 
+    if (arg === '--channel' && value) {
+      options.channel = value;
+      index += 1;
+      continue;
+    }
+
     if (arg === '--pub-date' && value) {
       options.pubDate = value;
       index += 1;
@@ -82,14 +110,16 @@ function normalizeVersion(value) {
 }
 
 async function writeReleaseConfig({
+  releaseConfigPath,
   versionTag,
-  versionNumber,
   artifactBaseName,
   workerBaseUrl,
+  windowsLabel,
+  globalName,
 }) {
-  const nextContents = `window.__GLANCE_RELEASE__ = {
+  const nextContents = `${globalName} = {
   version: '${versionTag}',
-  windowsLabel: '${versionTag} · 64-bit',
+  windowsLabel: '${windowsLabel}',
   artifactBaseName: '${artifactBaseName}',
   workerBaseUrl: '${workerBaseUrl}',
   downloads: {
@@ -104,6 +134,7 @@ async function writeReleaseConfig({
 }
 
 async function writeUpdaterManifest({
+  updaterManifestPath,
   versionNumber,
   artifactBaseName,
   notes,

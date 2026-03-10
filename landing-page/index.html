@@ -779,6 +779,22 @@
       letter-spacing: 0.01em;
     }
 
+    body.variant-producthunt .btn-group {
+      gap: 14px;
+    }
+
+    body.variant-producthunt .cta-wrapper {
+      flex: 0 1 240px;
+      width: 240px;
+      max-width: 240px;
+      min-width: 0;
+    }
+
+    body.variant-producthunt .cta-caption {
+      width: 100%;
+      text-align: center;
+    }
+
     .cta-caption a {
       color: var(--blue);
       text-decoration: none;
@@ -2686,7 +2702,7 @@
 
   <section class="hero" style="position: relative;">
     <div class="container">
-      <div class="hero-eyebrow reveal"><span class="record-dot"></span>Teleprompter for Zoom, Teams & Google Meet</div>
+      <div class="hero-eyebrow reveal" id="heroEyebrow"><span class="record-dot"></span>Teleprompter for Zoom, Teams & Google Meet</div>
 
       <div class="hero-mid-visual reveal">
         <video autoplay muted loop playsinline poster="glance-demo-poster.webp" preload="auto">
@@ -2694,9 +2710,9 @@
           <source src="glance-demo.mp4" type="video/mp4">
         </video>
       </div>
-      <h1 class="headline reveal">Keep eye contact. <br><span class="cursive-blue">Read your script.</span>
+      <h1 class="headline reveal" id="heroHeadline">Keep eye contact. <br><span class="cursive-blue">Read your script.</span>
       </h1>
-      <p class="subhead reveal">A teleprompter placed beside your camera for Zoom, Teams and Google Meet.</p>
+      <p class="subhead reveal" id="heroSubhead">A teleprompter placed beside your camera for Zoom, Teams and Google Meet.</p>
 
       <div class="btn-group reveal">
         <div class="cta-wrapper">
@@ -2723,7 +2739,7 @@
     </div>
 
     </div>
-    <p
+    <p id="heroMicrocopy"
       style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;padding-inline: 42px">
       Private & local • No account • Internet only for activation • Works with Zoom/Teams/Meet
     </p>
@@ -3112,7 +3128,7 @@
           </a>
         </div>
 
-        <div class="cta-notes">
+        <div class="cta-notes" id="dlFooterNotes">
           <p class="cta-note">Not Apple Silicon? <button type="button" class="cta-switch-arch toggle-arch-btn">Switch to
               Intel</button></p>
           <p class="cta-note">No cloud access.</p>
@@ -3323,7 +3339,7 @@
   <!-- FINAL CTA -->
   <section class="section" style="text-align:center; padding: var(--space-section-y) 0;">
     <div class="container reveal">
-      <h2 class="headline">Ready to look <br>more confident?</h2>
+      <h2 class="headline" id="finalCtaHeadline">Ready to look <br>more confident?</h2>
       <div class="btn-group">
         <div class="cta-wrapper">
           <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
@@ -3635,12 +3651,63 @@
     // Release & Architecture Logic
     document.addEventListener("DOMContentLoaded", async () => {
       let isAppleSilicon = false;
-      const releaseConfig = window.__GLANCE_RELEASE__ || {};
+      const defaultReleaseConfig = window.__GLANCE_RELEASE__ || {};
+      const productHuntReleaseConfig = window.__GLANCE_RELEASE_PH__ || {};
+      const isProductHuntVariant = LANDING_VARIANT === 'producthunt';
+      const releaseConfig = isProductHuntVariant ? productHuntReleaseConfig : defaultReleaseConfig;
       const RELEASE_VERSION = releaseConfig.version || 'Latest';
       const WINDOWS_URL = releaseConfig.downloads?.windows || '#';
       const MAC_ARM_URL = releaseConfig.downloads?.macArm || '#';
       const MAC_INTEL_URL = releaseConfig.downloads?.macIntel || '#';
       const WINDOWS_LABEL = releaseConfig.windowsLabel || `${RELEASE_VERSION} · 64-bit`;
+      const heroEyebrow = document.getElementById('heroEyebrow');
+      const heroHeadline = document.getElementById('heroHeadline');
+      const heroSubhead = document.getElementById('heroSubhead');
+      const heroMicrocopy = document.getElementById('heroMicrocopy');
+      const finalCtaHeadline = document.getElementById('finalCtaHeadline');
+      const dlFooterNotes = document.getElementById('dlFooterNotes');
+
+      function applyProductHuntVariant() {
+        if (!isProductHuntVariant) {
+          return;
+        }
+
+        document.body.classList.add('variant-producthunt');
+
+        if (heroEyebrow) {
+          heroEyebrow.innerHTML = '<span class="record-dot"></span>Product Hunt launch · 7-day free trial';
+        }
+
+        if (heroHeadline) {
+          heroHeadline.innerHTML = 'Try Glance free for <br><span class="cursive-blue">7 days.</span>';
+        }
+
+        if (heroSubhead) {
+          heroSubhead.textContent = 'Download the trial for macOS or Windows. If it fits your workflow, buy once and unlock the same app with your license key.';
+        }
+
+        if (heroMicrocopy) {
+          heroMicrocopy.textContent = 'Private & local • No account • 7-day free trial • Buy once to unlock forever';
+        }
+
+        if (finalCtaHeadline) {
+          finalCtaHeadline.innerHTML = 'Start your trial. <br>Unlock later if it fits.';
+        }
+
+        if (dlFooterNotes) {
+          dlFooterNotes.innerHTML = '<p class="cta-note">7 days free.</p><p class="cta-note">Buy once later to unlock forever.</p>';
+        }
+
+        document.querySelectorAll('.dl-mac-btn .btn-text, .dl-mac-btn .btn-title').forEach((element) => {
+          element.textContent = 'Try for Mac';
+        });
+        document.querySelectorAll('.dl-win-btn .btn-text, .dl-win-btn .btn-title').forEach((element) => {
+          element.textContent = 'Try for Windows';
+        });
+        document.querySelectorAll('.dl-win-caption').forEach((element) => {
+          element.textContent = '7-day free trial. Unlock later with your license key.';
+        });
+      }
 
       // 1. Detect Architecture
       try {
@@ -3654,22 +3721,33 @@
         }
       } catch (e) { }
 
+      applyProductHuntVariant();
       updateDownloadLinks();
 
       function updateDownloadLinks() {
         document.querySelectorAll('.dl-win-subtext').forEach(el => el.innerHTML = WINDOWS_LABEL);
+        document.querySelectorAll('.dl-win-btn').forEach(el => {
+          el.setAttribute('href', WINDOWS_URL);
+        });
 
         // Update Mac based on detection
         const archLabel = isAppleSilicon ? "Apple Silicon" : "Intel chip";
+        const macDownloadUrl = isAppleSilicon ? MAC_ARM_URL : MAC_INTEL_URL;
 
         document.querySelectorAll('.dl-mac-subtext').forEach(el => {
           el.innerHTML = `${RELEASE_VERSION} · ${archLabel}`;
+        });
+        document.querySelectorAll('.dl-mac-btn').forEach(el => {
+          el.setAttribute('href', macDownloadUrl);
         });
 
         document.querySelectorAll('.dl-mac-caption').forEach(el => {
           const isWhiteTheme = el.style.color.includes('rgba(255,255,255');
           const linkColor = isWhiteTheme ? '#fff' : 'var(--blue)';
-          el.innerHTML = `Not on this Mac? <button type="button" class="toggle-arch-btn toggle-arch-inline" style="--toggle-arch-color: ${linkColor};">Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}</button>`;
+          const prefix = isProductHuntVariant
+            ? 'Need a different chip?'
+            : 'Not on this Mac?';
+          el.innerHTML = `${prefix} <button type="button" class="toggle-arch-btn toggle-arch-inline" style="--toggle-arch-color: ${linkColor};">Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}</button>`;
         });
 
         document.querySelectorAll('.toggle-arch-btn').forEach(el => {
@@ -3784,8 +3862,12 @@
     document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
   </script>
   <script src="assets/release-config.js"></script>
+  <script src="assets/release-config-ph.js"></script>
   <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
   <script type="text/javascript">
+    const LANDING_VARIANT = new URLSearchParams(window.location.search).get('ref') === 'producthunt'
+      ? 'producthunt'
+      : 'default';
     const PADDLE_CLIENT_TOKEN = "test_ed3995062157cc1b5a51e192569";
     const DOCS_CHECKOUT_URL = new URL('docs.html', window.location.href);
 
@@ -3849,6 +3931,10 @@
 
     document.querySelectorAll('.dl-mac-btn, .dl-win-btn').forEach((button) => {
       button.addEventListener('click', (event) => {
+        if (LANDING_VARIANT === 'producthunt') {
+          return;
+        }
+
         event.preventDefault();
         openOverlayCheckoutFromElement(button);
       });

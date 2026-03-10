@@ -12,6 +12,8 @@ vi.mock('../lib/tauri', () => ({
   isTauriEnvironment: vi.fn(),
   loadActivationRecord: vi.fn(),
   loadSavedLicenseKey: vi.fn(),
+  loadTrialStatus: vi.fn(),
+  startTrial: vi.fn(),
   storeActivationRecord: vi.fn(),
   storeLicenseKey: vi.fn(),
   validateActivationRecord: vi.fn(),
@@ -34,6 +36,8 @@ const tauriMock = tauriBridge as unknown as {
   isTauriEnvironment: ReturnType<typeof vi.fn>;
   loadActivationRecord: ReturnType<typeof vi.fn>;
   loadSavedLicenseKey: ReturnType<typeof vi.fn>;
+  loadTrialStatus: ReturnType<typeof vi.fn>;
+  startTrial: ReturnType<typeof vi.fn>;
   storeActivationRecord: ReturnType<typeof vi.fn>;
   storeLicenseKey: ReturnType<typeof vi.fn>;
   validateActivationRecord: ReturnType<typeof vi.fn>;
@@ -48,11 +52,20 @@ const licenseApiMock = licenseApi as unknown as {
 describe('useAppLicense', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    import.meta.env.VITE_GLANCE_BUILD_CHANNEL = 'paid';
 
     tauriMock.isTauriEnvironment.mockReturnValue(true);
     tauriMock.loadSavedLicenseKey.mockResolvedValue('GLANCE-ABCD-EFGH-IJKL');
     tauriMock.getOrCreateLicenseDeviceId.mockResolvedValue('device-123');
     tauriMock.loadActivationRecord.mockResolvedValue(null);
+    tauriMock.loadTrialStatus.mockResolvedValue(null);
+    tauriMock.startTrial.mockResolvedValue({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 7,
+    });
     tauriMock.storeActivationRecord.mockResolvedValue(undefined);
     tauriMock.storeLicenseKey.mockResolvedValue(undefined);
     tauriMock.clearActivationRecord.mockResolvedValue(undefined);
@@ -231,6 +244,58 @@ describe('useAppLicense', () => {
     expect(result.current.status).toEqual({
       state: 'licensed',
       licenseId: '3C49',
+    });
+  });
+
+  it('uses the persisted Product Hunt trial when no saved key exists', async () => {
+    import.meta.env.VITE_GLANCE_BUILD_CHANNEL = 'product_hunt';
+    tauriMock.loadSavedLicenseKey.mockResolvedValue(null);
+    tauriMock.loadTrialStatus.mockResolvedValue({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 5,
+    });
+
+    const { result } = renderHook(() => useAppLicense());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.trialEnabled).toBe(true);
+    expect(result.current.status).toEqual({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 5,
+    });
+    expect(licenseApiMock.validateLicense).not.toHaveBeenCalled();
+  });
+
+  it('starts the Product Hunt trial explicitly from the paywall flow', async () => {
+    import.meta.env.VITE_GLANCE_BUILD_CHANNEL = 'product_hunt';
+    tauriMock.loadSavedLicenseKey.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAppLicense());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.onStartTrial();
+    });
+
+    expect(tauriMock.startTrial).toHaveBeenCalled();
+    expect(result.current.status).toEqual({
+      state: 'trial_active',
+      licenseId: null,
+      trialStartedAt: '2026-03-10T12:00:00Z',
+      trialExpiresAt: '2026-03-17T12:00:00Z',
+      trialDaysRemaining: 7,
     });
   });
 });

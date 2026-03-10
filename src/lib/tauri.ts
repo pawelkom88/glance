@@ -37,6 +37,8 @@ const mainLastMonitorStorageKey = 'glance-main-last-monitor-v1';
 const overlayAlwaysOnTopStorageKey = 'glance-overlay-always-on-top-v1';
 const lastActiveSessionStorageKey = 'glance-last-active-session-v1';
 const monitorDebugStorageKey = 'glance-monitor-debug-v1';
+const activationStorageKey = 'glance-license-activation-v1';
+const trialStorageKey = 'glance-license-trial-v1';
 
 function inTauri(): boolean {
   return isTauri();
@@ -350,6 +352,50 @@ export function isTauriEnvironment(): boolean {
   return inTauri();
 }
 
+interface LocalTrialRecord {
+  readonly startedAt: string;
+  readonly expiresAt: string;
+  readonly source: 'product_hunt';
+  readonly activatedLicenseId?: string | null;
+}
+
+function trialStatusFromLocalRecord(record: LocalTrialRecord): AppLicenseStatus {
+  const now = Date.now();
+  const expiresAt = Date.parse(record.expiresAt);
+  const startedAt = Date.parse(record.startedAt);
+
+  if (!Number.isFinite(expiresAt) || !Number.isFinite(startedAt)) {
+    throw new Error('Trial record is invalid.');
+  }
+
+  const remainingMs = expiresAt - now;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const trialDaysRemaining = remainingMs > 0
+    ? Math.max(1, Math.ceil(remainingMs / dayMs))
+    : 0;
+
+  return {
+    state: remainingMs > 0 ? 'trial_active' : 'trial_expired',
+    licenseId: null,
+    trialStartedAt: record.startedAt,
+    trialExpiresAt: record.expiresAt,
+    trialDaysRemaining
+  };
+}
+
+function readLocalTrialRecord(): LocalTrialRecord | null {
+  const raw = window.localStorage.getItem(trialStorageKey);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as LocalTrialRecord;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadSavedLicenseKey(): Promise<string | null> {
   if (!inTauri()) {
     return null;
@@ -384,7 +430,7 @@ export async function getOrCreateLicenseDeviceId(): Promise<string> {
 
 export async function loadActivationRecord(): Promise<AppActivationRecord | null> {
   if (!inTauri()) {
-    const raw = window.localStorage.getItem('glance-license-activation-v1');
+    const raw = window.localStorage.getItem(activationStorageKey);
     if (!raw) {
       return null;
     }
@@ -401,7 +447,7 @@ export async function loadActivationRecord(): Promise<AppActivationRecord | null
 
 export async function clearActivationRecord(): Promise<void> {
   if (!inTauri()) {
-    window.localStorage.removeItem('glance-license-activation-v1');
+    window.localStorage.removeItem(activationStorageKey);
     return;
   }
 
@@ -410,7 +456,7 @@ export async function clearActivationRecord(): Promise<void> {
 
 export async function storeActivationRecord(record: AppActivationRecord): Promise<void> {
   if (!inTauri()) {
-    window.localStorage.setItem('glance-license-activation-v1', JSON.stringify(record));
+    window.localStorage.setItem(activationStorageKey, JSON.stringify(record));
     return;
   }
 
@@ -434,7 +480,7 @@ export async function validateActivationRecord(
 
 export async function clearStoredLicense(): Promise<AppLicenseStatus> {
   if (!inTauri()) {
-    window.localStorage.removeItem('glance-license-activation-v1');
+    window.localStorage.removeItem(activationStorageKey);
     return {
       state: 'unlicensed',
       licenseId: null
@@ -442,6 +488,54 @@ export async function clearStoredLicense(): Promise<AppLicenseStatus> {
   }
 
   return invoke<AppLicenseStatus>('clear_stored_license');
+}
+
+export async function loadTrialStatus(): Promise<AppLicenseStatus | null> {
+  if (!inTauri()) {
+    const record = readLocalTrialRecord();
+    if (!record) {
+      return null;
+    }
+
+    try {
+      return trialStatusFromLocalRecord(record);
+    } catch {
+      return null;
+    }
+  }
+
+  return invoke<AppLicenseStatus | null>('load_trial_status');
+}
+
+export async function startTrial(): Promise<AppLicenseStatus> {
+  if (!inTauri()) {
+    const existing = readLocalTrialRecord();
+    if (existing) {
+      return trialStatusFromLocalRecord(existing);
+    }
+
+    const startedAt = new Date();
+    const expiresAt = new Date(startedAt.getTime() + (7 * 24 * 60 * 60 * 1000));
+    const record: LocalTrialRecord = {
+      startedAt: startedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      source: 'product_hunt',
+      activatedLicenseId: null
+    };
+    window.localStorage.setItem(trialStorageKey, JSON.stringify(record));
+    return trialStatusFromLocalRecord(record);
+  }
+
+  return invoke<AppLicenseStatus>('start_trial');
+}
+
+export async function clearTrialState(): Promise<void> {
+  if (!inTauri()) {
+    window.localStorage.removeItem(trialStorageKey);
+    return;
+  }
+
+  await invoke('clear_trial_state');
 }
 
 export async function listFolders(): Promise<readonly SessionFolder[]> {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AppActivationRecord, AppLicenseStatus } from '../types';
+import { isProductHuntBuild } from '../lib/build-channel';
 import {
   clearActivationRecord,
   clearStoredLicense,
@@ -7,6 +8,8 @@ import {
   isTauriEnvironment,
   loadActivationRecord,
   loadSavedLicenseKey,
+  loadTrialStatus,
+  startTrial,
   storeActivationRecord,
   storeLicenseKey,
   validateActivationRecord,
@@ -24,8 +27,10 @@ interface UseAppLicenseResult {
   readonly status: AppLicenseStatus | null;
   readonly actionPending: boolean;
   readonly error: string | null;
+  readonly trialEnabled: boolean;
   readonly refresh: () => Promise<void>;
   readonly onActivate: (key: string) => Promise<boolean>;
+  readonly onStartTrial: () => Promise<boolean>;
   readonly onClear: () => Promise<boolean>;
 }
 
@@ -33,6 +38,13 @@ function createLicensedStatus(licenseId: string): AppLicenseStatus {
   return {
     state: 'licensed',
     licenseId,
+  };
+}
+
+function createUnlicensedStatus(): AppLicenseStatus {
+  return {
+    state: 'unlicensed',
+    licenseId: null,
   };
 }
 
@@ -71,6 +83,7 @@ async function persistValidatedLicense(
 }
 
 export function useAppLicense(): UseAppLicenseResult {
+  const trialEnabled = isProductHuntBuild();
   const [status, setStatus] = useState<AppLicenseStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionPending, setActionPending] = useState(false);
@@ -90,12 +103,18 @@ export function useAppLicense(): UseAppLicenseResult {
     }
 
     try {
+      const resolveFallbackStatus = async (): Promise<AppLicenseStatus> => {
+        if (!trialEnabled) {
+          return createUnlicensedStatus();
+        }
+
+        const trialStatus = await loadTrialStatus();
+        return trialStatus ?? createUnlicensedStatus();
+      };
+
       const savedKey = await loadSavedLicenseKey();
       if (!savedKey) {
-        setStatus({
-          state: 'unlicensed',
-          licenseId: null,
-        });
+        setStatus(await resolveFallbackStatus());
         return;
       }
 
@@ -125,13 +144,10 @@ export function useAppLicense(): UseAppLicenseResult {
           }
 
           try {
-            const clearedStatus = await clearStoredLicense();
-            setStatus(clearedStatus);
+            await clearStoredLicense();
+            setStatus(await resolveFallbackStatus());
           } catch {
-            setStatus({
-              state: 'unlicensed',
-              licenseId: null,
-            });
+            setStatus(await resolveFallbackStatus());
           }
 
           setError(backgroundError.message);
@@ -188,10 +204,14 @@ export function useAppLicense(): UseAppLicenseResult {
         }
       }
 
-      setStatus({
-        state: 'unlicensed',
-        licenseId: null,
-      });
+      setStatus(await (async () => {
+        if (!trialEnabled) {
+          return createUnlicensedStatus();
+        }
+
+        const trialStatus = await loadTrialStatus();
+        return trialStatus ?? createUnlicensedStatus();
+      })());
       const message = refreshError instanceof Error
         ? refreshError.message
         : 'Failed to load app license status.';
@@ -199,7 +219,7 @@ export function useAppLicense(): UseAppLicenseResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [trialEnabled]);
 
   useEffect(() => {
     void refresh();
@@ -248,12 +268,38 @@ export function useAppLicense(): UseAppLicenseResult {
     }
   }, []);
 
+  const onStartTrial = useCallback(async () => {
+    if (!trialEnabled) {
+      return false;
+    }
+
+    setActionPending(true);
+    setError(null);
+
+    try {
+      const trialStatus = await startTrial();
+      setStatus(trialStatus);
+      return trialStatus.state === 'trial_active' || trialStatus.state === 'licensed';
+    } catch (trialError) {
+      const message = trialError instanceof Error
+        ? trialError.message
+        : 'Failed to start free trial.';
+      setError(message);
+      return false;
+    } finally {
+      setActionPending(false);
+    }
+  }, [trialEnabled]);
+
   const onClear = useCallback(async () => {
     setActionPending(true);
     setError(null);
 
     try {
-      const nextStatus = await clearStoredLicense();
+      await clearStoredLicense();
+      const nextStatus = trialEnabled
+        ? (await loadTrialStatus()) ?? createUnlicensedStatus()
+        : createUnlicensedStatus();
       setStatus(nextStatus);
       return true;
     } catch (clearError) {
@@ -265,15 +311,17 @@ export function useAppLicense(): UseAppLicenseResult {
     } finally {
       setActionPending(false);
     }
-  }, []);
+  }, [trialEnabled]);
 
   return {
     loading,
     status,
     actionPending,
     error,
+    trialEnabled,
     refresh,
     onActivate,
+    onStartTrial,
     onClear,
   };
 }
