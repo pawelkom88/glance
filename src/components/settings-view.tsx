@@ -970,7 +970,7 @@ export function SettingsView() {
                   </span>
                   <span className="setting-subtitle">
                     {licenseStatus.state === 'licensed'
-                      ? `This Mac is unlocked${licenseStatus.licenseId ? ` with license ${licenseStatus.licenseId}.` : '.'}`
+                      ? `This device is unlocked${licenseStatus.licenseId ? ` with a key ending in ${licenseStatus.licenseId}.` : '.'}`
                       : 'Paste the serial key you received after purchase to unlock the app.'}
                   </span>
                 </div>
@@ -986,7 +986,7 @@ export function SettingsView() {
                           const cleared = await onLicenseClear();
                           if (cleared) {
                             setLicenseKeyInput('');
-                            showToast('Saved license removed from this Mac.', 'success');
+                            showToast('Saved license removed from this device.', 'success');
                           }
                         })();
                       }}
@@ -1027,7 +1027,7 @@ export function SettingsView() {
                         const activated = await onLicenseActivate(licenseKeyInput);
                         if (activated) {
                           setLicenseKeyInput('');
-                          showToast('License activated on this Mac.', 'success');
+                          showToast('License activated on this device.', 'success');
                         }
                       })();
                     }}

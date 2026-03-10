@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AppLicenseStatus } from '../types';
-import { activateLicenseKey, checkLicenseStatus, clearStoredLicense } from '../lib/tauri';
+import {
+  clearStoredLicense,
+  getOrCreateLicenseDeviceId,
+  isTauriEnvironment,
+  loadSavedLicenseKey,
+  storeLicenseKey,
+} from '../lib/tauri';
+import {
+  detectLicensePlatform,
+  isPermanentLicenseError,
+  LicenseApiError,
+  redeemLicense,
+} from '../lib/license-api';
 
 interface UseAppLicenseResult {
   readonly loading: boolean;
@@ -19,12 +31,52 @@ export function useAppLicense(): UseAppLicenseResult {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
     setError(null);
 
+    if (!isTauriEnvironment()) {
+      setStatus({
+        state: 'licensed',
+        licenseId: 'developer-mode',
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      const nextStatus = await checkLicenseStatus();
+      const savedKey = await loadSavedLicenseKey();
+      if (!savedKey) {
+        setStatus({
+          state: 'unlicensed',
+          licenseId: null,
+        });
+        return;
+      }
+
+      const deviceId = await getOrCreateLicenseDeviceId();
+      const redeemedLicense = await redeemLicense({
+        licenseKey: savedKey,
+        deviceId,
+        platform: detectLicensePlatform(),
+      });
+      const nextStatus: AppLicenseStatus = {
+        state: 'licensed',
+        licenseId: redeemedLicense.licenseKeyLast4,
+      };
       setStatus(nextStatus);
     } catch (refreshError) {
+      if (refreshError instanceof LicenseApiError && isPermanentLicenseError(refreshError.code)) {
+        try {
+          await clearStoredLicense();
+        } catch {
+          // Ignore local cleanup failures and still surface the verification failure.
+        }
+      }
+
+      setStatus({
+        state: 'unlicensed',
+        licenseId: null,
+      });
       const message = refreshError instanceof Error
         ? refreshError.message
         : 'Failed to load app license status.';
@@ -49,7 +101,25 @@ export function useAppLicense(): UseAppLicenseResult {
     setError(null);
 
     try {
-      const nextStatus = await activateLicenseKey(trimmedKey);
+      if (!isTauriEnvironment()) {
+        setStatus({
+          state: 'licensed',
+          licenseId: 'developer-mode',
+        });
+        return true;
+      }
+
+      const deviceId = await getOrCreateLicenseDeviceId();
+      const redeemedLicense = await redeemLicense({
+        licenseKey: trimmedKey,
+        deviceId,
+        platform: detectLicensePlatform(),
+      });
+      await storeLicenseKey(trimmedKey);
+      const nextStatus: AppLicenseStatus = {
+        state: 'licensed',
+        licenseId: redeemedLicense.licenseKeyLast4,
+      };
       setStatus(nextStatus);
       return true;
     } catch (activationError) {

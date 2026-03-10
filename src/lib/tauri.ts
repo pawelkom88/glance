@@ -345,26 +345,40 @@ export async function listSessions(): Promise<readonly SessionSummary[]> {
   return invoke<SessionSummary[]>('list_sessions');
 }
 
-export async function checkLicenseStatus(): Promise<AppLicenseStatus> {
-  if (!inTauri()) {
-    return {
-      state: 'licensed',
-      licenseId: 'developer-mode'
-    };
-  }
-
-  return invoke<AppLicenseStatus>('check_status');
+export function isTauriEnvironment(): boolean {
+  return inTauri();
 }
 
-export async function activateLicenseKey(key: string): Promise<AppLicenseStatus> {
+export async function loadSavedLicenseKey(): Promise<string | null> {
   if (!inTauri()) {
-    return {
-      state: 'licensed',
-      licenseId: 'developer-mode'
-    };
+    return null;
   }
 
-  return invoke<AppLicenseStatus>('activate_license_key', { key });
+  return invoke<string | null>('load_saved_license_key');
+}
+
+export async function storeLicenseKey(key: string): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await invoke('store_license_key', { key });
+}
+
+export async function getOrCreateLicenseDeviceId(): Promise<string> {
+  if (!inTauri()) {
+    const storageKey = 'glance-license-device-id-v1';
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) {
+      return existing;
+    }
+
+    const next = window.crypto.randomUUID();
+    window.localStorage.setItem(storageKey, next);
+    return next;
+  }
+
+  return invoke<string>('get_or_create_device_id');
 }
 
 export async function clearStoredLicense(): Promise<AppLicenseStatus> {

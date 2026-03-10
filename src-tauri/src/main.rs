@@ -2,7 +2,6 @@
 
 mod commands;
 mod license;
-mod offline_license;
 mod sessions;
 
 use std::collections::HashMap;
@@ -289,6 +288,9 @@ fn main() {
             commands::quit_app,
             license::check_status,
             license::activate_license_key,
+            license::store_license_key,
+            license::load_saved_license_key,
+            license::get_or_create_device_id,
             license::clear_stored_license
         ])
         .build(tauri::generate_context!())

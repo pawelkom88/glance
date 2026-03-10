@@ -1,14 +1,13 @@
-use crate::offline_license;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
+use uuid::Uuid;
 
 const ACCOUNT_NAME: &str = "license-key-v1";
-const DEFAULT_PRODUCT_ID: &str = "glance-pro";
+const DEVICE_ID_FILE_NAME: &str = "device-id.txt";
 const LICENSE_BYPASS_ENV: &str = "GLANCE_LICENSE_DEV_BYPASS";
-const PRODUCT_ID_ENV: &str = "GLANCE_LICENSE_PRODUCT_ID";
 const RECEIPT_DIR_NAME: &str = "license";
 const RECEIPT_FILE_NAME: &str = "license-key.txt";
 
@@ -29,20 +28,13 @@ pub struct LicenseStatus {
 #[derive(Debug, Clone)]
 struct LicenseConfig {
     bundle_id: String,
-    product_id: String,
     dev_bypass_enabled: bool,
 }
 
 impl LicenseConfig {
     fn from_app(app: &AppHandle) -> Self {
-        let product_id = std::env::var(PRODUCT_ID_ENV)
-            .ok()
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| String::from(DEFAULT_PRODUCT_ID));
-
         Self {
             bundle_id: app.config().identifier.clone(),
-            product_id,
             dev_bypass_enabled: env_flag_enabled(LICENSE_BYPASS_ENV),
         }
     }
@@ -56,52 +48,68 @@ impl LicenseConfig {
 pub fn check_status(app: AppHandle) -> Result<LicenseStatus, String> {
     let config = LicenseConfig::from_app(&app);
     if config.dev_bypass_enabled {
-        return Ok(LicenseStatus {
-            state: LicenseState::Licensed,
-            license_id: Some(String::from("developer-bypass")),
-        });
+        return Ok(licensed_status(String::from("developer-bypass")));
     }
 
-    let receipt_path = receipt_path(&app)?;
-    let saved_key = load_saved_license_key(&receipt_path)?;
-    let Some(saved_key) = saved_key else {
-        return Ok(unlicensed_status());
-    };
-
-    match offline_license::verify_license_key_for_product(&saved_key, &config.product_id) {
-        Ok(verified) => Ok(LicenseStatus {
-            state: LicenseState::Licensed,
-            license_id: Some(verified.id),
-        }),
-        Err(_) => {
-            clear_saved_license_key(&receipt_path)?;
-            Ok(unlicensed_status())
-        }
-    }
+    let saved_key = load_saved_license_key(app)?;
+    Ok(match saved_key {
+        Some(key) => licensed_status(masked_license_id(&key)),
+        None => unlicensed_status(),
+    })
 }
 
 #[tauri::command]
 pub fn activate_license_key(app: AppHandle, key: String) -> Result<LicenseStatus, String> {
-    let config = LicenseConfig::from_app(&app);
-    let verified = offline_license::verify_license_key_for_product(&key, &config.product_id)?;
-    let receipt_path = receipt_path(&app)?;
-    save_license_key(&receipt_path, &key)?;
+    store_license_key(app, key.clone())?;
+    Ok(licensed_status(masked_license_id(&key)))
+}
 
-    if let Err(error) = platform::persist_license_key(&config, &key) {
+#[tauri::command]
+pub fn store_license_key(app: AppHandle, key: String) -> Result<(), String> {
+    let config = LicenseConfig::from_app(&app);
+    let receipt_path = license_key_path(&app)?;
+    save_text_value(&receipt_path, &key, "Please paste your license key.")?;
+
+    if let Err(error) = platform::persist_license_key(&config, key.trim()) {
         tracing::warn!("Failed to persist license key in secure storage: {error}");
     }
 
-    Ok(LicenseStatus {
-        state: LicenseState::Licensed,
-        license_id: Some(verified.id),
-    })
+    Ok(())
+}
+
+#[tauri::command]
+pub fn load_saved_license_key(app: AppHandle) -> Result<Option<String>, String> {
+    let config = LicenseConfig::from_app(&app);
+    let receipt_path = license_key_path(&app)?;
+    if let Some(saved_key) = load_text_value(&receipt_path)? {
+        return Ok(Some(saved_key));
+    }
+
+    if let Some(saved_key) = platform::load_license_key(&config)? {
+        save_text_value(&receipt_path, &saved_key, "Please paste your license key.")?;
+        return Ok(Some(saved_key));
+    }
+
+    Ok(None)
+}
+
+#[tauri::command]
+pub fn get_or_create_device_id(app: AppHandle) -> Result<String, String> {
+    let path = device_id_path(&app)?;
+    if let Some(existing) = load_text_value(&path)? {
+        return Ok(existing);
+    }
+
+    let device_id = Uuid::new_v4().to_string();
+    save_text_value(&path, &device_id, "Could not create a device identifier.")?;
+    Ok(device_id)
 }
 
 #[tauri::command]
 pub fn clear_stored_license(app: AppHandle) -> Result<LicenseStatus, String> {
     let config = LicenseConfig::from_app(&app);
-    let receipt_path = receipt_path(&app)?;
-    clear_saved_license_key(&receipt_path)?;
+    let receipt_path = license_key_path(&app)?;
+    clear_text_value(&receipt_path)?;
 
     if let Err(error) = platform::clear_license_key(&config) {
         tracing::warn!("Failed to clear secure license key storage: {error}");
@@ -120,25 +128,33 @@ fn env_flag_enabled(name: &str) -> bool {
     }
 }
 
-fn receipt_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
-    Ok(app_data_dir.join(RECEIPT_DIR_NAME).join(RECEIPT_FILE_NAME))
+fn license_key_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(license_dir(app)?.join(RECEIPT_FILE_NAME))
 }
 
-fn save_license_key(path: &Path, key: &str) -> Result<(), String> {
-    let trimmed_key = key.trim();
-    if trimmed_key.is_empty() {
-        return Err(String::from("Please paste your license key."));
+fn device_id_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(license_dir(app)?.join(DEVICE_ID_FILE_NAME))
+}
+
+fn license_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    Ok(app_data_dir.join(RECEIPT_DIR_NAME))
+}
+
+fn save_text_value(path: &Path, value: &str, empty_value_error: &str) -> Result<(), String> {
+    let trimmed_value = value.trim();
+    if trimmed_value.is_empty() {
+        return Err(String::from(empty_value_error));
     }
 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
 
-    fs::write(path, trimmed_key.as_bytes()).map_err(|error| error.to_string())
+    fs::write(path, trimmed_value.as_bytes()).map_err(|error| error.to_string())
 }
 
-fn load_saved_license_key(path: &Path) -> Result<Option<String>, String> {
+fn load_text_value(path: &Path) -> Result<Option<String>, String> {
     match fs::read_to_string(path) {
         Ok(contents) => {
             let trimmed = contents.trim().to_string();
@@ -153,11 +169,27 @@ fn load_saved_license_key(path: &Path) -> Result<Option<String>, String> {
     }
 }
 
-fn clear_saved_license_key(path: &Path) -> Result<(), String> {
+fn clear_text_value(path: &Path) -> Result<(), String> {
     match fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error.to_string()),
+    }
+}
+
+fn masked_license_id(key: &str) -> String {
+    let trimmed_key = key.trim();
+    if trimmed_key.len() <= 4 {
+        return trimmed_key.to_string();
+    }
+
+    trimmed_key[trimmed_key.len() - 4..].to_string()
+}
+
+fn licensed_status(license_id: String) -> LicenseStatus {
+    LicenseStatus {
+        state: LicenseState::Licensed,
+        license_id: Some(license_id),
     }
 }
 
@@ -183,7 +215,6 @@ mod platform {
             .map_err(|error| format!("Keychain write failed ({}).", error.code()))
     }
 
-    #[allow(dead_code)]
     pub fn load_license_key(config: &LicenseConfig) -> Result<Option<String>, String> {
         let options = PasswordOptions::new_generic_password(&config.service_name(), ACCOUNT_NAME);
         match generic_password(options) {
@@ -212,6 +243,10 @@ mod platform {
         Ok(())
     }
 
+    pub fn load_license_key(_config: &LicenseConfig) -> Result<Option<String>, String> {
+        Ok(None)
+    }
+
     pub fn clear_license_key(_config: &LicenseConfig) -> Result<(), String> {
         Ok(())
     }
@@ -219,7 +254,7 @@ mod platform {
 
 #[cfg(test)]
 mod tests {
-    use super::{clear_saved_license_key, load_saved_license_key, save_license_key};
+    use super::{clear_text_value, load_text_value, masked_license_id, save_text_value};
     use tempfile::tempdir;
 
     #[test]
@@ -227,8 +262,9 @@ mod tests {
         let dir = tempdir().expect("temp dir");
         let receipt_path = dir.path().join("license").join("license-key.txt");
 
-        save_license_key(&receipt_path, "  signed-license-key  ").expect("save license key");
-        let restored = load_saved_license_key(&receipt_path).expect("load license key");
+        save_text_value(&receipt_path, "  signed-license-key  ", "missing")
+            .expect("save license key");
+        let restored = load_text_value(&receipt_path).expect("load license key");
 
         assert_eq!(restored, Some(String::from("signed-license-key")));
     }
@@ -238,9 +274,14 @@ mod tests {
         let dir = tempdir().expect("temp dir");
         let receipt_path = dir.path().join("license").join("missing.txt");
 
-        clear_saved_license_key(&receipt_path).expect("clear missing file");
-        let restored = load_saved_license_key(&receipt_path).expect("load license key");
+        clear_text_value(&receipt_path).expect("clear missing file");
+        let restored = load_text_value(&receipt_path).expect("load license key");
 
         assert_eq!(restored, None);
+    }
+
+    #[test]
+    fn license_identifier_uses_last_four_characters() {
+        assert_eq!(masked_license_id("GLANCE-ABCD-EFGH-IJKL-3C49"), "3C49");
     }
 }

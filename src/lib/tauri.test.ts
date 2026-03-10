@@ -3,18 +3,19 @@ import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  activateLicenseKey,
   clearStoredLicense,
-  checkLicenseStatus,
   emitLanguageChanged,
+  getOrCreateLicenseDeviceId,
   getMonitors,
   listenForLanguageChanged,
   listMonitors,
+  loadSavedLicenseKey,
   moveMainToMonitor,
   moveOverlayToMonitor,
   moveWindowToMonitor,
   openOverlayWindow,
   quitApp,
+  storeLicenseKey,
   snapOverlayToTopCenter,
   showMainWindow
 } from './tauri';
@@ -264,22 +265,32 @@ describe('tauri monitor bridge behavior', () => {
     expect(detach).toHaveBeenCalled();
   });
 
-  it('checkLicenseStatus invokes the backend license status command', async () => {
-    invokeMock.mockResolvedValue({ state: 'licensed', licenseId: 'license-123' });
+  it('loadSavedLicenseKey reads the persisted key from the backend', async () => {
+    invokeMock.mockResolvedValue('GLANCE-ABCD-EFGH-IJKL-3C49');
 
-    const status = await checkLicenseStatus();
+    const savedKey = await loadSavedLicenseKey();
 
-    expect(status).toEqual({ state: 'licensed', licenseId: 'license-123' });
-    expect(invokeMock).toHaveBeenCalledWith('check_status');
+    expect(savedKey).toBe('GLANCE-ABCD-EFGH-IJKL-3C49');
+    expect(invokeMock).toHaveBeenCalledWith('load_saved_license_key');
   });
 
-  it('activateLicenseKey passes the pasted key to the backend activation command', async () => {
-    invokeMock.mockResolvedValue({ state: 'licensed', licenseId: 'license-123' });
+  it('storeLicenseKey persists the pasted key through the backend bridge', async () => {
+    invokeMock.mockResolvedValue(undefined);
 
-    const status = await activateLicenseKey('signed-license-key');
+    await storeLicenseKey('GLANCE-ABCD-EFGH-IJKL-3C49');
 
-    expect(status).toEqual({ state: 'licensed', licenseId: 'license-123' });
-    expect(invokeMock).toHaveBeenCalledWith('activate_license_key', { key: 'signed-license-key' });
+    expect(invokeMock).toHaveBeenCalledWith('store_license_key', {
+      key: 'GLANCE-ABCD-EFGH-IJKL-3C49'
+    });
+  });
+
+  it('getOrCreateLicenseDeviceId requests a stable device id from the backend', async () => {
+    invokeMock.mockResolvedValue('device-123');
+
+    const deviceId = await getOrCreateLicenseDeviceId();
+
+    expect(deviceId).toBe('device-123');
+    expect(invokeMock).toHaveBeenCalledWith('get_or_create_device_id');
   });
 
   it('clearStoredLicense invokes the backend clear command', async () => {
