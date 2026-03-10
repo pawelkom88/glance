@@ -34,7 +34,22 @@ Deploy [glance-payments-worker.js](/Users/pawelkomorkiewicz/PERSONAL/glance/clou
   - decrypts and returns the issued license key for a verified completed transaction
 - `POST /license/redeem`
   - validates a license key, activates it for a device, and returns a signed activation token for offline launches
+- `POST /license/validate`
+  - validates an existing device activation in D1, refreshes `last_validated_at`, and returns a fresh signed activation token without creating a new activation
 - `GET /healthz`
+
+### License flow
+
+- `POST /license/redeem` is the explicit activation path.
+  - Use it for first-time activation on a device or a deliberate replacement activation from the app UI.
+  - It may create a new `license_activations` row if the device has not been activated yet.
+- `POST /license/validate` is the existing-device refresh path.
+  - Use it when the desktop app already has a saved key and needs to refresh or recheck an activation.
+  - It must never create a new `license_activations` row.
+  - If the device has never been activated, it returns `activation_not_found`.
+- The desktop app verifies signed activation tokens locally.
+  - A valid local token unlocks startup immediately, including offline launches.
+  - The app may call `/license/validate` in the background to refresh the token and detect revocations.
 
 ### D1 schema
 

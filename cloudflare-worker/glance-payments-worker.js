@@ -36,6 +36,10 @@ export default {
       return handleLicenseRedeem(request, env);
     }
 
+    if (request.method === "POST" && url.pathname === "/license/validate") {
+      return handleLicenseValidate(request, env);
+    }
+
     if (request.method === "GET" && url.pathname === "/healthz") {
       return json({ ok: true, service: "glance-payments" }, 200, request, env);
     }
@@ -270,45 +274,13 @@ async function handleLicenseRedeem(request, env) {
     return json({ ok: false, error: "server_not_configured" }, 500, request, env);
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: "invalid_json" }, 400, request, env);
+  const parsedRequest = await parseLicenseRequest(request, env);
+  if (parsedRequest.response) {
+    return parsedRequest.response;
   }
 
-  const licenseKey = normalizeLicenseKey(body?.licenseKey);
-  const deviceId = normalizeDeviceId(body?.deviceId);
-  const platform = normalizePlatform(body?.platform);
-
-  if (!licenseKey) {
-    return json({ ok: false, error: "missing_license_key" }, 400, request, env);
-  }
-
-  if (!deviceId) {
-    return json({ ok: false, error: "missing_device_id" }, 400, request, env);
-  }
-
-  if (!platform) {
-    return json({ ok: false, error: "invalid_platform" }, 400, request, env);
-  }
-
-  const licenseKeyHash = await sha256Hex(licenseKey);
-
-  const license = await env.DB
-    .prepare(`
-      SELECT
-        id,
-        platform,
-        status,
-        activation_limit,
-        license_key_last4
-      FROM licenses
-      WHERE license_key_hash = ?
-      LIMIT 1
-    `)
-    .bind(licenseKeyHash)
-    .first();
+  const { licenseKey, deviceId, platform } = parsedRequest;
+  const license = await loadLicenseByKey(env, licenseKey);
 
   if (!license) {
     return json({ ok: false, error: "invalid_license" }, 404, request, env);
@@ -332,19 +304,8 @@ async function handleLicenseRedeem(request, env) {
     .bind(license.id, deviceId)
     .first();
 
-  const now = new Date().toISOString();
-  const activationToken = await signActivationToken(
-    {
-      version: 1,
-      licenseId: license.license_key_last4,
-      deviceId,
-      platform: license.platform,
-      issuedAt: now,
-    },
-    env.LICENSE_ACTIVATION_PRIVATE_KEY
-  );
-
   if (existingActivation) {
+    const now = new Date().toISOString();
     await env.DB
       .prepare(`
         UPDATE license_activations
@@ -366,16 +327,7 @@ async function handleLicenseRedeem(request, env) {
     }
 
     return json(
-      {
-        ok: true,
-        license: {
-          platform: license.platform,
-          status: "active",
-          licenseKeyLast4: license.license_key_last4,
-          activationToken,
-          activationIssuedAt: now,
-        },
-      },
+      await buildLicenseActivationPayload(env, license, deviceId, now),
       200,
       request,
       env
@@ -397,6 +349,7 @@ async function handleLicenseRedeem(request, env) {
     return json({ ok: false, error: "activation_limit_reached" }, 403, request, env);
   }
 
+  const now = new Date().toISOString();
   await env.DB.batch([
     env.DB
       .prepare(`
@@ -428,16 +381,76 @@ async function handleLicenseRedeem(request, env) {
   ]);
 
   return json(
-    {
-      ok: true,
-      license: {
-        platform: license.platform,
-        status: "active",
-        licenseKeyLast4: license.license_key_last4,
-        activationToken,
-        activationIssuedAt: now,
-      },
-    },
+    await buildLicenseActivationPayload(env, license, deviceId, now),
+    200,
+    request,
+    env
+  );
+}
+
+async function handleLicenseValidate(request, env) {
+  if (!env.DB) {
+    return json({ ok: false, error: "server_not_configured" }, 500, request, env);
+  }
+
+  if (!env.LICENSE_ACTIVATION_PRIVATE_KEY) {
+    return json({ ok: false, error: "server_not_configured" }, 500, request, env);
+  }
+
+  const parsedRequest = await parseLicenseRequest(request, env);
+  if (parsedRequest.response) {
+    return parsedRequest.response;
+  }
+
+  const { licenseKey, deviceId, platform } = parsedRequest;
+  const license = await loadLicenseByKey(env, licenseKey);
+
+  if (!license) {
+    return json({ ok: false, error: "invalid_license" }, 404, request, env);
+  }
+
+  if (license.status === "revoked") {
+    return json({ ok: false, error: "revoked_license" }, 403, request, env);
+  }
+
+  if (license.platform !== platform) {
+    return json({ ok: false, error: "wrong_platform" }, 403, request, env);
+  }
+
+  const existingActivation = await env.DB
+    .prepare(`
+      SELECT id
+      FROM license_activations
+      WHERE license_id = ? AND device_id = ? AND revoked_at IS NULL
+      LIMIT 1
+    `)
+    .bind(license.id, deviceId)
+    .first();
+
+  if (!existingActivation) {
+    return json({ ok: false, error: "activation_not_found" }, 404, request, env);
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB
+      .prepare(`
+        UPDATE license_activations
+        SET last_validated_at = ?
+        WHERE id = ?
+      `)
+      .bind(now, existingActivation.id),
+    env.DB
+      .prepare(`
+        UPDATE licenses
+        SET status = 'active', updated_at = ?
+        WHERE id = ? AND status = 'issued'
+      `)
+      .bind(now, license.id),
+  ]);
+
+  return json(
+    await buildLicenseActivationPayload(env, license, deviceId, now),
     200,
     request,
     env
@@ -597,6 +610,88 @@ function normalizeDeviceId(value) {
 function normalizePlatform(value) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized === "macos" || normalized === "windows" ? normalized : null;
+}
+
+async function parseLicenseRequest(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return {
+      response: json({ ok: false, error: "invalid_json" }, 400, request, env),
+    };
+  }
+
+  const licenseKey = normalizeLicenseKey(body?.licenseKey);
+  const deviceId = normalizeDeviceId(body?.deviceId);
+  const platform = normalizePlatform(body?.platform);
+
+  if (!licenseKey) {
+    return {
+      response: json({ ok: false, error: "missing_license_key" }, 400, request, env),
+    };
+  }
+
+  if (!deviceId) {
+    return {
+      response: json({ ok: false, error: "missing_device_id" }, 400, request, env),
+    };
+  }
+
+  if (!platform) {
+    return {
+      response: json({ ok: false, error: "invalid_platform" }, 400, request, env),
+    };
+  }
+
+  return {
+    licenseKey,
+    deviceId,
+    platform,
+  };
+}
+
+async function loadLicenseByKey(env, licenseKey) {
+  const licenseKeyHash = await sha256Hex(licenseKey);
+
+  return env.DB
+    .prepare(`
+      SELECT
+        id,
+        platform,
+        status,
+        activation_limit,
+        license_key_last4
+      FROM licenses
+      WHERE license_key_hash = ?
+      LIMIT 1
+    `)
+    .bind(licenseKeyHash)
+    .first();
+}
+
+async function buildLicenseActivationPayload(env, license, deviceId, issuedAt) {
+  const activationToken = await signActivationToken(
+    {
+      version: 1,
+      licenseId: license.license_key_last4,
+      deviceId,
+      platform: license.platform,
+      issuedAt,
+    },
+    env.LICENSE_ACTIVATION_PRIVATE_KEY
+  );
+
+  return {
+    ok: true,
+    license: {
+      platform: license.platform,
+      status: "active",
+      licenseKeyLast4: license.license_key_last4,
+      activationToken,
+      activationIssuedAt: issuedAt,
+    },
+  };
 }
 
 async function sha256Hex(value) {

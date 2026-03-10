@@ -145,6 +145,11 @@ pub fn load_activation_record(app: AppHandle) -> Result<Option<ActivationRecord>
 }
 
 #[tauri::command]
+pub fn clear_activation_record(app: AppHandle) -> Result<(), String> {
+    clear_text_value(&activation_record_path(&app)?)
+}
+
+#[tauri::command]
 pub fn validate_activation_record(
     app: AppHandle,
     record: ActivationRecord,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AppLicenseStatus } from '../types';
+import type { AppActivationRecord, AppLicenseStatus } from '../types';
 import {
+  clearActivationRecord,
   clearStoredLicense,
   getOrCreateLicenseDeviceId,
   isTauriEnvironment,
@@ -15,6 +16,7 @@ import {
   isPermanentLicenseError,
   LicenseApiError,
   redeemLicense,
+  validateLicense,
 } from '../lib/license-api';
 
 interface UseAppLicenseResult {
@@ -25,6 +27,47 @@ interface UseAppLicenseResult {
   readonly refresh: () => Promise<void>;
   readonly onActivate: (key: string) => Promise<boolean>;
   readonly onClear: () => Promise<boolean>;
+}
+
+function createLicensedStatus(licenseId: string): AppLicenseStatus {
+  return {
+    state: 'licensed',
+    licenseId,
+  };
+}
+
+function createActivationRecord(
+  license: {
+    readonly licenseKeyLast4: string;
+    readonly activationIssuedAt: string;
+    readonly activationToken: string;
+  },
+  deviceId: string,
+  platform: 'macos' | 'windows'
+): AppActivationRecord {
+  return {
+    licenseId: license.licenseKeyLast4,
+    deviceId,
+    platform,
+    activatedAt: license.activationIssuedAt,
+    activationToken: license.activationToken,
+  };
+}
+
+async function persistValidatedLicense(
+  license: {
+    readonly licenseKeyLast4: string;
+    readonly activationIssuedAt: string;
+    readonly activationToken: string;
+  },
+  deviceId: string,
+  platform: 'macos' | 'windows'
+): Promise<AppLicenseStatus> {
+  await storeActivationRecord(
+    createActivationRecord(license, deviceId, platform)
+  );
+
+  return createLicensedStatus(license.licenseKeyLast4);
 }
 
 export function useAppLicense(): UseAppLicenseResult {
@@ -59,6 +102,41 @@ export function useAppLicense(): UseAppLicenseResult {
       const deviceId = await getOrCreateLicenseDeviceId();
       const localActivation = await loadActivationRecord();
       const currentPlatform = detectLicensePlatform();
+      const revalidateInBackground = async () => {
+        try {
+          const validatedLicense = await validateLicense({
+            licenseKey: savedKey,
+            deviceId,
+            platform: currentPlatform,
+          });
+          const nextStatus = await persistValidatedLicense(
+            validatedLicense,
+            deviceId,
+            currentPlatform
+          );
+          setStatus(nextStatus);
+        } catch (backgroundError) {
+          if (!(backgroundError instanceof LicenseApiError)) {
+            return;
+          }
+
+          if (!isPermanentLicenseError(backgroundError.code)) {
+            return;
+          }
+
+          try {
+            const clearedStatus = await clearStoredLicense();
+            setStatus(clearedStatus);
+          } catch {
+            setStatus({
+              state: 'unlicensed',
+              licenseId: null,
+            });
+          }
+
+          setError(backgroundError.message);
+        }
+      };
 
       if (
         localActivation
@@ -70,31 +148,38 @@ export function useAppLicense(): UseAppLicenseResult {
           const verifiedLocalStatus = await validateActivationRecord(localActivation);
           if (verifiedLocalStatus) {
             setStatus(verifiedLocalStatus);
+            void revalidateInBackground();
             return;
           }
         } catch {
-          // Fall through to server redemption when local verification is unavailable.
+          // Fall through to server validation when local verification is unavailable.
         }
       }
 
-      const redeemedLicense = await redeemLicense({
+      const validatedLicense = await validateLicense({
         licenseKey: savedKey,
         deviceId,
         platform: currentPlatform,
       });
-      await storeActivationRecord({
-        licenseId: redeemedLicense.licenseKeyLast4,
-        deviceId,
-        platform: currentPlatform,
-        activatedAt: redeemedLicense.activationIssuedAt,
-        activationToken: redeemedLicense.activationToken,
-      });
-      const nextStatus: AppLicenseStatus = {
-        state: 'licensed',
-        licenseId: redeemedLicense.licenseKeyLast4,
-      };
-      setStatus(nextStatus);
+      setStatus(
+        await persistValidatedLicense(
+          validatedLicense,
+          deviceId,
+          currentPlatform
+        )
+      );
     } catch (refreshError) {
+      if (
+        refreshError instanceof LicenseApiError
+        && refreshError.code === 'activation_not_found'
+      ) {
+        try {
+          await clearActivationRecord();
+        } catch {
+          // Ignore local cleanup failures and still surface the activation requirement.
+        }
+      }
+
       if (refreshError instanceof LicenseApiError && isPermanentLicenseError(refreshError.code)) {
         try {
           await clearStoredLicense();
@@ -147,18 +232,10 @@ export function useAppLicense(): UseAppLicenseResult {
         platform,
       });
       await storeLicenseKey(trimmedKey);
-      await storeActivationRecord({
-        licenseId: redeemedLicense.licenseKeyLast4,
-        deviceId,
-        platform,
-        activatedAt: redeemedLicense.activationIssuedAt,
-        activationToken: redeemedLicense.activationToken,
-      });
-      const nextStatus: AppLicenseStatus = {
-        state: 'licensed',
-        licenseId: redeemedLicense.licenseKeyLast4,
-      };
-      setStatus(nextStatus);
+      await storeActivationRecord(
+        createActivationRecord(redeemedLicense, deviceId, platform)
+      );
+      setStatus(createLicensedStatus(redeemedLicense.licenseKeyLast4));
       return true;
     } catch (activationError) {
       const message = activationError instanceof Error

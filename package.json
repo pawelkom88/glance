@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "test:frontend": "vitest run --exclude src/test/behavior/**",
     "test:behavior": "vitest run --config vitest.behavior.config.ts",
+    "test:worker": "node --test cloudflare-worker/glance-payments-worker.test.js",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:critical": "vitest run --config vitest.behavior.config.ts src/test/behavior/critical && cargo test --manifest-path src-tauri/Cargo.toml runtime_",
     "i18n:audit": "node scripts/i18n-audit.mjs",

@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearActivationRecord,
   clearStoredLicense,
   emitLanguageChanged,
   getOrCreateLicenseDeviceId,
@@ -337,6 +338,14 @@ describe('tauri monitor bridge behavior', () => {
         activationToken: 'payload.signature'
       }
     });
+  });
+
+  it('clearActivationRecord removes the cached activation record only', async () => {
+    invokeMock.mockResolvedValue(undefined);
+
+    await clearActivationRecord();
+
+    expect(invokeMock).toHaveBeenCalledWith('clear_activation_record');
   });
 
   it('validateActivationRecord asks the backend to verify the signed activation token', async () => {

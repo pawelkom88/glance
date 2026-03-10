@@ -399,6 +399,15 @@ export async function loadActivationRecord(): Promise<AppActivationRecord | null
   return invoke<AppActivationRecord | null>('load_activation_record');
 }
 
+export async function clearActivationRecord(): Promise<void> {
+  if (!inTauri()) {
+    window.localStorage.removeItem('glance-license-activation-v1');
+    return;
+  }
+
+  await invoke('clear_activation_record');
+}
+
 export async function storeActivationRecord(record: AppActivationRecord): Promise<void> {
   if (!inTauri()) {
     window.localStorage.setItem('glance-license-activation-v1', JSON.stringify(record));
