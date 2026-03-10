@@ -57,6 +57,7 @@ export function SettingsLicenseCard({
 }: SettingsLicenseCardProps) {
   const isLicensed = status.state === 'licensed';
   const licenseId = status.licenseId;
+  const hasReplacementInput = licenseKeyInput.trim().length > 0;
   const statusTitle = isLicensed ? 'License active' : 'License key required';
   const statusMessage = isLicensed
     ? `This device is unlocked${licenseId ? ` with a key ending in ${licenseId}.` : '.'}`
@@ -105,7 +106,7 @@ export function SettingsLicenseCard({
             spellCheck={false}
           />
 
-          {isLicensed && licenseId ? (
+          {isLicensed && licenseId && hasReplacementInput ? (
             <div className="settings-license-card__warning" role="note">
               <div className="settings-license-card__warning-icon" aria-hidden="true">
                 <WarningIcon />
@@ -119,7 +120,7 @@ export function SettingsLicenseCard({
           <div className="settings-license-card__actions">
             <button
               type="button"
-              className="settings-license-card__cancel-button"
+              className="cancel-button settings-license-card__cancel-button"
               onClick={onCancel}
             >
               Cancel

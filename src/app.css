@@ -7086,14 +7086,14 @@ body.is-session-dragging * {
 
 .settings-license-card__status-title {
   font-family: var(--font-heading, sans-serif);
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-strong);
 }
 
 .settings-license-card__status-message {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--text-muted);
 }
@@ -7112,14 +7112,15 @@ body.is-session-dragging * {
   display: block;
   margin-bottom: 12px;
   font-family: var(--font-heading, sans-serif);
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-strong);
 }
 
 .settings-license-card__input {
   margin-bottom: 0;
-  min-height: 54px;
+  max-width: 100%;
+  min-height: 34px;
   padding: 0 16px;
   border-radius: var(--radius-md);
   border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-input-border));
@@ -7129,6 +7130,7 @@ body.is-session-dragging * {
 
 .settings-license-card__input::placeholder {
   color: var(--text-muted);
+  font-size: 10px;
 }
 
 .settings-license-card__input:focus {
@@ -7160,31 +7162,23 @@ body.is-session-dragging * {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .settings-license-card__cancel-button {
-  min-height: 42px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
   font-family: inherit;
-  cursor: pointer;
-}
-
-.settings-license-card__cancel-button:hover {
-  color: var(--text-strong);
-}
-
-.settings-license-card__cancel-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .settings-license-card__activate-button {
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
   white-space: nowrap;
 }
 

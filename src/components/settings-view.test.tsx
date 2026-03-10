@@ -188,7 +188,7 @@ describe('SettingsView behavior', () => {
     expect(screen.getByText('2.5s')).toBeTruthy();
   });
 
-  it('renders the support license card with active-state copy and replacement warning', async () => {
+  it('renders the support license card with active-state copy and no replacement warning before input', async () => {
     const user = userEvent.setup();
     render(<SettingsView />);
 
@@ -198,7 +198,7 @@ describe('SettingsView behavior', () => {
     expect(screen.getByText('License active')).toBeTruthy();
     expect(screen.getByText('This device is unlocked with a key ending in 3C49.')).toBeTruthy();
     expect(screen.getByPlaceholderText('XXXX-XXXX-XXXX-XXXX')).toBeTruthy();
-    expect(screen.getByText('This will replace your current license key ending in 3C49.')).toBeTruthy();
+    expect(screen.queryByText('This will replace your current license key ending in 3C49.')).toBeNull();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Activate License' })).toBeTruthy();
   });
@@ -214,11 +214,14 @@ describe('SettingsView behavior', () => {
     const licenseInput = await screen.findByLabelText('License Key');
     await user.type(licenseInput, 'ABCD-EFGH-IJKL-MNOP');
     expect((licenseInput as HTMLInputElement).value).toBe('ABCD-EFGH-IJKL-MNOP');
+    expect(screen.getByText('This will replace your current license key ending in 3C49.')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect((licenseInput as HTMLInputElement).value).toBe('');
+    expect(screen.queryByText('This will replace your current license key ending in 3C49.')).toBeNull();
 
     await user.type(licenseInput, 'WXYZ-1234-ABCD-5678');
+    expect(screen.getByText('This will replace your current license key ending in 3C49.')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Activate License' }));
 
     await waitFor(() => {
