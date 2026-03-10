@@ -32,8 +32,8 @@ async function main() {
   if (!selectedConfig) {
     throw new Error(`Unsupported release channel: ${channel}`);
   }
-  const versionTag = normalizeVersion(options.version || packageJson.version);
-  const versionNumber = versionTag.slice(1);
+  const versionTag = normalizeVersion(options.tagVersion || options.version || packageJson.version);
+  const versionNumber = normalizeAppVersion(options.appVersion || versionTag.slice(1));
   const artifactBaseName = selectedConfig.artifactBaseName(versionNumber);
   const workerBaseUrl = options.workerBaseUrl || defaultWorkerBaseUrl;
 
@@ -73,6 +73,18 @@ function parseArgs(args) {
       continue;
     }
 
+    if (arg === '--tag-version' && value) {
+      options.tagVersion = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--app-version' && value) {
+      options.appVersion = value;
+      index += 1;
+      continue;
+    }
+
     if (arg === '--worker-base-url' && value) {
       options.workerBaseUrl = value;
       index += 1;
@@ -107,6 +119,10 @@ function normalizeVersion(value) {
   }
 
   return raw.startsWith('v') ? raw : `v${raw}`;
+}
+
+function normalizeAppVersion(value) {
+  return String(value || '').trim().replace(/^v/, '');
 }
 
 async function writeReleaseConfig({

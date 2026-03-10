@@ -18,8 +18,11 @@ async function main() {
 
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
   const currentVersion = packageJson.version;
-  const nextVersion = options.version || bumpVersion(currentVersion, options.level);
-  const nextTag = `v${nextVersion}`;
+  const nextRelease = options.version
+    ? coerceProductHuntRelease(options.version)
+    : bumpVersion(currentVersion, options.level);
+  const nextVersion = nextRelease.appVersion;
+  const nextTag = `v${nextRelease.tagVersion}`;
 
   packageJson.version = nextVersion;
   await fs.writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
@@ -39,8 +42,10 @@ async function main() {
     'scripts/update-release-config.mjs',
     '--channel',
     'product_hunt',
-    '--version',
-    nextTag
+    '--tag-version',
+    nextTag,
+    '--app-version',
+    nextVersion
   ]);
   run([
     'git',
@@ -85,7 +90,7 @@ function parseArgs(args) {
 }
 
 function bumpVersion(version, level) {
-  const [baseVersion, prerelease] = version.split('-');
+  const { baseVersion, phNumber } = parseProductHuntVersion(version);
   const parts = baseVersion.split('.').map((part) => Number.parseInt(part, 10));
   if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) {
     throw new Error(`Unsupported version format: ${version}`);
@@ -93,25 +98,43 @@ function bumpVersion(version, level) {
 
   const [major, minor, patch] = parts;
   if (level === 'major') {
-    return `${major + 1}.0.0-ph.1`;
+    return makeProductHuntRelease(`${major + 1}.0.0`, 1);
   }
 
   if (level === 'minor') {
-    return `${major}.${minor + 1}.0-ph.1`;
+    return makeProductHuntRelease(`${major}.${minor + 1}.0`, 1);
   }
 
   if (level === 'patch') {
-    return `${major}.${minor}.${patch + 1}-ph.1`;
+    return makeProductHuntRelease(`${major}.${minor}.${patch + 1}`, 1);
   }
 
-  if (prerelease?.startsWith('ph.')) {
-    const prereleaseNumber = Number.parseInt(prerelease.slice(3), 10);
-    if (Number.isFinite(prereleaseNumber)) {
-      return `${baseVersion}-ph.${prereleaseNumber + 1}`;
-    }
+  return makeProductHuntRelease(baseVersion, phNumber + 1);
+}
+
+function coerceProductHuntRelease(version) {
+  const { baseVersion, phNumber } = parseProductHuntVersion(version);
+  return makeProductHuntRelease(baseVersion, phNumber);
+}
+
+function parseProductHuntVersion(version) {
+  const raw = String(version || '').trim().replace(/^v/, '');
+  const match = raw.match(/^(\d+\.\d+\.\d+)(?:-(?:ph\.)?(\d+))?$/);
+  if (!match) {
+    throw new Error(`Unsupported version format: ${version}`);
   }
 
-  return `${baseVersion}-ph.1`;
+  return {
+    baseVersion: match[1],
+    phNumber: Number.parseInt(match[2] || '1', 10),
+  };
+}
+
+function makeProductHuntRelease(baseVersion, phNumber) {
+  return {
+    appVersion: `${baseVersion}-${phNumber}`,
+    tagVersion: `${baseVersion}-ph.${phNumber}`,
+  };
 }
 
 async function updateTauriConfigVersion(configPath, nextVersion) {

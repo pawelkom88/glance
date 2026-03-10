@@ -154,7 +154,12 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if [[ "$VERSION" == *"-ph."* ]]; then
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_TAG=v__VERSION__" >> "$GITHUB_ENV"
+          fi
+          if [[ "${GITHUB_REF_NAME}" == *"-ph."* ]] || [[ "${GITHUB_REF_NAME}" == "product-hunt-trial" ]]; then
             echo "GLANCE_BUILD_CHANNEL=product_hunt" >> "$GITHUB_ENV"
             echo "VITE_GLANCE_BUILD_CHANNEL=product_hunt" >> "$GITHUB_ENV"
             echo "TAURI_CONFIG_PATH=src-tauri/tauri.product-hunt.conf.json" >> "$GITHUB_ENV"
@@ -188,7 +193,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "12.0"
         with:
           args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-          tagName: v__VERSION__
+          tagName: ${{ env.RELEASE_TAG }}
           releaseName: ${{ env.RELEASE_NAME }}
           releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
@@ -218,7 +223,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-          tagName: v__VERSION__
+          tagName: ${{ env.RELEASE_TAG }}
           releaseName: ${{ env.RELEASE_NAME }}
           releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
@@ -238,7 +243,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-          tagName: v__VERSION__
+          tagName: ${{ env.RELEASE_TAG }}
           releaseName: ${{ env.RELEASE_NAME }}
           releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
@@ -256,7 +261,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-          tagName: v__VERSION__
+          tagName: ${{ env.RELEASE_TAG }}
           releaseName: ${{ env.RELEASE_NAME }}
           releaseBody: ${{ env.RELEASE_BODY }}
           releaseDraft: false
