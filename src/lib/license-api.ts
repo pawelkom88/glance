@@ -1,12 +1,12 @@
 export type LicensePlatform = 'macos' | 'windows';
 
-interface RedeemLicenseRequest {
+interface LicenseRequest {
   readonly licenseKey: string;
   readonly deviceId: string;
   readonly platform: LicensePlatform;
 }
 
-interface RedeemLicensePayload {
+interface LicenseSuccessPayload {
   readonly ok: true;
   readonly license: {
     readonly platform: LicensePlatform;
@@ -17,7 +17,7 @@ interface RedeemLicensePayload {
   };
 }
 
-interface RedeemLicenseErrorPayload {
+interface LicenseErrorPayload {
   readonly ok: false;
   readonly error: string;
 }
@@ -49,11 +49,22 @@ export function isPermanentLicenseError(code: string): boolean {
     || code === 'wrong_platform';
 }
 
-export async function redeemLicense(options: RedeemLicenseRequest): Promise<RedeemLicensePayload['license']> {
+export async function redeemLicense(options: LicenseRequest): Promise<LicenseSuccessPayload['license']> {
+  return submitLicenseRequest('/license/redeem', options);
+}
+
+export async function validateLicense(options: LicenseRequest): Promise<LicenseSuccessPayload['license']> {
+  return submitLicenseRequest('/license/validate', options);
+}
+
+async function submitLicenseRequest(
+  path: string,
+  options: LicenseRequest
+): Promise<LicenseSuccessPayload['license']> {
   let response: Response;
 
   try {
-    response = await fetch(`${licenseApiBaseUrl()}/license/redeem`, {
+    response = await fetch(`${licenseApiBaseUrl()}${path}`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -65,7 +76,7 @@ export async function redeemLicense(options: RedeemLicenseRequest): Promise<Rede
     throw new LicenseApiError('network_error', 'Could not reach the license server.');
   }
 
-  const payload = await parseRedeemResponse(response);
+  const payload = await parseLicenseResponse(response);
   if (payload.ok) {
     return payload.license;
   }
@@ -73,9 +84,9 @@ export async function redeemLicense(options: RedeemLicenseRequest): Promise<Rede
   throw new LicenseApiError(payload.error, licenseErrorMessage(payload.error));
 }
 
-async function parseRedeemResponse(
+async function parseLicenseResponse(
   response: Response
-): Promise<RedeemLicensePayload | RedeemLicenseErrorPayload> {
+): Promise<LicenseSuccessPayload | LicenseErrorPayload> {
   let payload: unknown;
 
   try {
@@ -84,15 +95,18 @@ async function parseRedeemResponse(
     throw new LicenseApiError('network_error', 'Could not reach the license server.');
   }
 
-  if (isRedeemLicensePayload(payload)) {
+  if (isLicenseSuccessPayload(payload)) {
     return payload;
   }
 
-  if (isRedeemLicenseErrorPayload(payload)) {
+  if (isLicenseErrorPayload(payload)) {
     return payload;
   }
 
-  throw new LicenseApiError('server_not_configured', 'The license server returned an unexpected response.');
+  throw new LicenseApiError(
+    'server_not_configured',
+    'Glance could not complete activation right now. Please try again in a moment, update the app and try again, or contact hello@atglance.app.'
+  );
 }
 
 function licenseApiBaseUrl(): string {
@@ -100,12 +114,12 @@ function licenseApiBaseUrl(): string {
   return (configuredUrl || DEFAULT_LICENSE_API_BASE_URL).replace(/\/+$/, '');
 }
 
-function isRedeemLicensePayload(value: unknown): value is RedeemLicensePayload {
+function isLicenseSuccessPayload(value: unknown): value is LicenseSuccessPayload {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
-  const payload = value as Partial<RedeemLicensePayload>;
+  const payload = value as Partial<LicenseSuccessPayload>;
   return payload.ok === true
     && !!payload.license
     && typeof payload.license.licenseKeyLast4 === 'string'
@@ -115,12 +129,12 @@ function isRedeemLicensePayload(value: unknown): value is RedeemLicensePayload {
     && payload.license.status === 'active';
 }
 
-function isRedeemLicenseErrorPayload(value: unknown): value is RedeemLicenseErrorPayload {
+function isLicenseErrorPayload(value: unknown): value is LicenseErrorPayload {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
-  const payload = value as Partial<RedeemLicenseErrorPayload>;
+  const payload = value as Partial<LicenseErrorPayload>;
   return payload.ok === false && typeof payload.error === 'string';
 }
 
@@ -138,10 +152,12 @@ function licenseErrorMessage(code: string): string {
       return 'This license key has been revoked. Contact support if this looks wrong.';
     case 'wrong_platform':
       return 'This license key is for a different platform.';
+    case 'activation_not_found':
+      return 'This device has not been activated with this license key yet.';
     case 'activation_limit_reached':
       return 'This license key has reached its activation limit.';
     case 'server_not_configured':
-      return 'The license server is not configured correctly.';
+      return 'Glance could not complete activation right now. Please try again in a moment, update the app and try again, or contact hello@atglance.app.';
     default:
       return 'Could not verify your license key right now.';
   }
