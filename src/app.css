@@ -7033,35 +7033,165 @@ body.is-session-dragging * {
 }
 
 /* Settings-level license section */
-.settings-license-actions {
+.settings-license-card {
+  padding: 20px 16px 16px;
+}
+
+.settings-license-card__eyebrow {
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.settings-license-card__status {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.settings-license-row {
   align-items: flex-start;
+  gap: 16px;
 }
 
-.settings-license-form {
-  padding: 0 16px 16px;
+.settings-license-card__status-icon,
+.settings-license-card__warning-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
 }
 
-.settings-license-actions-inline {
-  margin-top: 12px;
-  align-items: stretch;
+.settings-license-card__status-icon {
+  margin-top: 2px;
 }
 
-.settings-license-buy-btn {
+.settings-license-card__status-icon svg,
+.settings-license-card__warning-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.settings-license-card__status-icon.is-active {
+  color: var(--s-icon);
+}
+
+.settings-license-card__status-icon.is-inactive {
+  color: var(--w-icon);
+}
+
+.settings-license-card__status-copy {
+  min-width: 0;
+}
+
+.settings-license-card__status-title,
+.settings-license-card__status-message,
+.settings-license-card__warning-text {
+  margin: 0;
+}
+
+.settings-license-card__status-title {
+  font-family: var(--font-heading, sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.settings-license-card__status-message {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.settings-license-card__divider {
+  height: 1px;
+  margin: 20px 0 0;
+  background: var(--surface-input-border);
+}
+
+.settings-license-card__form {
+  margin-top: 20px;
+}
+
+.settings-license-card__field-label {
+  display: block;
+  margin-bottom: 12px;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.settings-license-card__input {
+  margin-bottom: 0;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-input-border));
+  font-family: monospace;
+  letter-spacing: 0.08em;
+}
+
+.settings-license-card__input::placeholder {
+  color: var(--text-muted);
+}
+
+.settings-license-card__input:focus {
+  border-color: var(--accent);
+}
+
+.settings-license-card__warning {
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--w-bg);
+  color: var(--w-sub);
+}
+
+.settings-license-card__warning-icon {
+  color: var(--w-icon);
+}
+
+.settings-license-card__warning-text {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.settings-license-card__actions {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.settings-license-card__cancel-button {
+  min-height: 42px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.settings-license-card__cancel-button:hover {
+  color: var(--text-strong);
+}
+
+.settings-license-card__cancel-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.settings-license-card__activate-button {
   white-space: nowrap;
 }
 
 .settings-license-error {
-  padding: 0 16px 12px;
+  margin: 12px 0 0;
   font-size: 12px;
-  color: #b42318;
+  color: var(--danger);
 }
 
 @media (max-width: 640px) {
@@ -7088,9 +7218,30 @@ body.is-session-dragging * {
     width: 100%;
   }
 
-  .settings-license-actions {
+  .settings-license-card {
+    padding: 18px 14px 14px;
+  }
+
+  .settings-license-card__status {
+    gap: 12px;
+  }
+
+  .settings-license-card__warning {
+    padding: 12px;
+  }
+
+  .settings-license-card__actions {
+    flex-direction: column-reverse;
     align-items: stretch;
+  }
+
+  .settings-license-card__activate-button,
+  .settings-license-card__cancel-button {
     width: 100%;
+  }
+
+  .settings-license-card__cancel-button {
+    padding: 10px 0;
   }
 }
 

@@ -30,6 +30,7 @@ import { useAppLicense } from '../hooks/useAppLicense';
 import type { AppLanguage } from '../i18n/types';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 import { ShortcutKeycaps } from './shortcut-keycaps';
+import { SettingsLicenseCard } from './settings-license-card';
 import {
   MAX_VOICE_PAUSE_DELAY_MS,
   MIN_VOICE_PAUSE_DELAY_MS,
@@ -202,8 +203,7 @@ export function SettingsView() {
     status: licenseStatus,
     actionPending: licenseActionPending,
     error: licenseError,
-    onActivate: onLicenseActivate,
-    onClear: onLicenseClear
+    onActivate: onLicenseActivate
   } = useAppLicense();
   const shortcutUnavailable = useMemo(() => !isTauri(), []);
   const shortcutDefinitionMap = useMemo(
@@ -958,94 +958,23 @@ export function SettingsView() {
 
       <div className={`tab-content support-settings ${activeTab === 'support' ? 'visible' : ''}`}>
         {licenseStatus ? (
-          <section className="settings-group" aria-labelledby="support-license">
-            <h3 id="support-license" className="settings-group-label">License</h3>
-            <div className="settings-card">
-              <div className="setting-row settings-license-row">
-                <div className="setting-copy">
-                  <span className="setting-title">
-                    {licenseStatus.state === 'licensed'
-                      ? 'License active'
-                      : 'License key required'}
-                  </span>
-                  <span className="setting-subtitle">
-                    {licenseStatus.state === 'licensed'
-                      ? `This device is unlocked${licenseStatus.licenseId ? ` with a key ending in ${licenseStatus.licenseId}.` : '.'}`
-                      : 'Paste the serial key you received after purchase to unlock the app.'}
-                  </span>
-                </div>
-                {licenseStatus.state === 'licensed' ? (
-                  <div className="settings-license-actions">
-                    <button
-                      type="button"
-                      id="settings-clear-license-button"
-                      className="cancel-button"
-                      disabled={licenseActionPending}
-                      onClick={() => {
-                        void (async () => {
-                          const cleared = await onLicenseClear();
-                          if (cleared) {
-                            setLicenseKeyInput('');
-                            showToast('Saved license removed from this device.', 'success');
-                          }
-                        })();
-                      }}
-                    >
-                      {licenseActionPending ? 'Clearing…' : 'Clear saved key'}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="settings-license-form">
-                <label className="settings-license-label" htmlFor="settings-license-key">
-                  License key
-                </label>
-                <textarea
-                  id="settings-license-key"
-                  className="modal-input settings-license-input"
-                  value={licenseKeyInput}
-                  onChange={(event) => {
-                    setLicenseKeyInput(event.target.value);
-                  }}
-                  rows={4}
-                  placeholder={licenseStatus.state === 'licensed'
-                    ? 'Paste a different license key to replace the current one'
-                    : 'Paste your Glance license key'}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-                <div className="settings-license-actions settings-license-actions-inline">
-                  <button
-                    type="button"
-                    id="settings-activate-license-button"
-                    className="primary-button settings-license-buy-btn"
-                    disabled={licenseActionPending}
-                    onClick={() => {
-                      void (async () => {
-                        const activated = await onLicenseActivate(licenseKeyInput);
-                        if (activated) {
-                          setLicenseKeyInput('');
-                          showToast('License activated on this device.', 'success');
-                        }
-                      })();
-                    }}
-                  >
-                    {licenseActionPending
-                      ? 'Activating…'
-                      : licenseStatus.state === 'licensed'
-                        ? 'Replace saved key'
-                        : 'Activate license'}
-                  </button>
-                </div>
-              </div>
-
-              {licenseError ? (
-                <p className="settings-license-error" role="alert">{licenseError}</p>
-              ) : null}
-            </div>
-          </section>
+          <SettingsLicenseCard
+            status={licenseStatus}
+            licenseKeyInput={licenseKeyInput}
+            pending={licenseActionPending}
+            error={licenseError}
+            onInputChange={setLicenseKeyInput}
+            onCancel={() => {
+              setLicenseKeyInput('');
+            }}
+            onActivate={async (licenseKey) => {
+              const activated = await onLicenseActivate(licenseKey);
+              if (activated) {
+                setLicenseKeyInput('');
+                showToast('License activated on this device.', 'success');
+              }
+            }}
+          />
         ) : null}
         <section className="settings-group" aria-labelledby="support-diagnostics">
           <h3 id="support-diagnostics" className="settings-group-label">{t('settingsView.diagnostics.title')}</h3>

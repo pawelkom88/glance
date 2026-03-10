@@ -10,6 +10,15 @@ let monitorChangedCallback: ((payload: {
   height: number;
   compositeKey: string;
 }) => void) | null = null;
+let licenseHookState = {
+  status: {
+    state: 'licensed' as const,
+    licenseId: '3C49'
+  },
+  actionPending: false,
+  error: null as string | null,
+  onActivate: vi.fn(async () => true),
+};
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -22,6 +31,10 @@ vi.mock('@tauri-apps/plugin-shell', () => ({
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   save: vi.fn()
+}));
+
+vi.mock('../hooks/useAppLicense', () => ({
+  useAppLicense: () => licenseHookState
 }));
 
 vi.mock('../lib/tauri', () => ({
@@ -92,6 +105,15 @@ beforeEach(() => {
   window.localStorage.clear();
   monitorChangedCallback = null;
   tauriRuntime = true;
+  licenseHookState = {
+    status: {
+      state: 'licensed',
+      licenseId: '3C49'
+    },
+    actionPending: false,
+    error: null,
+    onActivate: vi.fn(async () => true),
+  };
   setPlatform('MacIntel');
   resetStore();
   tauriMock.getLastMainMonitorName.mockReturnValue(null);
@@ -164,6 +186,49 @@ describe('SettingsView behavior', () => {
 
     expect(useAppStore.getState().voicePauseDelayMs).toBe(2500);
     expect(screen.getByText('2.5s')).toBeTruthy();
+  });
+
+  it('renders the support license card with active-state copy and replacement warning', async () => {
+    const user = userEvent.setup();
+    render(<SettingsView />);
+
+    await user.click(screen.getByRole('tab', { name: 'Support' }));
+
+    expect(await screen.findByRole('heading', { name: 'License', level: 3 })).toBeTruthy();
+    expect(screen.getByText('License active')).toBeTruthy();
+    expect(screen.getByText('This device is unlocked with a key ending in 3C49.')).toBeTruthy();
+    expect(screen.getByPlaceholderText('XXXX-XXXX-XXXX-XXXX')).toBeTruthy();
+    expect(screen.getByText('This will replace your current license key ending in 3C49.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Activate License' })).toBeTruthy();
+  });
+
+  it('clears typed input on cancel and activates a replacement license key from the support card', async () => {
+    const user = userEvent.setup();
+    licenseHookState.onActivate = vi.fn(async () => true);
+
+    render(<SettingsView />);
+
+    await user.click(screen.getByRole('tab', { name: 'Support' }));
+
+    const licenseInput = await screen.findByLabelText('License Key');
+    await user.type(licenseInput, 'ABCD-EFGH-IJKL-MNOP');
+    expect((licenseInput as HTMLInputElement).value).toBe('ABCD-EFGH-IJKL-MNOP');
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((licenseInput as HTMLInputElement).value).toBe('');
+
+    await user.type(licenseInput, 'WXYZ-1234-ABCD-5678');
+    await user.click(screen.getByRole('button', { name: 'Activate License' }));
+
+    await waitFor(() => {
+      expect(licenseHookState.onActivate).toHaveBeenCalledWith('WXYZ-1234-ABCD-5678');
+      expect(useAppStore.getState().toastMessage).toEqual({
+        message: 'License activated on this device.',
+        variant: 'success'
+      });
+    });
+    expect((licenseInput as HTMLInputElement).value).toBe('');
   });
 
   it('moves window when display is selected', async () => {
