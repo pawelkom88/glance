@@ -13,6 +13,7 @@ async function main() {
 
   const packageJsonPath = path.join(repoRoot, 'package.json');
   const cargoTomlPath = path.join(repoRoot, 'src-tauri/Cargo.toml');
+  const tauriConfigPath = path.join(repoRoot, 'src-tauri/tauri.conf.json');
 
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
   const currentVersion = packageJson.version;
@@ -29,18 +30,23 @@ async function main() {
   );
   await fs.writeFile(cargoTomlPath, nextCargoToml, 'utf8');
 
+  const tauriConfig = JSON.parse(await fs.readFile(tauriConfigPath, 'utf8'));
+  tauriConfig.version = nextVersion;
+  await fs.writeFile(tauriConfigPath, `${JSON.stringify(tauriConfig, null, 2)}\n`, 'utf8');
+
   run(['node', 'scripts/update-release-config.mjs', '--version', nextTag]);
   run([
     'git',
     'add',
     'package.json',
     'src-tauri/Cargo.toml',
+    'src-tauri/tauri.conf.json',
     'landing-page/assets/release-config.js',
     'landing-page/update.json',
   ]);
   run(['git', 'commit', '-m', `release: ${nextTag}`]);
-  run(['git', 'tag', nextTag]);
-  run(['git', 'push', 'origin', 'HEAD', '--follow-tags']);
+  run(['git', 'tag', '-a', nextTag, '-m', `release: ${nextTag}`]);
+  run(['git', 'push', 'origin', 'HEAD', nextTag]);
 
   process.stdout.write(`Released ${nextTag}\n`);
 }
