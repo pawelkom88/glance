@@ -11,6 +11,9 @@ node_modules
 # Paddle Licensing
 scripts/generate_keys/paddle_licenses.txt
 scripts/generate_keys/target
+/paddle_licenses.txt
 
 # Local Netlify folder
 .netlify
+.env.local
+.env.build

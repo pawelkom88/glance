@@ -29,7 +29,7 @@ No telemetry or tracking exists within the Glance desktop application itself.
 
 ## 4. Network Requests
 
-The Glance application operates entirely offline. It does not make network requests unless you manually click on external support links, which open in your default web browser.
+The Glance application runs locally on your device and can launch offline after its first successful license activation on that machine. Network requests are only made when you activate a new installation, refresh a missing local activation, or manually click an external link such as support resources.
 
 ## 5. Not Affiliated
 

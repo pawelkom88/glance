@@ -13,7 +13,7 @@
 
 Glance is a minimalist, local-only transparent teleprompter designed for macOS and Windows. Built specifically for professionals, creators, and public speakers, Glance allows you to maintain perfect eye contact during video calls and presentations by overlaying your script directly on top of your screen—without blocking your view of your audience.
 
-**Privacy First:** Glance operates entirely locally. There are no subscriptions, no accounts, and absolutely no telemetry. Your scripts never leave your machine.
+**Privacy First:** Glance runs locally after activation. There are no subscriptions, no accounts, and absolutely no telemetry. Your scripts never leave your machine.
 
 ## Key Features
 
@@ -21,7 +21,7 @@ Glance is a minimalist, local-only transparent teleprompter designed for macOS a
 - 🎯 **Reading Ruler:** A built-in focus guide helps you keep your place without losing your train of thought.
 - ⏱️ **Adjustable Speed & Formatting:** Complete control over scroll speed, font size, and text alignment.
 - 📝 **Markdown Support:** Load your scripts directly from `.md` files or paste text on the fly.
-- 🔒 **100% Local:** No cloud sync. Everything is stored locally on your device for absolute privacy.
+- 🔒 **Local-First:** No cloud sync. Scripts and settings stay on your device, and the app can launch offline after its first license activation on that machine.
 - 🚀 **Auto-Updater:** Seamless over-the-air updates ensure you always have the latest improvements.
 
 ## Technology Stack
@@ -57,6 +57,31 @@ To run Glance locally, ensure you have [Node.js](https://nodejs.org/), [Rust](ht
 ## Building for Production
 
 Glance uses custom npm scripts to target specific platforms during the build process.
+
+For offline post-activation licensing, build the desktop app with `GLANCE_LICENSE_PUBLIC_KEY` set to the Ed25519 public key that matches the Worker secret `LICENSE_ACTIVATION_PRIVATE_KEY`.
+
+Local builds can load this automatically from `.env.local` or `.env.build` in the repo root:
+
+```bash
+GLANCE_LICENSE_PUBLIC_KEY=your_public_key_here
+```
+
+Then use `pnpm run tauri:build`, `pnpm run build:mac`, or `pnpm run build:win` normally.
+
+For a release push flow, use:
+
+```bash
+pnpm run push:release
+```
+
+That script:
+- bumps the patch version by default
+- updates `package.json` and `src-tauri/Cargo.toml`
+- refreshes landing-page release config files
+- creates a Git commit and `vX.Y.Z` tag
+- pushes branch + tag to GitHub
+
+GitHub Actions then builds release artifacts from the pushed tag. To embed the public key in CI builds, add `GLANCE_LICENSE_PUBLIC_KEY` to your GitHub Actions repository secrets.
 
 **To build the macOS App and DMG installer (Apple Silicon):**
 ```bash

@@ -1045,7 +1045,7 @@
             </div>
             <div class="purchase-success-actions">
                 <a class="purchase-success-button purchase-success-button-primary" id="purchaseSuccessDownload"
-                    href="https://github.com/pawelkom88/glance/releases/download/v0.2.2/Glance_0.2.2_aarch64.dmg">
+                    href="#">
                     <svg class="purchase-success-download-icon" viewBox="0 0 16 16" aria-hidden="true"
                         focusable="false">
                         <path d="M8 2.5v7"></path>
@@ -1107,8 +1107,8 @@
 
                 <div class="hint">
                     <strong>Privacy First</strong>
-                    Glance operates entirely locally. Your scripts never leave your device, and we never track your
-                    usage. No account, no cloud, no telemetry.
+                    Glance runs locally on your device. Your scripts never leave your machine, and we never track your
+                    usage. No account, no cloud, no telemetry. Internet is only required to activate your license.
                 </div>
             </section>
 
@@ -1477,16 +1477,18 @@
             document.querySelector('.nav-links').classList.toggle('active');
         });
     </script>
+    <script src="assets/release-config.js"></script>
     <script>
         (() => {
-            const RELEASE_VERSION = 'v0.2.2';
-            const CHECKOUT_STATUS_ENDPOINT = 'https://glance-payments.paulus-react.workers.dev/checkout-status';
-            const LICENSE_REVEAL_ENDPOINT = 'https://glance-payments.paulus-react.workers.dev/license/reveal';
+            const releaseConfig = window.__GLANCE_RELEASE__ || {};
+            const WORKER_BASE_URL = releaseConfig.workerBaseUrl || 'https://glance-payments.paulus-react.workers.dev';
+            const CHECKOUT_STATUS_ENDPOINT = `${WORKER_BASE_URL}/checkout-status`;
+            const LICENSE_REVEAL_ENDPOINT = `${WORKER_BASE_URL}/license/reveal`;
             const STATUS_POLL_INTERVAL_MS = 1500;
             const STATUS_POLL_TIMEOUT_MS = 120000;
-            const WINDOWS_URL = `https://github.com/pawelkom88/glance/releases/download/${RELEASE_VERSION}/Glance_0.2.2_x64-setup.exe`;
-            const MAC_ARM_URL = `https://github.com/pawelkom88/glance/releases/download/${RELEASE_VERSION}/Glance_0.2.2_aarch64.dmg`;
-            const MAC_INTEL_URL = `https://github.com/pawelkom88/glance/releases/download/${RELEASE_VERSION}/Glance_0.2.2_x64.dmg`;
+            const WINDOWS_URL = releaseConfig.downloads?.windows || '#';
+            const MAC_ARM_URL = releaseConfig.downloads?.macArm || '#';
+            const MAC_INTEL_URL = releaseConfig.downloads?.macIntel || '#';
 
             const modal = document.getElementById('purchaseSuccessModal');
             const primaryAction = document.getElementById('purchaseSuccessDownload');

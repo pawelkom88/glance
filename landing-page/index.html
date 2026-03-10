@@ -130,7 +130,7 @@
               "name": "Does it work offline?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes. Once installed, Glance works offline."
+                "text": "Yes. After a one-time internet connection to activate your license on this device, Glance can keep working offline."
               }
             },
             {
@@ -2714,9 +2714,9 @@
             data-locale="en" data-items='[{"priceId":"pri_01kk9xwtfq4hvgzxzz4y4ppqs7","quantity":1}]'
             data-custom-data='{"platform":"windows"}'>
             <span class="btn-text">Buy for Windows</span>
-            <span class="btn-subtext dl-win-subtext">v0.2.2 · 64-bit</span>
+            <span class="btn-subtext dl-win-subtext">Checking version...</span>
           </a>
-          <p class="cta-caption dl-win-caption">No cloud access.
+          <p class="cta-caption dl-win-caption">No cloud access. Internet only for activation.
         </div>
 
       </div>
@@ -2725,7 +2725,7 @@
     </div>
     <p
       style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;padding-inline: 42px">
-      Private & local • No account • Works with Zoom/Teams/Meet • Adjustable speed, size & transparency
+      Private & local • No account • Internet only for activation • Works with Zoom/Teams/Meet
     </p>
 
     <div class="install-security-block">
@@ -3102,13 +3102,13 @@
             data-items='[{"priceId":"pri_01kk9wcy5j7a693sv9hjnymehx","quantity":1}]'
             data-custom-data='{"platform":"macos"}'>
             <span class="btn-title">Buy for Mac</span>
-            <span class="btn-sub dl-mac-subtext">v0.2.2 · Apple Silicon</span>
+            <span class="btn-sub dl-mac-subtext">Checking version...</span>
           </a>
           <a href="#" class="btn-win dl-win-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
             data-items='[{"priceId":"pri_01kk9xwtfq4hvgzxzz4y4ppqs7","quantity":1}]'
             data-custom-data='{"platform":"windows"}'>
             <span class="btn-title">Buy for Windows</span>
-            <span class="btn-sub dl-win-subtext">v0.2.2 · 64-bit</span>
+            <span class="btn-sub dl-win-subtext">Checking version...</span>
           </a>
         </div>
 
@@ -3151,7 +3151,7 @@
           </div>
           <div class="privacy-tag">
             <span class="privacy-tag-dot"></span>
-            Offline-first. Works anywhere.
+            Offline after activation. Works offline on this device.
           </div>
           <div class="privacy-tag">
             <span class="privacy-tag-dot"></span>
@@ -3283,8 +3283,8 @@
             </div>
           </button>
           <div id="faq-answer-6" class="faq-panel">
-            <p class="faq-answer">No account required. Glance is a standalone application that runs entirely on your
-              local machine.</p>
+            <p class="faq-answer">No account required. Glance is a standalone application that runs on your local
+              machine. Internet is only required to activate your license.</p>
           </div>
         </div>
         <div class="faq-item" style="transition-delay: 360ms;">
@@ -3340,7 +3340,7 @@
             data-locale="en" data-items='[{"priceId":"pri_01kk9xwtfq4hvgzxzz4y4ppqs7","quantity":1}]'
             data-custom-data='{"platform":"windows"}'>
             <span class="btn-text">Buy for Windows</span>
-            <span class="btn-subtext dl-win-subtext">v0.2.2 · 64-bit</span>
+            <span class="btn-subtext dl-win-subtext">Checking version...</span>
           </a>
           <p class="cta-caption dl-win-caption">No cloud access.
         </div>
@@ -3635,10 +3635,12 @@
     // Release & Architecture Logic
     document.addEventListener("DOMContentLoaded", async () => {
       let isAppleSilicon = false;
-      const RELEASE_VERSION = 'v0.2.2';
-      const WINDOWS_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.2.2/Glance_0.2.2_x64-setup.exe';
-      const MAC_ARM_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.2.2/Glance_0.2.2_aarch64.dmg';
-      const MAC_INTEL_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.2.2/Glance_0.2.2_x64.dmg';
+      const releaseConfig = window.__GLANCE_RELEASE__ || {};
+      const RELEASE_VERSION = releaseConfig.version || 'Latest';
+      const WINDOWS_URL = releaseConfig.downloads?.windows || '#';
+      const MAC_ARM_URL = releaseConfig.downloads?.macArm || '#';
+      const MAC_INTEL_URL = releaseConfig.downloads?.macIntel || '#';
+      const WINDOWS_LABEL = releaseConfig.windowsLabel || `${RELEASE_VERSION} · 64-bit`;
 
       // 1. Detect Architecture
       try {
@@ -3655,7 +3657,7 @@
       updateDownloadLinks();
 
       function updateDownloadLinks() {
-        document.querySelectorAll('.dl-win-subtext').forEach(el => el.innerHTML = `v0.2.2 · 64-bit`);
+        document.querySelectorAll('.dl-win-subtext').forEach(el => el.innerHTML = WINDOWS_LABEL);
 
         // Update Mac based on detection
         const archLabel = isAppleSilicon ? "Apple Silicon" : "Intel chip";
@@ -3781,6 +3783,7 @@
     const year = new Date().getFullYear();
     document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
   </script>
+  <script src="assets/release-config.js"></script>
   <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
   <script type="text/javascript">
     const PADDLE_CLIENT_TOKEN = "test_ed3995062157cc1b5a51e192569";

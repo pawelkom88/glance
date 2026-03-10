@@ -67,10 +67,10 @@ Live calls aren’t linear. Someone interrupts. A question changes the order. Yo
 
 ## Privacy-first by design
 
-Glance is designed for private notes. So it runs locally.
+Glance is designed for private notes. It runs locally, and after a one-time license activation on this device it can keep working offline.
 
 - **No accounts. No login.**  
-- **Offline-first.** Works without the internet once installed.  
+- **Offline after activation.** Use the internet once to activate this device, then keep working offline.
 - **No recording.** Glance does not record your screen, camera, or audio.  
 - **Your scripts stay on your device.** Always.
 
@@ -110,7 +110,7 @@ No account required.
 No. Your scripts stay on your device.
 
 ### Does it work offline?
-Yes. Once installed, Glance works perfectly offline.
+Yes. After a one-time internet connection to activate your license on this device, Glance can keep working offline.
 
 ### Is there a Windows version?
 Yes — macOS and Windows are both supported.
@@ -121,8 +121,8 @@ Yes — macOS and Windows are both supported.
 
 If you need to stay on script without looking away, Glance is built for that.
 
-> **Download Glance** (macOS)  
-> **Download Glance** (Windows)
+> **[Download Glance](https://atglance.app/)** (macOS)  
+> **[Download Glance](https://atglance.app/)** (Windows)
 
 ---
 
