@@ -22,6 +22,7 @@
     "release:update-config": "node scripts/update-release-config.mjs",
     "push:release": "node scripts/release.mjs",
     "push": "git push",
+    "deploy:worker": "WRANGLER_LOG_PATH=/tmp/wrangler.log wrangler deploy",
     "deploy:landing": "netlify deploy --prod --dir=landing-page --site 92add545-3e1a-44bd-8803-afec8f7908e3"
   },
   "dependencies": {

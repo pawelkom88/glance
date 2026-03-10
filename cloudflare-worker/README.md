@@ -4,8 +4,8 @@ Deploy [glance-payments-worker.js](/Users/pawelkomorkiewicz/PERSONAL/glance/clou
 
 ### Bindings
 
-- `KV`: KV namespace for webhook dedupe and checkout transaction status
-- `DB`: D1 database for licenses and activations
+- `KV`: KV namespace for webhook dedupe and temporary checkout-status fallback reads during rollout
+- `DB`: D1 database for licenses, activations, and checkout transaction status
 
 ### Secrets
 
@@ -27,10 +27,16 @@ Deploy [glance-payments-worker.js](/Users/pawelkomorkiewicz/PERSONAL/glance/clou
   - verifies Paddle signatures
   - deduplicates webhook events
   - derives platform from trusted price ids
+  - dual-writes checkout transaction status into D1 and KV during rollout
   - issues licenses in D1
 - `GET /checkout-status?transaction_id=txn_...`
+  - reads D1 checkout transaction state first
+  - falls back to KV only during the current rollout window
+  - if the transaction is still missing or pending locally, it asks Paddle directly and can fulfill the purchase before the webhook arrives
   - returns checkout verification status for the docs flow
 - `GET /license/reveal?transaction_id=txn_...`
+  - reads D1 checkout transaction state first
+  - falls back to KV only during the current rollout window
   - decrypts and returns the issued license key for a verified completed transaction
 - `POST /license/redeem`
   - validates a license key, activates it for a device, and returns a signed activation token for offline launches
@@ -57,6 +63,7 @@ The Worker expects:
 
 - `licenses`
 - `license_activations`
+- `checkout_transactions`
 
 And currently keeps legacy migration tables from sandbox work:
 
@@ -78,6 +85,10 @@ MAC_PRICE_ID=pri_01kk9wcy5j7a693sv9hjnymehx
 WINDOWS_PRICE_ID=pri_01kk9xwtfq4hvgzxzz4y4ppqs7
 PADDLE_WEBHOOK_TOLERANCE_SECONDS=30
 ```
+
+### Migration
+
+Apply [001_checkout_transactions.sql](/Users/pawelkomorkiewicz/PERSONAL/glance/cloudflare-worker/migrations/001_checkout_transactions.sql) to the production D1 database before deploying the dual-write webhook.
 
 ### Go live
 

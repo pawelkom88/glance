@@ -13,7 +13,7 @@ const DEFAULT_WEBHOOK_TOLERANCE_SECONDS = 30;
 const LICENSE_KEY_VERSION = "v1";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
@@ -21,7 +21,7 @@ export default {
     }
 
     if (request.method === "POST" && url.pathname === "/paddle/webhook") {
-      return handlePaddleWebhook(request, env);
+      return handlePaddleWebhook(request, env, ctx);
     }
 
     if (request.method === "GET" && url.pathname === "/checkout-status") {
@@ -48,7 +48,7 @@ export default {
   },
 };
 
-async function handlePaddleWebhook(request, env) {
+async function handlePaddleWebhook(request, env, ctx) {
   if (!env.PADDLE_WEBHOOK_SECRET) {
     return json({ error: "Webhook secret is not configured" }, 500, request, env);
   }
@@ -96,6 +96,7 @@ async function handlePaddleWebhook(request, env) {
   const transactionId = data.id;
   const customerId = data.customer_id || null;
   const priceIds = extractPriceIds(data?.items);
+  const waitUntil = typeof ctx?.waitUntil === "function" ? ctx.waitUntil.bind(ctx) : null;
 
   let record;
 
@@ -109,32 +110,64 @@ async function handlePaddleWebhook(request, env) {
       return json({ received: true, ignored: true }, 200, request, env);
     }
 
-    const email =
-      customerId && env.PADDLE_API_KEY
-        ? await fetchCustomerEmail(customerId, env.PADDLE_API_KEY)
-        : null;
+    const pendingTimestamp = new Date().toISOString();
+    await upsertCheckoutTransaction(env, {
+      transactionId,
+      customerId,
+      email: null,
+      platform: productInfo.platform,
+      priceIds,
+      state: "pending",
+      lastEventId: eventId,
+      lastEventType: eventType,
+      createdAt: pendingTimestamp,
+      updatedAt: pendingTimestamp,
+    });
 
     record = {
       transactionId,
       customerId,
-      email,
+      email: null,
       platform: productInfo.platform,
       priceIds,
       state: "completed",
-      updatedAt: new Date().toISOString(),
+      updatedAt: pendingTimestamp,
     };
 
     await issueLicenseForTransaction(env, {
       transactionId,
       customerId,
-      email,
+      email: null,
       platform: productInfo.platform,
     });
+
+    const completedTimestamp = new Date().toISOString();
+    record.updatedAt = completedTimestamp;
+    await upsertCheckoutTransaction(env, {
+      transactionId,
+      customerId,
+      email: null,
+      platform: productInfo.platform,
+      priceIds,
+      state: "completed",
+      lastEventId: eventId,
+      lastEventType: eventType,
+      createdAt: completedTimestamp,
+      updatedAt: completedTimestamp,
+    });
+
+    if (customerId && env.PADDLE_API_KEY && waitUntil) {
+      waitUntil(enrichCheckoutTransactionEmail(env, {
+        transactionId,
+        customerId,
+      }));
+    }
   } else if (
     eventType === "transaction.payment_failed" ||
     eventType === "transaction.canceled"
   ) {
     const productInfo = resolveLicensedProduct(priceIds, env);
+    const failedTimestamp = new Date().toISOString();
 
     record = {
       transactionId,
@@ -143,8 +176,21 @@ async function handlePaddleWebhook(request, env) {
       platform: productInfo?.platform || null,
       priceIds,
       state: "failed",
-      updatedAt: new Date().toISOString(),
+      updatedAt: failedTimestamp,
     };
+
+    await upsertCheckoutTransaction(env, {
+      transactionId,
+      customerId,
+      email: null,
+      platform: productInfo?.platform || null,
+      priceIds,
+      state: "failed",
+      lastEventId: eventId,
+      lastEventType: eventType,
+      createdAt: failedTimestamp,
+      updatedAt: failedTimestamp,
+    });
   } else {
     await env.KV.put(dedupeKey, eventType, {
       expirationTtl: 60 * 60 * 24 * 30,
@@ -176,7 +222,11 @@ async function handleCheckoutStatus(request, env) {
     return json({ error: "Invalid transaction_id" }, 400, request, env);
   }
 
-  const record = await env.KV.get(`txn:${transactionId}`, "json");
+  let record = await loadCheckoutTransaction(env, transactionId);
+
+  if (!record || record.state === "pending") {
+    record = await reconcileCheckoutTransaction(env, transactionId, record);
+  }
 
   if (!record) {
     return json(
@@ -219,7 +269,7 @@ async function handleLicenseReveal(request, env) {
     return json({ error: "Invalid transaction_id" }, 400, request, env);
   }
 
-  const transactionRecord = await env.KV.get(`txn:${transactionId}`, "json");
+  const transactionRecord = await loadCheckoutTransaction(env, transactionId);
 
   if (!transactionRecord || transactionRecord.state !== "completed") {
     return json({ error: "License not available" }, 404, request, env);
@@ -506,6 +556,262 @@ async function fetchCustomerEmail(customerId, apiKey) {
 
   const payload = await response.json();
   return payload?.data?.email || null;
+}
+
+async function fetchPaddleTransaction(transactionId, apiKey) {
+  const baseUrl = apiKey.includes("_sdbx_")
+    ? "https://sandbox-api.paddle.com"
+    : "https://api.paddle.com";
+
+  const response = await fetch(`${baseUrl}/transactions/${transactionId}`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`transaction_lookup_failed:${response.status}`);
+  }
+
+  const payload = await response.json();
+  return payload?.data || null;
+}
+
+async function upsertCheckoutTransaction(env, transaction) {
+  if (!env.DB) {
+    throw new Error("D1 binding DB is not configured");
+  }
+
+  await env.DB
+    .prepare(`
+      INSERT INTO checkout_transactions (
+        transaction_id,
+        customer_id,
+        email,
+        platform,
+        price_ids_json,
+        state,
+        last_event_id,
+        last_event_type,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(transaction_id) DO UPDATE SET
+        customer_id = excluded.customer_id,
+        email = COALESCE(excluded.email, checkout_transactions.email),
+        platform = excluded.platform,
+        price_ids_json = excluded.price_ids_json,
+        state = excluded.state,
+        last_event_id = excluded.last_event_id,
+        last_event_type = excluded.last_event_type,
+        updated_at = excluded.updated_at
+    `)
+    .bind(
+      transaction.transactionId,
+      transaction.customerId,
+      transaction.email,
+      transaction.platform,
+      JSON.stringify(transaction.priceIds || []),
+      transaction.state,
+      transaction.lastEventId,
+      transaction.lastEventType,
+      transaction.createdAt,
+      transaction.updatedAt
+    )
+    .run();
+}
+
+async function reconcileCheckoutTransaction(env, transactionId, existingRecord) {
+  if (!env.DB || !env.PADDLE_API_KEY) {
+    return existingRecord ?? null;
+  }
+
+  try {
+    const paddleTransaction = await fetchPaddleTransaction(transactionId, env.PADDLE_API_KEY);
+
+    if (!paddleTransaction) {
+      return existingRecord ?? null;
+    }
+
+    const customerId = paddleTransaction.customer_id || existingRecord?.customerId || null;
+    const priceIds = extractPriceIds(paddleTransaction.items);
+    const productInfo = resolveLicensedProduct(priceIds, env);
+    const updatedAt = new Date().toISOString();
+    const createdAt = existingRecord?.createdAt || updatedAt;
+
+    if (!productInfo) {
+      return existingRecord ?? null;
+    }
+
+    if (paddleTransaction.status === "paid" || paddleTransaction.status === "completed") {
+      await issueLicenseForTransaction(env, {
+        transactionId,
+        customerId,
+        email: existingRecord?.email || null,
+        platform: productInfo.platform,
+      });
+
+      const completedRecord = {
+        transactionId,
+        customerId,
+        email: existingRecord?.email || null,
+        platform: productInfo.platform,
+        priceIds,
+        state: "completed",
+        updatedAt,
+        createdAt,
+      };
+
+      await upsertCheckoutTransaction(env, {
+        ...completedRecord,
+        lastEventId: existingRecord?.lastEventId || "paddle_api_reconcile",
+        lastEventType: existingRecord?.lastEventType || `transaction.${paddleTransaction.status}`,
+      });
+
+      if (env.KV) {
+        await env.KV.put(`txn:${transactionId}`, JSON.stringify(completedRecord));
+      }
+
+      return completedRecord;
+    }
+
+    if (paddleTransaction.status === "past_due" || paddleTransaction.status === "canceled") {
+      const failedRecord = {
+        transactionId,
+        customerId,
+        email: existingRecord?.email || null,
+        platform: productInfo.platform,
+        priceIds,
+        state: "failed",
+        updatedAt,
+        createdAt,
+      };
+
+      await upsertCheckoutTransaction(env, {
+        ...failedRecord,
+        lastEventId: existingRecord?.lastEventId || "paddle_api_reconcile",
+        lastEventType: existingRecord?.lastEventType || `transaction.${paddleTransaction.status}`,
+      });
+
+      if (env.KV) {
+        await env.KV.put(`txn:${transactionId}`, JSON.stringify(failedRecord));
+      }
+
+      return failedRecord;
+    }
+
+    const pendingRecord = {
+      transactionId,
+      customerId,
+      email: existingRecord?.email || null,
+      platform: productInfo.platform,
+      priceIds,
+      state: "pending",
+      updatedAt,
+      createdAt,
+    };
+
+    await upsertCheckoutTransaction(env, {
+      ...pendingRecord,
+      lastEventId: existingRecord?.lastEventId || "paddle_api_reconcile",
+      lastEventType: existingRecord?.lastEventType || `transaction.${paddleTransaction.status || "updated"}`,
+    });
+
+    return pendingRecord;
+  } catch (error) {
+    console.log(
+      `transaction_reconcile_failed transactionId=${transactionId} message=${error instanceof Error ? error.message : "unknown"}`
+    );
+    return existingRecord ?? null;
+  }
+}
+
+async function loadCheckoutTransaction(env, transactionId) {
+  const d1Record = await env.DB
+    .prepare(`
+      SELECT
+        transaction_id,
+        customer_id,
+        email,
+        platform,
+        price_ids_json,
+        state,
+        last_event_id,
+        last_event_type,
+        created_at,
+        updated_at
+      FROM checkout_transactions
+      WHERE transaction_id = ?
+      LIMIT 1
+    `)
+    .bind(transactionId)
+    .first();
+
+  if (d1Record) {
+    return {
+      transactionId: d1Record.transaction_id,
+      customerId: d1Record.customer_id,
+      email: d1Record.email,
+      platform: d1Record.platform || null,
+      priceIds: parsePriceIdsJson(d1Record.price_ids_json),
+      state: d1Record.state,
+      createdAt: d1Record.created_at,
+      updatedAt: d1Record.updated_at,
+      lastEventId: d1Record.last_event_id,
+      lastEventType: d1Record.last_event_type,
+    };
+  }
+
+  if (!env.KV) {
+    return null;
+  }
+
+  return env.KV.get(`txn:${transactionId}`, "json");
+}
+
+function parsePriceIdsJson(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function enrichCheckoutTransactionEmail(env, input) {
+  try {
+    const email = await fetchCustomerEmail(input.customerId, env.PADDLE_API_KEY);
+
+    if (!email) {
+      return;
+    }
+
+    await env.DB.batch([
+      env.DB
+        .prepare(`
+          UPDATE checkout_transactions
+          SET email = ?, updated_at = ?
+          WHERE transaction_id = ?
+        `)
+        .bind(email, new Date().toISOString(), input.transactionId),
+      env.DB
+        .prepare(`
+          UPDATE licenses
+          SET email = ?, updated_at = ?
+          WHERE transaction_id = ?
+        `)
+        .bind(email, new Date().toISOString(), input.transactionId),
+    ]);
+  } catch (error) {
+    console.log(
+      `transaction_email_enrichment_failed transactionId=${input.transactionId} customerId=${input.customerId} message=${error instanceof Error ? error.message : "unknown"}`
+    );
+  }
 }
 
 async function issueLicenseForTransaction(env, input) {
