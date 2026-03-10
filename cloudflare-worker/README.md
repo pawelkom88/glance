@@ -12,6 +12,7 @@ Deploy [glance-payments-worker.js](/Users/pawelkomorkiewicz/PERSONAL/glance/clou
 - `PADDLE_WEBHOOK_SECRET`: Paddle notification destination secret
 - `PADDLE_API_KEY`: Paddle server API key with at least `Customers: Read`
 - `LICENSE_ENCRYPTION_KEY`: strong random secret used to encrypt recoverable license keys
+- `LICENSE_ACTIVATION_PRIVATE_KEY`: 32-byte Ed25519 private key seed in hex, used to sign offline activation tokens
 
 ### Plaintext variables
 
@@ -32,7 +33,7 @@ Deploy [glance-payments-worker.js](/Users/pawelkomorkiewicz/PERSONAL/glance/clou
 - `GET /license/reveal?transaction_id=txn_...`
   - decrypts and returns the issued license key for a verified completed transaction
 - `POST /license/redeem`
-  - validates a license key and activates it for a device
+  - validates a license key, activates it for a device, and returns a signed activation token for offline launches
 - `GET /healthz`
 
 ### D1 schema
@@ -72,3 +73,7 @@ To switch from sandbox to live, keep the code the same and replace only:
 - `MAC_PRICE_ID`
 - `WINDOWS_PRICE_ID`
 - frontend Paddle client token
+
+### Desktop build config
+
+Build the Tauri app with `GLANCE_LICENSE_PUBLIC_KEY` set to the matching Ed25519 public key in hex. The desktop app uses that public key to verify signed activation tokens locally after the first activation.

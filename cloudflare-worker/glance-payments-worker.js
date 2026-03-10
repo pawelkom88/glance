@@ -266,6 +266,10 @@ async function handleLicenseRedeem(request, env) {
     return json({ ok: false, error: "server_not_configured" }, 500, request, env);
   }
 
+  if (!env.LICENSE_ACTIVATION_PRIVATE_KEY) {
+    return json({ ok: false, error: "server_not_configured" }, 500, request, env);
+  }
+
   let body;
   try {
     body = await request.json();
@@ -329,6 +333,16 @@ async function handleLicenseRedeem(request, env) {
     .first();
 
   const now = new Date().toISOString();
+  const activationToken = await signActivationToken(
+    {
+      version: 1,
+      licenseId: license.license_key_last4,
+      deviceId,
+      platform: license.platform,
+      issuedAt: now,
+    },
+    env.LICENSE_ACTIVATION_PRIVATE_KEY
+  );
 
   if (existingActivation) {
     await env.DB
@@ -358,6 +372,8 @@ async function handleLicenseRedeem(request, env) {
           platform: license.platform,
           status: "active",
           licenseKeyLast4: license.license_key_last4,
+          activationToken,
+          activationIssuedAt: now,
         },
       },
       200,
@@ -418,6 +434,8 @@ async function handleLicenseRedeem(request, env) {
         platform: license.platform,
         status: "active",
         licenseKeyLast4: license.license_key_last4,
+        activationToken,
+        activationIssuedAt: now,
       },
     },
     200,
@@ -587,6 +605,14 @@ async function sha256Hex(value) {
   return bufferToHex(digest);
 }
 
+async function signActivationToken(claims, privateKeyHex) {
+  const payloadBytes = new TextEncoder().encode(JSON.stringify(claims));
+  const signingKey = await importActivationSigningKey(privateKeyHex);
+  const signature = await crypto.subtle.sign("Ed25519", signingKey, payloadBytes);
+
+  return `${base64UrlEncode(payloadBytes)}.${base64UrlEncode(new Uint8Array(signature))}`;
+}
+
 async function encryptLicenseKey(licenseKey, secret) {
   const encoder = new TextEncoder();
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -693,6 +719,21 @@ async function computeHmacHex(secret, payload) {
   return bufferToHex(signature);
 }
 
+async function importActivationSigningKey(privateKeyHex) {
+  const privateKey = hexToBytes(privateKeyHex);
+  if (privateKey.length !== 32) {
+    throw new Error("LICENSE_ACTIVATION_PRIVATE_KEY must be a 32-byte Ed25519 seed.");
+  }
+
+  return crypto.subtle.importKey(
+    "pkcs8",
+    ed25519SeedToPkcs8(privateKey),
+    { name: "Ed25519" },
+    false,
+    ["sign"]
+  );
+}
+
 function bufferToHex(buffer) {
   return Array.from(new Uint8Array(buffer))
     .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -711,6 +752,13 @@ function base64Encode(bytes) {
   return btoa(binary);
 }
 
+function base64UrlEncode(bytes) {
+  return base64Encode(bytes)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
 function base64Decode(value) {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
@@ -720,6 +768,32 @@ function base64Decode(value) {
   }
 
   return bytes;
+}
+
+function hexToBytes(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!/^[0-9a-f]+$/.test(normalized) || normalized.length % 2 !== 0) {
+    throw new Error("Expected an even-length hexadecimal string.");
+  }
+
+  const bytes = new Uint8Array(normalized.length / 2);
+
+  for (let index = 0; index < normalized.length; index += 2) {
+    bytes[index / 2] = Number.parseInt(normalized.slice(index, index + 2), 16);
+  }
+
+  return bytes;
+}
+
+function ed25519SeedToPkcs8(seed) {
+  const prefix = Uint8Array.from([
+    0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06,
+    0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
+  ]);
+  const pkcs8 = new Uint8Array(prefix.length + seed.length);
+  pkcs8.set(prefix, 0);
+  pkcs8.set(seed, prefix.length);
+  return pkcs8.buffer;
 }
 
 function timingSafeEqual(left, right) {
@@ -784,150 +858,3 @@ function isAllowedOrigin(origin, env) {
 
   return configuredOrigins.includes(origin);
 }
-
-do u need anything else ? 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-​
-
-
-
-
-
-
-​
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-​
-
-
-
-
-​
- 
-
-
-​
-
-
-
-
-
-
-
-
-
-
-​
-
-
-​
-
-
-​
-
-
-
-​
-
-
-
-
-
-
-
-
-
-
-
-
-ժմ to=functions.exec_command  天天中彩票提款json
-{"cmd":"git status --short cloudflare-worker && sed -n '1,260p' cloudflare-worker/README.md","workdir":"/Users/pawelkomorkiewicz/PERSONAL/glance","max_output_tokens":4000}  sextreff to=functions.exec_command.commentary code
-Chunk ID: 9fb740
-Wall time: 0.0523 seconds
-Process exited with code 0
-Original token count: 210
-Output:
-?? cloudflare-worker/
-## Glance Payments Worker
-
-Deploy [glance-payments-worker.js](/Users/pawelkomorkiewicz/PERSONAL/glance/cloudflare-worker/glance-payments-worker.js) to your Cloudflare Worker and configure these bindings:
-
-- `KV`: KV namespace for transaction records
-- `PADDLE_WEBHOOK_SECRET`: Paddle notification destination secret
-- `PADDLE_API_KEY`: Paddle server API key with `Customers: Read`
-- `ALLOWED_ORIGINS`: comma-separated allowed browser origins for `GET /checkout-status`
-- `PADDLE_WEBHOOK_TOLERANCE_SECONDS`: optional webhook timestamp tolerance, defaults to `30`
-
-Worker routes:
-
-- `POST /paddle/webhook`
-- `GET /checkout-status?transaction_id=txn_...`
-- `GET /healthz`
-
-Recommended `ALLOWED_ORIGINS` value:
-
-```text
-https://atglance.app,https://www.atglance.app,http://localhost:4173,http://127.0.0.1:4173,http://localhost:4175,http://127.0.0.1:4175,http://localhost:5500,http://127.0.0.1:5500
-```

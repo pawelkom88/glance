@@ -23,12 +23,12 @@ describe('PrivacyGate behavior', () => {
   it('renders core privacy messaging', () => {
     render(<PrivacyGate />);
 
-    expect(screen.queryByText('100% local. Zero telemetry.')).not.toBeNull();
+    expect(screen.queryByText('Local-first. Zero telemetry.')).not.toBeNull();
     expect(
       screen.queryByText(/Your scripts never leave this machine/i)
     ).not.toBeNull();
     expect(
-      screen.queryByText(/No account. No subscription. No internet required/i)
+      screen.queryByText(/No account. No subscription. Internet only to activate your license/i)
     ).not.toBeNull();
   });
 });

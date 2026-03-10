@@ -10,6 +10,7 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { AppLanguage } from '../i18n/types';
 import type { ShortcutBinding } from './shortcuts';
 import type {
+  AppActivationRecord,
   AppLicenseStatus,
   DetectedMonitor,
   MonitorChangedPayload,
@@ -381,8 +382,50 @@ export async function getOrCreateLicenseDeviceId(): Promise<string> {
   return invoke<string>('get_or_create_device_id');
 }
 
+export async function loadActivationRecord(): Promise<AppActivationRecord | null> {
+  if (!inTauri()) {
+    const raw = window.localStorage.getItem('glance-license-activation-v1');
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw) as AppActivationRecord;
+    } catch {
+      return null;
+    }
+  }
+
+  return invoke<AppActivationRecord | null>('load_activation_record');
+}
+
+export async function storeActivationRecord(record: AppActivationRecord): Promise<void> {
+  if (!inTauri()) {
+    window.localStorage.setItem('glance-license-activation-v1', JSON.stringify(record));
+    return;
+  }
+
+  await invoke('store_activation_record', { record });
+}
+
+export async function validateActivationRecord(
+  record: AppActivationRecord
+): Promise<AppLicenseStatus | null> {
+  if (!inTauri()) {
+    return record.activationToken
+      ? {
+        state: 'licensed',
+        licenseId: record.licenseId
+      }
+      : null;
+  }
+
+  return invoke<AppLicenseStatus | null>('validate_activation_record', { record });
+}
+
 export async function clearStoredLicense(): Promise<AppLicenseStatus> {
   if (!inTauri()) {
+    window.localStorage.removeItem('glance-license-activation-v1');
     return {
       state: 'unlicensed',
       licenseId: null

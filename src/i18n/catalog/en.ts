@@ -106,10 +106,10 @@ export const enCatalog: TranslationCatalog = {
     heroLead: 'Read your script.',
     heroSub: 'Keep your eyes forward.',
     body: 'A local-first teleprompter for presenters who care about eye contact — and their privacy.',
-    noticeTitle: '100% local. Zero telemetry.',
+    noticeTitle: 'Local-first. Zero telemetry.',
     noticeBody: 'Your scripts never leave this machine. If you hit a bug, crash reports are entirely manual and opt-in via Settings → Export Logs.',
     getStarted: 'Get Started',
-    footer: 'No account. No subscription. No internet required.'
+    footer: 'No account. No subscription. Internet only to activate your license.'
   },
   library: {
     headerSessions: 'Sessions',

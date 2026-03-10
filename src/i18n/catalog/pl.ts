@@ -116,10 +116,10 @@ export const plCatalog: TranslationCatalog = {
         heroLead: 'Czytaj skrypt.',
         heroSub: 'Patrz w kamerę.',
         body: 'Lokalny prompter dla prezenterów, którym zależy na kontakcie wzrokowym.',
-        noticeTitle: '100% lokalnie. Zero telemetrii.',
+        noticeTitle: 'Lokalnie przede wszystkim. Zero telemetrii.',
         noticeBody: 'Twoje skrypty nigdy nie opuszczają tego urządzenia. Jeśli napotkasz błąd, raporty o awariach są całkowicie ręczne i opcjonalne (Ustawienia → Eksportuj logi).',
         getStarted: 'Zacznij teraz',
-        footer: 'Bez konta. Bez subskrypcji. Internet nie jest wymagany.'
+        footer: 'Bez konta. Bez subskrypcji. Internet tylko do aktywacji licencji.'
     },
     library: {
         headerSessions: 'Sesje',

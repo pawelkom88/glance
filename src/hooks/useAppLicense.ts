@@ -4,8 +4,11 @@ import {
   clearStoredLicense,
   getOrCreateLicenseDeviceId,
   isTauriEnvironment,
+  loadActivationRecord,
   loadSavedLicenseKey,
+  storeActivationRecord,
   storeLicenseKey,
+  validateActivationRecord,
 } from '../lib/tauri';
 import {
   detectLicensePlatform,
@@ -54,10 +57,37 @@ export function useAppLicense(): UseAppLicenseResult {
       }
 
       const deviceId = await getOrCreateLicenseDeviceId();
+      const localActivation = await loadActivationRecord();
+      const currentPlatform = detectLicensePlatform();
+
+      if (
+        localActivation
+        && localActivation.deviceId === deviceId
+        && localActivation.platform === currentPlatform
+        && localActivation.licenseId
+      ) {
+        try {
+          const verifiedLocalStatus = await validateActivationRecord(localActivation);
+          if (verifiedLocalStatus) {
+            setStatus(verifiedLocalStatus);
+            return;
+          }
+        } catch {
+          // Fall through to server redemption when local verification is unavailable.
+        }
+      }
+
       const redeemedLicense = await redeemLicense({
         licenseKey: savedKey,
         deviceId,
-        platform: detectLicensePlatform(),
+        platform: currentPlatform,
+      });
+      await storeActivationRecord({
+        licenseId: redeemedLicense.licenseKeyLast4,
+        deviceId,
+        platform: currentPlatform,
+        activatedAt: redeemedLicense.activationIssuedAt,
+        activationToken: redeemedLicense.activationToken,
       });
       const nextStatus: AppLicenseStatus = {
         state: 'licensed',
@@ -110,12 +140,20 @@ export function useAppLicense(): UseAppLicenseResult {
       }
 
       const deviceId = await getOrCreateLicenseDeviceId();
+      const platform = detectLicensePlatform();
       const redeemedLicense = await redeemLicense({
         licenseKey: trimmedKey,
         deviceId,
-        platform: detectLicensePlatform(),
+        platform,
       });
       await storeLicenseKey(trimmedKey);
+      await storeActivationRecord({
+        licenseId: redeemedLicense.licenseKeyLast4,
+        deviceId,
+        platform,
+        activatedAt: redeemedLicense.activationIssuedAt,
+        activationToken: redeemedLicense.activationToken,
+      });
       const nextStatus: AppLicenseStatus = {
         state: 'licensed',
         licenseId: redeemedLicense.licenseKeyLast4,

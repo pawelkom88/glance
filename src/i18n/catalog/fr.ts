@@ -106,10 +106,10 @@ export const frCatalog: TranslationCatalog = {
     heroLead: 'Lis ton script.',
     heroSub: 'Regarde droit devant.',
     body: 'Un prompteur local pour les présentateurs qui se soucient du contact visuel — et de leur vie privée.',
-    noticeTitle: '100 % local. Zéro télémétrie.',
+    noticeTitle: 'Local-first. Zéro télémétrie.',
     noticeBody: 'Tes scripts ne quittent jamais cette machine. Si tu rencontres un bug, les rapports d’erreur sont entièrement manuels et facultatifs via Réglages → Exporter les logs.',
     getStarted: 'Commencer',
-    footer: 'Sans compte. Sans abonnement. Sans Internet.'
+    footer: 'Sans compte. Sans abonnement. Internet requis uniquement pour activer la licence.'
   },
   library: {
     headerSessions: 'Sessions',

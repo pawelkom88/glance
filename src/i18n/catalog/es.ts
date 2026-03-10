@@ -106,10 +106,10 @@ export const esCatalog: TranslationCatalog = {
     heroLead: 'Lee tu guion.',
     heroSub: 'Mantén la vista al frente.',
     body: 'Un teleprompter local para presentadores que cuidan el contacto visual — y su privacidad.',
-    noticeTitle: '100% local. Sin telemetría.',
+    noticeTitle: 'Local-first. Sin telemetría.',
     noticeBody: 'Tus guiones nunca salen de esta computadora. Si encuentras un error, los informes de fallos son totalmente manuales y opcionales mediante Configuración → Exportar registros.',
     getStarted: 'Empezar',
-    footer: 'Sin cuenta. Sin suscripción. Sin necesidad de internet.'
+    footer: 'Sin cuenta. Sin suscripción. Internet solo para activar la licencia.'
   },
   library: {
     headerSessions: 'Sesiones',

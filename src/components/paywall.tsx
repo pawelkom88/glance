@@ -24,8 +24,8 @@ export function Paywall({ pending, error, onActivate }: PaywallProps) {
         <p className="license-paywall-eyebrow">License Required</p>
         <h1 id="license-paywall-title">Enter your license key</h1>
         <p className="license-paywall-copy">
-          Paste the serial key you received after purchase. Glance verifies it online for this
-          device, then remembers it after activation.
+          Paste the serial key you received after purchase. Glance runs locally after activation,
+          but this device needs an internet connection once to verify the key.
         </p>
 
         <form className="license-paywall-form" onSubmit={handleSubmit}>

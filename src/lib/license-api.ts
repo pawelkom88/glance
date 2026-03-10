@@ -12,6 +12,8 @@ interface RedeemLicensePayload {
     readonly platform: LicensePlatform;
     readonly status: 'active';
     readonly licenseKeyLast4: string;
+    readonly activationToken: string;
+    readonly activationIssuedAt: string;
   };
 }
 
@@ -107,6 +109,8 @@ function isRedeemLicensePayload(value: unknown): value is RedeemLicensePayload {
   return payload.ok === true
     && !!payload.license
     && typeof payload.license.licenseKeyLast4 === 'string'
+    && typeof payload.license.activationToken === 'string'
+    && typeof payload.license.activationIssuedAt === 'string'
     && (payload.license.platform === 'macos' || payload.license.platform === 'windows')
     && payload.license.status === 'active';
 }

@@ -9,13 +9,16 @@ import {
   getMonitors,
   listenForLanguageChanged,
   listMonitors,
+  loadActivationRecord,
   loadSavedLicenseKey,
   moveMainToMonitor,
   moveOverlayToMonitor,
   moveWindowToMonitor,
   openOverlayWindow,
   quitApp,
+  storeActivationRecord,
   storeLicenseKey,
+  validateActivationRecord,
   snapOverlayToTopCenter,
   showMainWindow
 } from './tauri';
@@ -291,6 +294,72 @@ describe('tauri monitor bridge behavior', () => {
 
     expect(deviceId).toBe('device-123');
     expect(invokeMock).toHaveBeenCalledWith('get_or_create_device_id');
+  });
+
+  it('loadActivationRecord reads the persisted activation record from the backend', async () => {
+    invokeMock.mockResolvedValue({
+      licenseId: '3C49',
+      deviceId: 'device-123',
+      platform: 'macos',
+      activatedAt: '2026-03-10T12:00:00Z',
+      activationToken: 'payload.signature'
+    });
+
+    const record = await loadActivationRecord();
+
+    expect(record).toEqual({
+      licenseId: '3C49',
+      deviceId: 'device-123',
+      platform: 'macos',
+      activatedAt: '2026-03-10T12:00:00Z',
+      activationToken: 'payload.signature'
+    });
+    expect(invokeMock).toHaveBeenCalledWith('load_activation_record');
+  });
+
+  it('storeActivationRecord persists the activation record through the backend bridge', async () => {
+    invokeMock.mockResolvedValue(undefined);
+
+    await storeActivationRecord({
+      licenseId: '3C49',
+      deviceId: 'device-123',
+      platform: 'macos',
+      activatedAt: '2026-03-10T12:00:00Z',
+      activationToken: 'payload.signature'
+    });
+
+    expect(invokeMock).toHaveBeenCalledWith('store_activation_record', {
+      record: {
+        licenseId: '3C49',
+        deviceId: 'device-123',
+        platform: 'macos',
+        activatedAt: '2026-03-10T12:00:00Z',
+        activationToken: 'payload.signature'
+      }
+    });
+  });
+
+  it('validateActivationRecord asks the backend to verify the signed activation token', async () => {
+    invokeMock.mockResolvedValue({ state: 'licensed', licenseId: '3C49' });
+
+    const status = await validateActivationRecord({
+      licenseId: '3C49',
+      deviceId: 'device-123',
+      platform: 'macos',
+      activatedAt: '2026-03-10T12:00:00Z',
+      activationToken: 'payload.signature'
+    });
+
+    expect(status).toEqual({ state: 'licensed', licenseId: '3C49' });
+    expect(invokeMock).toHaveBeenCalledWith('validate_activation_record', {
+      record: {
+        licenseId: '3C49',
+        deviceId: 'device-123',
+        platform: 'macos',
+        activatedAt: '2026-03-10T12:00:00Z',
+        activationToken: 'payload.signature'
+      }
+    });
   });
 
   it('clearStoredLicense invokes the backend clear command', async () => {

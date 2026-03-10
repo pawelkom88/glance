@@ -106,10 +106,10 @@ export const deCatalog: TranslationCatalog = {
         heroLead: 'Lies dein Skript.',
         heroSub: 'Behalte den Blick nach vorn.',
         body: 'Ein auf lokale Datenspeicherung fokussierter Teleprompter für Präsentatoren, denen Augenkontakt – und ihre Privatsphäre – wichtig sind.',
-        noticeTitle: '100 % lokal. Keine Telemetrie.',
+        noticeTitle: 'Local-first. Keine Telemetrie.',
         noticeBody: 'Deine Skripte verlassen niemals diesen Rechner. Wenn du auf einen Fehler stößt, sind Fehlerberichte vollständig manuell und können über Einstellungen → Protokolle exportieren eingereicht werden.',
         getStarted: 'Erste Schritte',
-        footer: 'Kein Konto. Kein Abonnement. Kein Internet erforderlich.'
+        footer: 'Kein Konto. Kein Abonnement. Internet nur zur Lizenzaktivierung erforderlich.'
     },
     library: {
         headerSessions: 'Sitzungen',

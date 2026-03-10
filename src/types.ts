@@ -141,6 +141,14 @@ export interface AppLicenseStatus {
   readonly licenseId: string | null;
 }
 
+export interface AppActivationRecord {
+  readonly licenseId: string;
+  readonly deviceId: string;
+  readonly platform: 'macos' | 'windows';
+  readonly activatedAt: string;
+  readonly activationToken?: string | null;
+}
+
 export type ToastVariant = 'info' | 'success' | 'warning' | 'error';
 
 export interface ToastMessage {
