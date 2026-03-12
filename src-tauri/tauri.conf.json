@@ -48,6 +48,7 @@
     "macOS": {
       "signingIdentity": "-",
       "minimumSystemVersion": "12.0",
+      "entitlements": "Glance.entitlements",
       "infoPlist": "Info.plist"
     },
     "icon": [
