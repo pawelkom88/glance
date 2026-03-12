@@ -16,16 +16,16 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip gha]')"
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
+
+      - name: Enable Corepack pnpm
+        run: corepack enable
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -40,26 +40,30 @@ jobs:
         run: 'node -e "require(''fs'').mkdirSync(''dist'', { recursive: true })"'
 
       - name: Run runtime contract tests (retry once)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          command: cargo test --manifest-path src-tauri/Cargo.toml runtime_
+        shell: bash
+        run: |
+          for attempt in 1 2; do
+            cargo test --manifest-path src-tauri/Cargo.toml runtime_ && exit 0
+            if [[ "$attempt" -eq 2 ]]; then
+              exit 1
+            fi
+            echo "Retrying runtime contract tests after failure..."
+          done
 
   behavior-critical-windows:
     if: "!contains(github.event.head_commit.message, '[skip gha]')"
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
+
+      - name: Enable Corepack pnpm
+        run: corepack enable
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -74,17 +78,21 @@ jobs:
         run: 'node -e "require(''fs'').mkdirSync(''dist'', { recursive: true })"'
 
       - name: Run runtime contract tests (retry once)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          command: cargo test --manifest-path src-tauri/Cargo.toml runtime_
+        shell: bash
+        run: |
+          for attempt in 1 2; do
+            cargo test --manifest-path src-tauri/Cargo.toml runtime_ && exit 0
+            if [[ "$attempt" -eq 2 ]]; then
+              exit 1
+            fi
+            echo "Retrying runtime contract tests after failure..."
+          done
 
   rust-tests:
     if: "!contains(github.event.head_commit.message, '[skip gha]')"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -130,16 +138,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
+
+      - name: Enable Corepack pnpm
+        run: corepack enable
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -201,7 +209,7 @@ jobs:
 
       - name: Upload macOS artifacts
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-${{ matrix.target }}
           path: |
@@ -269,7 +277,7 @@ jobs:
 
       - name: Upload Windows artifacts
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-${{ matrix.target }}
           path: |
