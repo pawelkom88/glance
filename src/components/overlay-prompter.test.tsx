@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../store/use-app-store';
 import { OverlayPrompter } from './overlay-prompter';
 
@@ -30,9 +30,33 @@ const windowMocks = vi.hoisted(() => ({
   scaleFactor: vi.fn(),
   innerSize: vi.fn()
 }));
+const originalAudioContext = globalThis.AudioContext;
+const originalMediaDevices = navigator.mediaDevices;
 
 let focusChangedListener: ((event: { payload: boolean }) => void) | null = null;
 let movedListener: ((event: { payload: { x: number; y: number } }) => void) | null = null;
+
+class FakeOverlayAudioContext {
+  createAnalyser() {
+    return {
+      fftSize: 256,
+      getByteTimeDomainData(buffer: Uint8Array) {
+        buffer.fill(200);
+      }
+    };
+  }
+
+  createMediaStreamSource() {
+    return {
+      connect: () => undefined,
+      disconnect: () => undefined
+    };
+  }
+
+  close() {
+    return Promise.resolve();
+  }
+}
 
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
@@ -106,6 +130,18 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
   delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
+  Object.defineProperty(globalThis, 'AudioContext', {
+    value: FakeOverlayAudioContext,
+    configurable: true
+  });
+  Object.defineProperty(navigator, 'mediaDevices', {
+    value: {
+      getUserMedia: vi.fn().mockResolvedValue({
+        getTracks: () => [{ stop: vi.fn() }]
+      } as unknown as MediaStream)
+    },
+    configurable: true
+  });
   setViewport(1440, 900);
   resetStore();
 
@@ -151,6 +187,17 @@ beforeEach(() => {
   windowMocks.setSize.mockResolvedValue(undefined);
   windowMocks.scaleFactor.mockResolvedValue(1);
   windowMocks.innerSize.mockResolvedValue({ width: 1120, height: 400 });
+});
+
+afterEach(() => {
+  Object.defineProperty(globalThis, 'AudioContext', {
+    value: originalAudioContext,
+    configurable: true
+  });
+  Object.defineProperty(navigator, 'mediaDevices', {
+    value: originalMediaDevices,
+    configurable: true
+  });
 });
 
 describe('OverlayPrompter behavior', () => {
@@ -374,15 +421,16 @@ describe('OverlayPrompter behavior', () => {
     expect(screen.getAllByText('Voice').length).toBeGreaterThan(0);
   });
 
-  it('renders a compact voice toggle instead of the passive footer status below 1200px', () => {
+  it('renders a compact voice status chip instead of the desktop footer status below 1200px', () => {
     setViewport(1100, 900);
     const { container } = render(<OverlayPrompter />);
 
     const compactStatusRow = container.querySelector('.overlay-compact-status-row');
     expect(compactStatusRow?.querySelector('.overlay-timer-chip')).toBeTruthy();
-    expect(compactStatusRow?.querySelector('.overlay-voice-toggle')).toBeTruthy();
-    expect(compactStatusRow?.querySelector('.overlay-voice-status')).toBeNull();
-    expect(container.querySelectorAll('.overlay-voice-status')).toHaveLength(0);
+    expect(compactStatusRow?.querySelector('.overlay-voice-status')).toBeTruthy();
+    expect(compactStatusRow?.querySelector('.overlay-voice-status--compact')).toBeTruthy();
+    expect(compactStatusRow?.querySelector('.overlay-voice-toggle')).toBeNull();
+    expect(container.querySelectorAll('.overlay-voice-status')).toHaveLength(1);
     expect(container.querySelector('.overlay-speed-footer .overlay-footer-status-center-desktop')).toBeNull();
   });
 
@@ -393,23 +441,9 @@ describe('OverlayPrompter behavior', () => {
 
     const compactStatusRow = container.querySelector('.overlay-compact-status-row');
     expect(compactStatusRow?.querySelector('.overlay-timer-chip')).toBeTruthy();
-    expect(compactStatusRow?.querySelector('.overlay-voice-toggle')).toBeNull();
+    expect(compactStatusRow?.querySelector('.overlay-voice-status')).toBeNull();
     expect(container.querySelectorAll('.overlay-voice-status')).toHaveLength(0);
-    expect(screen.queryByRole('switch', { name: 'Auto-pause with voice' })).toBeNull();
     expect(screen.queryByText('Voice')).toBeNull();
-  });
-
-  it('disables voice auto-pause from the compact status row and then hides the toggle', async () => {
-    setViewport(1100, 900);
-    const user = userEvent.setup();
-    render(<OverlayPrompter />);
-
-    const voiceToggle = screen.getByRole('switch', { name: 'Auto-pause with voice' });
-    expect(useAppStore.getState().vadEnabled).toBe(true);
-
-    await user.click(voiceToggle);
-    expect(useAppStore.getState().vadEnabled).toBe(false);
-    expect(screen.queryByRole('switch', { name: 'Auto-pause with voice' })).toBeNull();
   });
 
   it('hides the passive voice status when voice auto-pause is disabled', () => {

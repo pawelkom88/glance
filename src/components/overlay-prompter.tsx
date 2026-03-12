@@ -292,17 +292,6 @@ function CloseIcon() {
   );
 }
 
-function MicrophoneIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 15.5a3.5 3.5 0 0 0 3.5-3.5V8a3.5 3.5 0 1 0-7 0v4a3.5 3.5 0 0 0 3.5 3.5Z" />
-      <path d="M6.5 11.5a5.5 5.5 0 0 0 11 0" />
-      <path d="M12 17v3.5" />
-      <path d="M8.5 20.5h7" />
-    </svg>
-  );
-}
-
 function SnapToCentreIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -474,7 +463,7 @@ export function OverlayPrompter() {
 
   // Voice Activity Detection
   const vadPausedByVadRef = useRef(false);
-  const { permissionError, vadEnabled, vadRuntimeStatus, vadState, setVadEnabled } = useVoiceActivity({
+  const { permissionError, vadEnabled, vadRuntimeStatus, vadState } = useVoiceActivity({
     onSilence: useCallback(() => {
       const currentPlayback = useAppStore.getState().playbackState;
       if (currentPlayback === 'running') {
@@ -1320,7 +1309,12 @@ export function OverlayPrompter() {
   );
 
   const renderVoiceStatus = (className = '') => {
-    if (!vadEnabled) {
+    if (
+      !vadEnabled
+      || vadRuntimeStatus === 'denied'
+      || vadRuntimeStatus === 'unsupported'
+      || vadRuntimeStatus === 'error'
+    ) {
       return null;
     }
 
@@ -1337,37 +1331,6 @@ export function OverlayPrompter() {
         <span className="overlay-voice-status-dot" aria-hidden="true" />
         <span className="overlay-voice-status-label">{t('overlay.autoPauseStatusLabel')}</span>
       </div>
-    );
-  };
-
-  const renderVoiceToggle = () => {
-    if (!vadEnabled) {
-      return null;
-    }
-
-    const voiceToggleState = vadRuntimeStatus === 'active' ? vadState : 'off';
-    const voiceToggleLabel = voiceStatusAriaLabel;
-
-    return (
-      <button
-        type="button"
-        className={`overlay-voice-toggle overlay-voice-toggle--${voiceToggleState}`}
-        role="switch"
-        aria-checked={vadEnabled}
-        aria-label={t('overlay.autoPauseToggleAria')}
-        title={voiceToggleLabel}
-        onClick={(event) => {
-          setVadEnabled(!vadEnabled);
-          event.currentTarget.blur();
-          overlayRootRef.current?.focus({ preventScroll: true });
-        }}
-      >
-        <span className="overlay-voice-toggle-dot" aria-hidden="true" />
-        <span className="overlay-voice-toggle-icon" aria-hidden="true">
-          <MicrophoneIcon />
-        </span>
-        <span className="overlay-voice-toggle-label">{t('overlay.autoPauseStatusLabel')}</span>
-      </button>
     );
   };
 
@@ -2991,7 +2954,7 @@ export function OverlayPrompter() {
                   >
                     <div className="overlay-compact-status-row">
                       {renderTimerControls('overlay-timer-row--compact')}
-                      {vadEnabled ? renderVoiceToggle() : null}
+                      {renderVoiceStatus('overlay-voice-status--compact')}
                     </div>
                     {renderPlaybackControls('overlay-compact-transport', false, true)}
                     <div className="overlay-compact-settings-divider" aria-hidden="true" />

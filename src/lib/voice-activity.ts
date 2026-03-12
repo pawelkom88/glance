@@ -7,9 +7,22 @@ export const MAX_VOICE_PAUSE_DELAY_MS = 3000;
 export const VOICE_PAUSE_DELAY_STEP_MS = 500;
 export const DEFAULT_VOICE_PAUSE_DELAY_MS = 1500;
 export const MEDIUM_VOICE_RMS_THRESHOLD = 0.035;
+const ADAPTIVE_VOICE_MARGIN_RMS = 0.018;
+const ADAPTIVE_NOISE_FLOOR_SMOOTHING = 0.18;
+const MAX_ADAPTIVE_VOICE_RMS_THRESHOLD = 0.08;
 
 /** Interval at which the AnalyserNode is polled (ms). */
 const POLL_INTERVAL_MS = 80;
+
+export interface VoiceActivitySupport {
+  readonly AudioContextConstructor: typeof AudioContext;
+  readonly getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
+}
+
+export interface VoiceActivityErrorInfo {
+  readonly permissionError: string;
+  readonly runtimeStatus: 'denied' | 'unsupported' | 'error';
+}
 
 export interface VoiceActivityControllerOptions {
   readonly audioContext: AudioContext;
@@ -22,6 +35,75 @@ export interface VoiceActivityControllerOptions {
 export interface VoiceActivityController {
   start(): void;
   destroy(): void;
+}
+
+export function getVoiceActivitySupport(): VoiceActivitySupport | null {
+  const AudioContextConstructor = globalThis.AudioContext
+    ?? (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+
+  if (!AudioContextConstructor || !getUserMedia) {
+    return null;
+  }
+
+  return {
+    AudioContextConstructor,
+    getUserMedia
+  };
+}
+
+export async function requestVoiceActivityStream(): Promise<MediaStream> {
+  const support = getVoiceActivitySupport();
+
+  if (!support) {
+    throw new Error('Voice auto-pause is unavailable on this device.');
+  }
+
+  return support.getUserMedia({ audio: true, video: false });
+}
+
+export function classifyVoiceActivityError(error: unknown): VoiceActivityErrorInfo {
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+      return {
+        permissionError: 'Microphone access denied.',
+        runtimeStatus: 'denied'
+      };
+    }
+
+    if (error.name === 'NotFoundError') {
+      return {
+        permissionError: 'No microphone was found for voice auto-pause.',
+        runtimeStatus: 'error'
+      };
+    }
+
+    if (error.name === 'NotReadableError' || error.name === 'AbortError') {
+      return {
+        permissionError: 'Glance could not start microphone monitoring.',
+        runtimeStatus: 'error'
+      };
+    }
+  }
+
+  if (error instanceof Error) {
+    if (error.message === 'Voice auto-pause is unavailable on this device.') {
+      return {
+        permissionError: error.message,
+        runtimeStatus: 'unsupported'
+      };
+    }
+
+    return {
+      permissionError: error.message || 'Glance could not start microphone monitoring.',
+      runtimeStatus: 'error'
+    };
+  }
+
+  return {
+    permissionError: 'Glance could not start microphone monitoring.',
+    runtimeStatus: 'error'
+  };
 }
 
 export function normalizeVoicePauseDelayMs(value: number): number {
@@ -62,6 +144,7 @@ export function createVoiceActivityController(
   let silentTicks = 0;
   let vadPaused = false;
   let destroyed = false;
+  let noiseFloorRms = MEDIUM_VOICE_RMS_THRESHOLD / 2;
 
   function computeRms(): number {
     analyser.getByteTimeDomainData(buffer);
@@ -78,7 +161,19 @@ export function createVoiceActivityController(
       return;
     }
 
-    const isSilent = computeRms() < MEDIUM_VOICE_RMS_THRESHOLD;
+    const currentRms = computeRms();
+    const adaptiveSpeechThreshold = Math.min(
+      MAX_ADAPTIVE_VOICE_RMS_THRESHOLD,
+      Math.max(MEDIUM_VOICE_RMS_THRESHOLD, noiseFloorRms + ADAPTIVE_VOICE_MARGIN_RMS)
+    );
+    const cappedNoiseSample = Math.min(currentRms, Math.max(noiseFloorRms, adaptiveSpeechThreshold - 0.006));
+
+    noiseFloorRms = (
+      noiseFloorRms * (1 - ADAPTIVE_NOISE_FLOOR_SMOOTHING)
+      + cappedNoiseSample * ADAPTIVE_NOISE_FLOOR_SMOOTHING
+    );
+
+    const isSilent = currentRms < adaptiveSpeechThreshold;
 
     if (isSilent) {
       silentTicks += 1;

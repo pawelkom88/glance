@@ -14,7 +14,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../store/use-app-store';
 import {
+  classifyVoiceActivityError,
   createVoiceActivityController,
+  getVoiceActivitySupport,
+  requestVoiceActivityStream,
   type VoiceActivityController
 } from '../lib/voice-activity';
 
@@ -37,46 +40,6 @@ export interface UseVoiceActivityResult {
   readonly setVoicePauseDelayMs: (delayMs: number) => void;
   /** Non-null only when VAD startup or permission handling fails. */
   readonly permissionError: string | null;
-}
-
-function classifyVoiceActivityError(error: unknown): {
-  readonly permissionError: string;
-  readonly runtimeStatus: Exclude<VadRuntimeStatus, 'idle' | 'requesting' | 'active'>;
-} {
-  if (error instanceof DOMException) {
-    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
-      return {
-        permissionError: 'Microphone access denied.',
-        runtimeStatus: 'denied'
-      };
-    }
-
-    if (error.name === 'NotFoundError') {
-      return {
-        permissionError: 'No microphone was found for voice auto-pause.',
-        runtimeStatus: 'error'
-      };
-    }
-
-    if (error.name === 'NotReadableError' || error.name === 'AbortError') {
-      return {
-        permissionError: 'Glance could not start microphone monitoring.',
-        runtimeStatus: 'error'
-      };
-    }
-  }
-
-  if (error instanceof Error) {
-    return {
-      permissionError: error.message || 'Glance could not start microphone monitoring.',
-      runtimeStatus: 'error'
-    };
-  }
-
-  return {
-    permissionError: 'Glance could not start microphone monitoring.',
-    runtimeStatus: 'error'
-  };
 }
 
 export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActivityResult {
@@ -113,11 +76,9 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
     let cancelled = false;
 
     const start = async () => {
-      const AudioContextConstructor = globalThis.AudioContext
-        ?? (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+      const support = getVoiceActivitySupport();
 
-      if (!AudioContextConstructor || !getUserMedia) {
+      if (!support) {
         setPermissionError('Voice auto-pause is unavailable on this device.');
         setVadRuntimeStatus('unsupported');
         setVadState('off');
@@ -128,13 +89,13 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
       setVadRuntimeStatus('requesting');
 
       try {
-        const stream = await getUserMedia({ audio: true, video: false });
+        const stream = await requestVoiceActivityStream();
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
 
-        const audioContext = new AudioContextConstructor();
+        const audioContext = new support.AudioContextConstructor();
 
         const controller = createVoiceActivityController({
           audioContext,

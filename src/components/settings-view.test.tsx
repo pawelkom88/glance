@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let tauriRuntime = true;
 let monitorChangedCallback: ((payload: {
@@ -78,6 +78,8 @@ const tauriMock = tauriBridge as unknown as {
   registerShortcuts: ReturnType<typeof vi.fn>;
   setLastMainMonitorName: ReturnType<typeof vi.fn>;
 };
+const originalAudioContext = globalThis.AudioContext;
+const originalMediaDevices = navigator.mediaDevices;
 
 function resetStore() {
   useAppStore.setState({
@@ -124,6 +126,17 @@ beforeEach(() => {
   tauriMock.setLastMainMonitorName.mockImplementation(() => undefined);
 });
 
+afterEach(() => {
+  Object.defineProperty(globalThis, 'AudioContext', {
+    value: originalAudioContext,
+    configurable: true
+  });
+  Object.defineProperty(navigator, 'mediaDevices', {
+    value: originalMediaDevices,
+    configurable: true
+  });
+});
+
 describe('SettingsView behavior', () => {
   it('updates theme and shows feedback toast', async () => {
     const user = userEvent.setup();
@@ -168,6 +181,60 @@ describe('SettingsView behavior', () => {
       message: 'Reading ruler disabled',
       variant: 'success'
     });
+  });
+
+  it('requests microphone access before enabling voice auto-pause', async () => {
+    const user = userEvent.setup();
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }]
+    } as unknown as MediaStream);
+
+    useAppStore.setState({ vadEnabled: false });
+    Object.defineProperty(globalThis, 'AudioContext', {
+      value: vi.fn(),
+      configurable: true
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true
+    });
+
+    render(<SettingsView />);
+
+    await user.click(screen.getByRole('switch', { name: 'Enable voice activity detection' }));
+
+    await waitFor(() => {
+      expect(getUserMedia).toHaveBeenCalledWith({ audio: true, video: false });
+    });
+    expect(useAppStore.getState().vadEnabled).toBe(true);
+  });
+
+  it('keeps voice auto-pause off and shows an error when microphone permission is denied', async () => {
+    const user = userEvent.setup();
+
+    useAppStore.setState({ vadEnabled: false });
+    Object.defineProperty(globalThis, 'AudioContext', {
+      value: vi.fn(),
+      configurable: true
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: vi.fn().mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'))
+      },
+      configurable: true
+    });
+
+    render(<SettingsView />);
+
+    await user.click(screen.getByRole('switch', { name: 'Enable voice activity detection' }));
+
+    await waitFor(() => {
+      expect(useAppStore.getState().toastMessage).toEqual({
+        message: 'Microphone access denied.',
+        variant: 'error'
+      });
+    });
+    expect(useAppStore.getState().vadEnabled).toBe(false);
   });
 
   it('shows a pause-delay slider with a visible value and updates the store', async () => {
