@@ -1,15 +1,15 @@
 {
-  "version": "0.3.8-4",
+  "version": "0.3.8-5",
   "notes": "Product Hunt trial build.",
   "pub_date": "2026-03-10T00:00:00Z",
   "platforms": {
     "darwin-aarch64": {
       "signature": "REPLACE_WITH_MAC_AARCH64_SIG_CONTENT",
-      "url": "https://atglance.app/downloads/Glance.Trial_0.3.8-4_aarch64.tar.gz"
+      "url": "https://atglance.app/downloads/Glance.Trial_0.3.8-5_aarch64.tar.gz"
     },
     "windows-x86_64": {
       "signature": "REPLACE_WITH_WIN_X64_SIG_CONTENT",
-      "url": "https://atglance.app/downloads/Glance.Trial_0.3.8-4_x64_en-US.msi.zip"
+      "url": "https://atglance.app/downloads/Glance.Trial_0.3.8-5_x64_en-US.msi.zip"
     }
   }
 }
