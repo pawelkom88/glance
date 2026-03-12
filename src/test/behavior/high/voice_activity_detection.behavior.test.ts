@@ -143,6 +143,15 @@ describe('Voice Activity Detection — silence delay behavior', () => {
     advanceTimersByMs(200);
     expect(onSilence).toHaveBeenCalledOnce();
   });
+
+  it('treats steady room noise as silence after adapting the noise floor', () => {
+    fakeCtx.analyser.setRms(MEDIUM_VOICE_RMS_THRESHOLD + 0.005);
+    controller.start();
+
+    advanceTimersByMs(DEFAULT_VOICE_PAUSE_DELAY_MS + 1200);
+
+    expect(onSilence).toHaveBeenCalledOnce();
+  });
 });
 
 describe('Voice Activity Detection — pause delay presets', () => {

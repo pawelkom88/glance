@@ -32,8 +32,10 @@ import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types
 import { ShortcutKeycaps } from './shortcut-keycaps';
 import { SettingsLicenseCard } from './settings-license-card';
 import {
+  classifyVoiceActivityError,
   MAX_VOICE_PAUSE_DELAY_MS,
   MIN_VOICE_PAUSE_DELAY_MS,
+  requestVoiceActivityStream,
   VOICE_PAUSE_DELAY_STEP_MS,
   formatVoicePauseDelayLabel
 } from '../lib/voice-activity';
@@ -248,6 +250,23 @@ export function SettingsView() {
     [savedShortcutConfig, shortcutConfig]
   );
   const shouldShowDisplaySetting = true;
+
+  const handleVadToggle = async () => {
+    if (vadEnabled) {
+      setVadEnabled(false);
+      return;
+    }
+
+    try {
+      const stream = await requestVoiceActivityStream();
+      stream.getTracks().forEach((track) => track.stop());
+      setVadEnabled(true);
+    } catch (error) {
+      const { permissionError } = classifyVoiceActivityError(error);
+      setVadEnabled(false);
+      showToast(permissionError, 'error');
+    }
+  };
 
   useEffect(() => {
     let isDisposed = false;
@@ -830,7 +849,9 @@ export function SettingsView() {
                 role="switch"
                 aria-checked={vadEnabled}
                 aria-label={t('settingsView.vad.enabledAria')}
-                onClick={() => setVadEnabled(!vadEnabled)}
+                onClick={() => {
+                  void handleVadToggle();
+                }}
               >
                 <span className="setting-switch-thumb" />
               </button>
