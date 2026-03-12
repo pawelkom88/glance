@@ -1,6 +1,6 @@
 [package]
 name = "glance"
-version = "0.3.8-5"
+version = "0.3.8-6"
 description = "Glance local-only teleprompter"
 authors = ["you"]
 license = "MIT"
