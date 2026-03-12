@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{Listener, Manager, WindowEvent};
 use tauri_plugin_updater::UpdaterExt;
 
 const APP_READY_EVENT: &str = "app_ready";
@@ -18,6 +18,7 @@ const OVERLAY_WINDOW_LABEL: &str = "overlay";
 const MAIN_WINDOW_SHOW_FALLBACK_MS: u64 = 3000;
 const MONITOR_MOVE_DEBOUNCE_MS: u64 = 150;
 const MONITOR_MOVE_POLL_MS: u64 = 100;
+const PRODUCT_HUNT_CHANNEL: &str = "product_hunt";
 
 pub struct AppState {
     pub sessions_root: PathBuf,
@@ -33,28 +34,6 @@ fn should_keep_only_global_hide_shortcut(window_label: &str, focused: bool) -> b
 
 fn should_exit_on_close_requested(window_label: &str) -> bool {
     matches!(window_label, MAIN_WINDOW_LABEL | OVERLAY_WINDOW_LABEL)
-}
-
-fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
-    if app.get_webview_window(OVERLAY_WINDOW_LABEL).is_some() {
-        return Ok(());
-    }
-
-    WebviewWindowBuilder::new(app, OVERLAY_WINDOW_LABEL, WebviewUrl::App("/#overlay".into()))
-        .title("Glance Overlay")
-        .always_on_top(true)
-        .visible(false)
-        .decorations(false)
-        .shadow(false)
-        .transparent(true)
-        .resizable(true)
-        .skip_taskbar(true)
-        .inner_size(1120.0, 400.0)
-        .min_inner_size(500.0, 200.0)
-        .build()
-        .map_err(|error: tauri::Error| error.to_string())?;
-
-    Ok(())
 }
 
 fn show_main_window(app: &tauri::AppHandle) {
@@ -163,6 +142,10 @@ async fn check_update(app: tauri::AppHandle) {
     }
 }
 
+fn should_check_for_updates() -> bool {
+    option_env!("GLANCE_BUILD_CHANNEL").unwrap_or("paid") != PRODUCT_HUNT_CHANNEL
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -211,10 +194,12 @@ fn main() {
             }
         })
         .setup(|app| {
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                check_update(handle).await;
-            });
+            if should_check_for_updates() {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    check_update(handle).await;
+                });
+            }
 
             let app_data_dir = app
                 .path()
@@ -243,7 +228,6 @@ fn main() {
                 saved_main_monitor_key: Mutex::new(None),
                 _log_guard: guard,
             });
-            create_overlay_window_if_missing(app.handle())?;
             register_main_window_ready_hooks(app.handle());
             register_main_window_monitor_change_hooks(app.handle())?;
 
@@ -317,7 +301,9 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{should_exit_on_close_requested, should_keep_only_global_hide_shortcut};
+    use super::{
+        should_check_for_updates, should_exit_on_close_requested, should_keep_only_global_hide_shortcut,
+    };
 
     #[test]
     fn keeps_shortcuts_only_for_focused_overlay() {
@@ -332,5 +318,11 @@ mod tests {
         assert!(should_exit_on_close_requested("main"));
         assert!(should_exit_on_close_requested("overlay"));
         assert!(!should_exit_on_close_requested("settings"));
+    }
+
+    #[test]
+    fn updater_guard_matches_build_channel() {
+        let expected = option_env!("GLANCE_BUILD_CHANNEL").unwrap_or("paid") != "product_hunt";
+        assert_eq!(should_check_for_updates(), expected);
     }
 }

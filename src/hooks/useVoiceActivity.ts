@@ -19,6 +19,7 @@ import {
 } from '../lib/voice-activity';
 
 export type VadState = 'off' | 'listening-silent' | 'listening-speaking';
+export type VadRuntimeStatus = 'idle' | 'requesting' | 'active' | 'denied' | 'unsupported' | 'error';
 
 export interface UseVoiceActivityOptions {
     /** Called when sustained silence is detected — caller should pause prompter. */
@@ -29,12 +30,53 @@ export interface UseVoiceActivityOptions {
 
 export interface UseVoiceActivityResult {
   readonly vadState: VadState;
+  readonly vadRuntimeStatus: VadRuntimeStatus;
   readonly vadEnabled: boolean;
   readonly voicePauseDelayMs: number;
   readonly setVadEnabled: (enabled: boolean) => void;
   readonly setVoicePauseDelayMs: (delayMs: number) => void;
-  /** Non-null only while VAD is active and awaiting mic permission. */
+  /** Non-null only when VAD startup or permission handling fails. */
   readonly permissionError: string | null;
+}
+
+function classifyVoiceActivityError(error: unknown): {
+  readonly permissionError: string;
+  readonly runtimeStatus: Exclude<VadRuntimeStatus, 'idle' | 'requesting' | 'active'>;
+} {
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+      return {
+        permissionError: 'Microphone access denied.',
+        runtimeStatus: 'denied'
+      };
+    }
+
+    if (error.name === 'NotFoundError') {
+      return {
+        permissionError: 'No microphone was found for voice auto-pause.',
+        runtimeStatus: 'error'
+      };
+    }
+
+    if (error.name === 'NotReadableError' || error.name === 'AbortError') {
+      return {
+        permissionError: 'Glance could not start microphone monitoring.',
+        runtimeStatus: 'error'
+      };
+    }
+  }
+
+  if (error instanceof Error) {
+    return {
+      permissionError: error.message || 'Glance could not start microphone monitoring.',
+      runtimeStatus: 'error'
+    };
+  }
+
+  return {
+    permissionError: 'Glance could not start microphone monitoring.',
+    runtimeStatus: 'error'
+  };
 }
 
 export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActivityResult {
@@ -46,6 +88,7 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
   const setVoicePauseDelayMsInStore = useAppStore((state) => state.setVoicePauseDelayMs);
 
   const [vadState, setVadState] = useState<VadState>('off');
+  const [vadRuntimeStatus, setVadRuntimeStatus] = useState<VadRuntimeStatus>('idle');
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
   const controllerRef = useRef<VoiceActivityController | null>(null);
@@ -62,6 +105,7 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
       controllerRef.current?.destroy();
       controllerRef.current = null;
       setVadState('off');
+      setVadRuntimeStatus('idle');
       setPermissionError(null);
       return;
     }
@@ -69,14 +113,28 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
     let cancelled = false;
 
     const start = async () => {
+      const AudioContextConstructor = globalThis.AudioContext
+        ?? (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+
+      if (!AudioContextConstructor || !getUserMedia) {
+        setPermissionError('Voice auto-pause is unavailable on this device.');
+        setVadRuntimeStatus('unsupported');
+        setVadState('off');
+        return;
+      }
+
+      setPermissionError(null);
+      setVadRuntimeStatus('requesting');
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const stream = await getUserMedia({ audio: true, video: false });
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
 
-        const audioContext = new AudioContext();
+        const audioContext = new AudioContextConstructor();
 
         const controller = createVoiceActivityController({
           audioContext,
@@ -94,14 +152,16 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
 
         controllerRef.current = controller;
         setVadState('listening-speaking');
+        setVadRuntimeStatus('active');
         setPermissionError(null);
         controller.start();
       } catch (err) {
         if (cancelled) {
           return;
         }
-        const message = err instanceof Error ? err.message : 'Microphone access denied';
-        setPermissionError(message);
+        const { permissionError: nextPermissionError, runtimeStatus } = classifyVoiceActivityError(err);
+        setPermissionError(nextPermissionError);
+        setVadRuntimeStatus(runtimeStatus);
         setVadState('off');
       }
     };
@@ -125,6 +185,7 @@ export function useVoiceActivity(options: UseVoiceActivityOptions): UseVoiceActi
 
   return {
     vadState,
+    vadRuntimeStatus,
     vadEnabled,
     voicePauseDelayMs,
     setVadEnabled,

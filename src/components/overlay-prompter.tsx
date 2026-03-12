@@ -474,7 +474,7 @@ export function OverlayPrompter() {
 
   // Voice Activity Detection
   const vadPausedByVadRef = useRef(false);
-  const { permissionError, vadEnabled, vadState, setVadEnabled } = useVoiceActivity({
+  const { permissionError, vadEnabled, vadRuntimeStatus, vadState, setVadEnabled } = useVoiceActivity({
     onSilence: useCallback(() => {
       const currentPlayback = useAppStore.getState().playbackState;
       if (currentPlayback === 'running') {
@@ -493,13 +493,21 @@ export function OverlayPrompter() {
   // Show permission errors as toasts
   useEffect(() => {
     if (permissionError) {
-      showToast(t('overlay.autoPausePermissionError'), 'error');
+      showToast(permissionError, 'error');
     }
-  }, [permissionError, showToast, t]);
+  }, [permissionError, showToast]);
 
   const voiceStatusAriaLabel = useMemo(() => {
     if (!vadEnabled) {
       return '';
+    }
+
+    if (permissionError) {
+      return permissionError;
+    }
+
+    if (vadRuntimeStatus !== 'active') {
+      return t('overlay.autoPauseStatusStarting');
     }
 
     if (vadState === 'listening-speaking') {
@@ -511,7 +519,7 @@ export function OverlayPrompter() {
     }
 
     return t('overlay.autoPauseStatusStarting');
-  }, [t, vadEnabled, vadState]);
+  }, [permissionError, t, vadEnabled, vadRuntimeStatus, vadState]);
 
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const sections = parsed.sections;
@@ -1316,9 +1324,11 @@ export function OverlayPrompter() {
       return null;
     }
 
+    const voiceStatusState = vadRuntimeStatus === 'active' ? vadState : 'off';
+
     return (
       <div
-        className={`overlay-voice-status overlay-voice-status--${vadState} ${className}`.trim()}
+        className={`overlay-voice-status overlay-voice-status--${voiceStatusState} ${className}`.trim()}
         role="status"
         aria-live="polite"
         aria-label={voiceStatusAriaLabel}
@@ -1331,8 +1341,12 @@ export function OverlayPrompter() {
   };
 
   const renderVoiceToggle = () => {
-    const voiceToggleState = vadEnabled ? vadState : 'off';
-    const voiceToggleLabel = vadEnabled ? voiceStatusAriaLabel : t('overlay.autoPauseToggleAria');
+    if (!vadEnabled) {
+      return null;
+    }
+
+    const voiceToggleState = vadRuntimeStatus === 'active' ? vadState : 'off';
+    const voiceToggleLabel = voiceStatusAriaLabel;
 
     return (
       <button
@@ -2977,7 +2991,7 @@ export function OverlayPrompter() {
                   >
                     <div className="overlay-compact-status-row">
                       {renderTimerControls('overlay-timer-row--compact')}
-                      {renderVoiceToggle()}
+                      {vadEnabled ? renderVoiceToggle() : null}
                     </div>
                     {renderPlaybackControls('overlay-compact-transport', false, true)}
                     <div className="overlay-compact-settings-divider" aria-hidden="true" />

@@ -8,7 +8,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition,
-    PhysicalSize, Position, Size, State,
+    PhysicalSize, Position, Size, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
@@ -74,6 +74,26 @@ pub struct OverlayBounds {
 pub struct ShowOverlayResult {
     pub monitor_name: String,
     pub used_saved_bounds: bool,
+}
+
+fn get_or_create_overlay_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    if let Some(window) = app.get_webview_window(OVERLAY_WINDOW_LABEL) {
+        return Ok(window);
+    }
+
+    WebviewWindowBuilder::new(app, OVERLAY_WINDOW_LABEL, WebviewUrl::App("/#overlay".into()))
+        .title("Glance Overlay")
+        .always_on_top(true)
+        .visible(false)
+        .decorations(false)
+        .shadow(false)
+        .transparent(true)
+        .resizable(true)
+        .skip_taskbar(true)
+        .inner_size(1120.0, 400.0)
+        .min_inner_size(500.0, 200.0)
+        .build()
+        .map_err(|error| error.to_string())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -395,9 +415,7 @@ fn show_overlay_window_inner(
     app: &AppHandle,
     state: &AppState,
 ) -> Result<ShowOverlayResult, String> {
-    let overlay = app
-        .get_webview_window("overlay")
-        .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let overlay = get_or_create_overlay_window(app)?;
     let main_window = app
         .get_webview_window("main")
         .ok_or_else(|| String::from("Main window is not available"))?;
@@ -530,9 +548,7 @@ pub fn show_main_window(saved_monitor_key: Option<String>, app: AppHandle) -> Re
 
 #[tauri::command]
 pub fn start_overlay_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    let overlay = app
-        .get_webview_window("overlay")
-        .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let overlay = get_or_create_overlay_window(&app)?;
 
     if overlay.is_fullscreen().map_err(|error| error.to_string())? {
         overlay
@@ -592,9 +608,7 @@ pub fn register_default_shortcuts(
 
 #[tauri::command]
 pub fn set_overlay_always_on_top(enabled: bool, app: AppHandle) -> Result<(), String> {
-    let overlay = app
-        .get_webview_window("overlay")
-        .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let overlay = get_or_create_overlay_window(&app)?;
 
     overlay
         .set_always_on_top(enabled)
@@ -748,9 +762,7 @@ pub fn get_main_window_current_monitor(app: AppHandle) -> Result<Option<MonitorI
 
 #[tauri::command]
 pub fn move_overlay_to_monitor(monitor_name: String, app: AppHandle) -> Result<(), String> {
-    let overlay = app
-        .get_webview_window(OVERLAY_WINDOW_LABEL)
-        .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let overlay = get_or_create_overlay_window(&app)?;
     let was_visible = overlay.is_visible().map_err(|error| error.to_string())?;
 
     let monitors = collect_monitor_descriptors(&app)?;
@@ -791,9 +803,7 @@ pub fn snap_overlay_to_top_center(app: AppHandle) -> Result<SnapOverlayResult, S
 
 #[tauri::command]
 pub fn snap_overlay_to_center(app: AppHandle) -> Result<SnapOverlayResult, String> {
-    let overlay = app
-        .get_webview_window("overlay")
-        .ok_or_else(|| String::from("Overlay window is not available"))?;
+    let overlay = get_or_create_overlay_window(&app)?;
     let Some(target_monitor) = overlay
         .current_monitor()
         .map_err(|error| error.to_string())?

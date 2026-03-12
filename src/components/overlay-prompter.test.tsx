@@ -386,7 +386,20 @@ describe('OverlayPrompter behavior', () => {
     expect(container.querySelector('.overlay-speed-footer .overlay-footer-status-center-desktop')).toBeNull();
   });
 
-  it('toggles voice auto-pause from the compact status row', async () => {
+  it('hides compact voice controls below 1200px when voice auto-pause is disabled', () => {
+    useAppStore.setState({ vadEnabled: false });
+    setViewport(1100, 900);
+    const { container } = render(<OverlayPrompter />);
+
+    const compactStatusRow = container.querySelector('.overlay-compact-status-row');
+    expect(compactStatusRow?.querySelector('.overlay-timer-chip')).toBeTruthy();
+    expect(compactStatusRow?.querySelector('.overlay-voice-toggle')).toBeNull();
+    expect(container.querySelectorAll('.overlay-voice-status')).toHaveLength(0);
+    expect(screen.queryByRole('switch', { name: 'Auto-pause with voice' })).toBeNull();
+    expect(screen.queryByText('Voice')).toBeNull();
+  });
+
+  it('disables voice auto-pause from the compact status row and then hides the toggle', async () => {
     setViewport(1100, 900);
     const user = userEvent.setup();
     render(<OverlayPrompter />);
@@ -396,9 +409,7 @@ describe('OverlayPrompter behavior', () => {
 
     await user.click(voiceToggle);
     expect(useAppStore.getState().vadEnabled).toBe(false);
-
-    await user.click(voiceToggle);
-    expect(useAppStore.getState().vadEnabled).toBe(true);
+    expect(screen.queryByRole('switch', { name: 'Auto-pause with voice' })).toBeNull();
   });
 
   it('hides the passive voice status when voice auto-pause is disabled', () => {
@@ -406,6 +417,7 @@ describe('OverlayPrompter behavior', () => {
     const { container } = render(<OverlayPrompter />);
 
     expect(container.querySelector('.overlay-voice-status')).toBeNull();
+    expect(container.querySelector('.overlay-voice-toggle')).toBeNull();
     expect(screen.queryByText('Voice')).toBeNull();
   });
 
