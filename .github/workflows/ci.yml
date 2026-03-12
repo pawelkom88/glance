@@ -18,14 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+          run_install: false
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      - name: Enable Corepack pnpm
-        run: corepack enable
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -56,14 +59,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+          run_install: false
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      - name: Enable Corepack pnpm
-        run: corepack enable
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -140,14 +146,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+          run_install: false
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      - name: Enable Corepack pnpm
-        run: corepack enable
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
