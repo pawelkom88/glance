@@ -1427,12 +1427,15 @@ dependencies = [
 
 [[package]]
 name = "glance"
-version = "0.3.7"
+version = "0.3.8"
 dependencies = [
  "base64 0.22.1",
+ "block2",
  "chrono",
  "ed25519-dalek",
  "hex",
+ "objc2",
+ "objc2-foundation",
  "security-framework",
  "serde",
  "serde_json",

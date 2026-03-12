@@ -523,6 +523,21 @@ export async function registerDefaultShortcuts(): Promise<void> {
   await invoke('register_default_shortcuts');
 }
 
+export type NativeMicrophonePermissionStatus =
+  | 'authorized'
+  | 'denied'
+  | 'notDetermined'
+  | 'restricted'
+  | 'unsupported';
+
+export async function requestMicrophonePermission(): Promise<NativeMicrophonePermissionStatus> {
+  if (!inTauri()) {
+    return 'authorized';
+  }
+
+  return invoke<NativeMicrophonePermissionStatus>('request_microphone_permission');
+}
+
 export async function registerShortcuts(bindings: readonly ShortcutBinding[]): Promise<void> {
   await invoke('register_shortcuts', { bindings });
 }
