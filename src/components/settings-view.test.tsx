@@ -59,6 +59,7 @@ vi.mock('../lib/tauri', () => ({
     };
   }),
   moveWindowToMonitor: vi.fn().mockResolvedValue(undefined),
+  requestMicrophonePermission: vi.fn().mockResolvedValue('authorized'),
   registerShortcuts: vi.fn().mockResolvedValue(undefined),
   setLastMainMonitorName: vi.fn(),
   setOverlayAlwaysOnTop: vi.fn().mockResolvedValue(undefined),
@@ -75,6 +76,7 @@ const tauriMock = tauriBridge as unknown as {
   getRuntimeMonitorCount: ReturnType<typeof vi.fn>;
   listenForMonitorChanged: ReturnType<typeof vi.fn>;
   moveWindowToMonitor: ReturnType<typeof vi.fn>;
+  requestMicrophonePermission: ReturnType<typeof vi.fn>;
   registerShortcuts: ReturnType<typeof vi.fn>;
   setLastMainMonitorName: ReturnType<typeof vi.fn>;
 };
@@ -122,6 +124,7 @@ beforeEach(() => {
   tauriMock.getMonitors.mockResolvedValue([]);
   tauriMock.getRuntimeMonitorCount.mockResolvedValue(null);
   tauriMock.moveWindowToMonitor.mockResolvedValue(undefined);
+  tauriMock.requestMicrophonePermission.mockResolvedValue('authorized');
   tauriMock.registerShortcuts.mockResolvedValue(undefined);
   tauriMock.setLastMainMonitorName.mockImplementation(() => undefined);
 });
@@ -204,6 +207,7 @@ describe('SettingsView behavior', () => {
     await user.click(screen.getByRole('switch', { name: 'Enable voice activity detection' }));
 
     await waitFor(() => {
+      expect(tauriMock.requestMicrophonePermission).toHaveBeenCalledTimes(1);
       expect(getUserMedia).toHaveBeenCalledWith({ audio: true, video: false });
     });
     expect(useAppStore.getState().vadEnabled).toBe(true);
@@ -213,6 +217,7 @@ describe('SettingsView behavior', () => {
     const user = userEvent.setup();
 
     useAppStore.setState({ vadEnabled: false });
+    tauriMock.requestMicrophonePermission.mockResolvedValue('denied');
     Object.defineProperty(globalThis, 'AudioContext', {
       value: vi.fn(),
       configurable: true

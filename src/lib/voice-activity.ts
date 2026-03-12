@@ -1,3 +1,6 @@
+import { isTauri } from '@tauri-apps/api/core';
+import { requestMicrophonePermission } from './tauri';
+
 /**
  * Voice Activity Detection (VAD) — core controller
  */
@@ -37,6 +40,26 @@ export interface VoiceActivityController {
   destroy(): void;
 }
 
+function shouldUseNativeMacOSPermissionFlow(): boolean {
+  return isTauri() && navigator.platform.includes('Mac');
+}
+
+async function ensureVoiceActivityPermission(): Promise<void> {
+  if (!shouldUseNativeMacOSPermissionFlow()) {
+    return;
+  }
+
+  const permissionStatus = await requestMicrophonePermission();
+
+  if (permissionStatus === 'unsupported') {
+    throw new Error('Voice auto-pause is unavailable on this device.');
+  }
+
+  if (permissionStatus === 'denied' || permissionStatus === 'restricted') {
+    throw new DOMException('Microphone access denied.', 'NotAllowedError');
+  }
+}
+
 export function getVoiceActivitySupport(): VoiceActivitySupport | null {
   const AudioContextConstructor = globalThis.AudioContext
     ?? (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -59,6 +82,7 @@ export async function requestVoiceActivityStream(): Promise<MediaStream> {
     throw new Error('Voice auto-pause is unavailable on this device.');
   }
 
+  await ensureVoiceActivityPermission();
   return support.getUserMedia({ audio: true, video: false });
 }
 

@@ -2,6 +2,7 @@
 
 mod commands;
 mod license;
+mod macos_permissions;
 mod sessions;
 
 use std::collections::HashMap;
@@ -258,6 +259,7 @@ fn main() {
             commands::recover_overlay_focus,
             commands::register_shortcuts,
             commands::register_default_shortcuts,
+            macos_permissions::request_microphone_permission,
             commands::set_overlay_always_on_top,
             commands::list_monitors,
             commands::get_monitors,
