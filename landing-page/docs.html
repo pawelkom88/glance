@@ -911,9 +911,31 @@
             flex-grow: 1;
         }
 
-        .control-card .image-placeholder {
+        .control-image-wrap {
             margin-top: auto;
             aspect-ratio: 16 / 10;
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 24px;
+            transition: background 0.3s var(--easing);
+        }
+
+        .control-card:hover .control-image-wrap {
+            background: #ffffff;
+            border-color: rgba(0, 122, 255, 0.3);
+        }
+
+        .control-image-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         /* ─── FOOTER ─── */
@@ -1213,7 +1235,9 @@
                         </div>
                         <p class="control-desc">Start or stop the prompter scroll instantly. Perfect for pausing to
                             expand on a thought or answer a question.</p>
-                           <img width="100%" src="controls.png" alt="Play/Pause Control" />
+                        <div class="control-image-wrap">
+                            <img src="controls.png" alt="Play/Pause Control" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1229,7 +1253,9 @@
                         </div>
                         <p class="control-desc">Fine-tune the scrolling pace to match your natural speaking rhythm using
                             the slider or keyboard shortcuts.</p>
-                        <img width="100%" src="speed-slider-button.png" alt="Speed Slider" />
+                        <div class="control-image-wrap">
+                            <img src="speed-slider-button.png" alt="Speed Slider" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1246,7 +1272,9 @@
                         </div>
                         <p class="control-desc">Dial in the perfect text scale. Make your script readable at any
                             distance without squinting or leaning in.</p>
-                        <img width="100%" src="text-size-slider.png" alt="Text Size Slider" />
+                        <div class="control-image-wrap">
+                            <img src="text-size-slider.png" alt="Text Size Slider" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1262,7 +1290,9 @@
                         </div>
                         <p class="control-desc">Once your settings are dialled in, hide the controls completely to enjoy
                             a distraction-free confidence screen.</p>
-                        <img width="100%" src="toggle-button.png" alt="Toggle Button" />
+                        <div class="control-image-wrap">
+                            <img src="toggle-button.png" alt="Toggle Button" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1278,7 +1308,9 @@
                         </div>
                         <p class="control-desc">Instantly align your text directly under your camera lens to guarantee
                             flawless, natural eye contact with your audience.</p>
-                        <img width="100%" src="snap-to-center-button.png" alt="Snap to Center Button" />
+                        <div class="control-image-wrap">
+                            <img src="snap-to-center-button.png" alt="Snap to Center Button" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1297,7 +1329,9 @@
                         </div>
                         <p class="control-desc">Move from a barely-there overlay to a more solid reading surface
                             depending on the call, your background, and your screen brightness.</p>
-                        <img width="100%" src="contrast-slider.png" alt="Contrast Slider" />
+                        <div class="control-image-wrap">
+                            <img src="contrast-slider.png" alt="Contrast Slider" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1322,7 +1356,9 @@
                         <p class="control-desc">Choose a pause delay of <strong>1s</strong>, <strong>2s</strong>, or
                             <strong>3s</strong> depending on how quickly you want Glance to pause after silence.
                         </p>
-                        <img width="100%" src="audio.png" alt="Audio-Pause control" />
+                        <div class="control-image-wrap">
+                            <img src="audio.png" alt="Audio-Pause control" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1338,7 +1374,9 @@
                         </div>
                         <p class="control-desc">Keep track of your presentation length in real-time. Ensure you hit your
                             marks and never accidentally run over time.</p>
-                        <img width="100%" src="elapsed.png" alt="Elapsed Timer" />
+                        <div class="control-image-wrap">
+                            <img src="elapsed.png" alt="Elapsed Timer" />
+                        </div>
                     </div>
 
                     <div class="control-card">
@@ -1356,7 +1394,7 @@
                         </div>
                         <p class="control-desc">Need to check your notes or a window beneath the prompter? Hide the
                             entire overlay instantly when it's not needed.</p>
-                        <img width="100%" src="hide-overlay.png" alt="Quick Hide" />
+                            <img style="border-radius: 8px;" src="hide-overlay.png" alt="Quick Hide" />
                     </div>
                 </div>
             </section>
