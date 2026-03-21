@@ -779,6 +779,22 @@
       letter-spacing: 0.01em;
     }
 
+    body.variant-producthunt .btn-group {
+      gap: 14px;
+    }
+
+    body.variant-producthunt .cta-wrapper {
+      flex: 0 1 240px;
+      width: 240px;
+      max-width: 240px;
+      min-width: 0;
+    }
+
+    body.variant-producthunt .cta-caption {
+      width: 100%;
+      text-align: center;
+    }
+
     .cta-caption a {
       color: var(--blue);
       text-decoration: none;
@@ -2686,7 +2702,7 @@
 
   <section class="hero" style="position: relative;">
     <div class="container">
-      <div class="hero-eyebrow reveal"><span class="record-dot"></span>Teleprompter for Zoom, Teams & Google Meet</div>
+      <div class="hero-eyebrow reveal" id="heroEyebrow"><span class="record-dot"></span>Teleprompter for Zoom, Teams & Google Meet</div>
 
       <div class="hero-mid-visual reveal">
         <video autoplay muted loop playsinline poster="glance-demo-poster.webp" preload="auto">
@@ -2694,9 +2710,9 @@
           <source src="glance-demo.mp4" type="video/mp4">
         </video>
       </div>
-      <h1 class="headline reveal">Keep eye contact. <br><span class="cursive-blue">Read your script.</span>
+      <h1 class="headline reveal" id="heroHeadline">Keep eye contact. <br><span class="cursive-blue">Read your script.</span>
       </h1>
-      <p class="subhead reveal">A teleprompter placed beside your camera for Zoom, Teams and Google Meet.</p>
+      <p class="subhead reveal" id="heroSubhead">A teleprompter placed beside your camera for Zoom, Teams and Google Meet.</p>
 
       <div class="btn-group reveal">
         <div class="cta-wrapper">
@@ -2723,7 +2739,7 @@
     </div>
 
     </div>
-    <p
+    <p id="heroMicrocopy"
       style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;padding-inline: 42px">
       Private & local • No account • Internet only for activation • Works with Zoom/Teams/Meet
     </p>
@@ -3105,7 +3121,7 @@
           </a>
         </div>
 
-        <div class="cta-notes">
+        <div class="cta-notes" id="dlFooterNotes">
           <p class="cta-note">Not Apple Silicon? <button type="button" class="cta-switch-arch toggle-arch-btn">Switch to
               Intel</button></p>
           <p class="cta-note">No cloud access.</p>
@@ -3316,7 +3332,7 @@
   <!-- FINAL CTA -->
   <section class="section" style="text-align:center; padding: var(--space-section-y) 0;">
     <div class="container reveal">
-      <h2 class="headline">Ready to look <br>more confident?</h2>
+      <h2 class="headline" id="finalCtaHeadline">Ready to look <br>more confident?</h2>
       <div class="btn-group">
         <div class="cta-wrapper">
           <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
@@ -3638,6 +3654,54 @@
       const MAC_ARM_URL = releaseConfig.downloads?.macArm || '#';
       const MAC_INTEL_URL = releaseConfig.downloads?.macIntel || '#';
       const WINDOWS_LABEL = releaseConfig.windowsLabel || `${RELEASE_VERSION} · 64-bit`;
+      const heroEyebrow = document.getElementById('heroEyebrow');
+      const heroHeadline = document.getElementById('heroHeadline');
+      const heroSubhead = document.getElementById('heroSubhead');
+      const heroMicrocopy = document.getElementById('heroMicrocopy');
+      const finalCtaHeadline = document.getElementById('finalCtaHeadline');
+      const dlFooterNotes = document.getElementById('dlFooterNotes');
+
+      function applyProductHuntVariant() {
+        if (!isProductHuntVariant) {
+          return;
+        }
+
+        document.body.classList.add('variant-producthunt');
+
+        if (heroEyebrow) {
+          heroEyebrow.innerHTML = '<span class="record-dot"></span>Product Hunt launch · 7-day free trial';
+        }
+
+        if (heroHeadline) {
+          heroHeadline.innerHTML = 'Try Glance free for <br><span class="cursive-blue">7 days.</span>';
+        }
+
+        if (heroSubhead) {
+          heroSubhead.textContent = 'Download the trial for macOS or Windows. If it fits your workflow, buy once and unlock the same app with your license key.';
+        }
+
+        if (heroMicrocopy) {
+          heroMicrocopy.textContent = 'Private & local • No account • 7-day free trial • Buy once to unlock forever';
+        }
+
+        if (finalCtaHeadline) {
+          finalCtaHeadline.innerHTML = 'Start your trial. <br>Unlock later if it fits.';
+        }
+
+        if (dlFooterNotes) {
+          dlFooterNotes.innerHTML = '<p class="cta-note">7 days free.</p><p class="cta-note">Buy once later to unlock forever.</p>';
+        }
+
+        document.querySelectorAll('.dl-mac-btn .btn-text, .dl-mac-btn .btn-title').forEach((element) => {
+          element.textContent = 'Try for Mac';
+        });
+        document.querySelectorAll('.dl-win-btn .btn-text, .dl-win-btn .btn-title').forEach((element) => {
+          element.textContent = 'Try for Windows';
+        });
+        document.querySelectorAll('.dl-win-caption').forEach((element) => {
+          element.textContent = '7-day free trial. Unlock later with your license key.';
+        });
+      }
 
       // 1. Detect Architecture
       try {
@@ -3651,6 +3715,7 @@
         }
       } catch (e) { }
 
+      applyProductHuntVariant();
       updateDownloadLinks();
 
       function updateDownloadLinks() {
@@ -3679,7 +3744,10 @@
         document.querySelectorAll('.dl-mac-caption').forEach(el => {
           const isWhiteTheme = el.style.color.includes('rgba(255,255,255');
           const linkColor = isWhiteTheme ? '#fff' : 'var(--blue)';
-          el.innerHTML = `Not on this Mac? <button type="button" class="toggle-arch-btn toggle-arch-inline" style="--toggle-arch-color: ${linkColor};">Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}</button>`;
+          const prefix = isProductHuntVariant
+            ? 'Need a different chip?'
+            : 'Not on this Mac?';
+          el.innerHTML = `${prefix} <button type="button" class="toggle-arch-btn toggle-arch-inline" style="--toggle-arch-color: ${linkColor};">Switch to ${isAppleSilicon ? 'Intel' : 'Silicon'}</button>`;
         });
 
         document.querySelectorAll('.toggle-arch-btn').forEach(el => {
