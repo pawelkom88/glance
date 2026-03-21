@@ -3628,7 +3628,11 @@
     // Release & Architecture Logic
     document.addEventListener("DOMContentLoaded", async () => {
       let isAppleSilicon = false;
-      const releaseConfig = window.__GLANCE_RELEASE__ || {};
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      const isProductHuntVariant = ref === 'product-hunt' || ref === 'producthunt';
+      const releaseConfig = isProductHuntVariant
+        ? (window.__GLANCE_RELEASE_PH__ || {})
+        : (window.__GLANCE_RELEASE__ || {});
       const RELEASE_VERSION = releaseConfig.version || 'Latest';
       const WINDOWS_URL = releaseConfig.downloads?.windows || '#';
       const MAC_ARM_URL = releaseConfig.downloads?.macArm || '#';
@@ -3652,12 +3656,25 @@
       function updateDownloadLinks() {
         document.querySelectorAll('.dl-win-subtext').forEach(el => el.innerHTML = WINDOWS_LABEL);
 
+        if (isProductHuntVariant) {
+          document.querySelectorAll('.dl-win-btn').forEach(el => {
+            el.setAttribute('href', WINDOWS_URL);
+          });
+        }
+
         // Update Mac based on detection
         const archLabel = isAppleSilicon ? "Apple Silicon" : "Intel chip";
+        const macDownloadUrl = isAppleSilicon ? MAC_ARM_URL : MAC_INTEL_URL;
 
         document.querySelectorAll('.dl-mac-subtext').forEach(el => {
           el.innerHTML = `${RELEASE_VERSION} · ${archLabel}`;
         });
+
+        if (isProductHuntVariant) {
+          document.querySelectorAll('.dl-mac-btn').forEach(el => {
+            el.setAttribute('href', macDownloadUrl);
+          });
+        }
 
         document.querySelectorAll('.dl-mac-caption').forEach(el => {
           const isWhiteTheme = el.style.color.includes('rgba(255,255,255');
@@ -3777,8 +3794,11 @@
     document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
   </script>
   <script src="assets/release-config.js"></script>
+  <script src="assets/release-config-ph.js"></script>
   <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
   <script type="text/javascript">
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    const isProductHuntVariant = ref === 'product-hunt' || ref === 'producthunt';
     const PADDLE_CLIENT_TOKEN = "test_ed3995062157cc1b5a51e192569";
     const DOCS_CHECKOUT_URL = new URL('docs.html', window.location.href);
 
@@ -3842,6 +3862,10 @@
 
     document.querySelectorAll('.dl-mac-btn, .dl-win-btn').forEach((button) => {
       button.addEventListener('click', (event) => {
+        if (isProductHuntVariant) {
+          return;
+        }
+
         event.preventDefault();
         openOverlayCheckoutFromElement(button);
       });
