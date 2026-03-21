@@ -2674,7 +2674,7 @@
         </svg>
       </button>
       <div class="nav-links">
-        <a href="index.html">Product</a>
+        <a href="index.html" id="navProductLink">Product</a>
         <a href="docs.html">Docs</a>
         <a href="/script-template/">Scripts</a>
         <a href="/guides/">Guides</a>
@@ -3366,7 +3366,8 @@
         Google.</p>
       <div class="footer-links"
         style="display: flex; justify-content: center; gap: 24px; margin-top: 16px; flex-wrap: wrap;">
-        <a href="index.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Product</a>
+        <a href="index.html" id="footerProductLink"
+          style="color:var(--text-2); text-decoration:none; font-size:14px;">Product</a>
         <a href="docs.html" style="color:var(--text-2); text-decoration:none; font-size:14px;">Docs</a>
         <a href="/script-template/" style="color:var(--text-2); text-decoration:none; font-size:14px;">Script
           Templates</a>
@@ -3660,6 +3661,8 @@
       const heroMicrocopy = document.getElementById('heroMicrocopy');
       const finalCtaHeadline = document.getElementById('finalCtaHeadline');
       const dlFooterNotes = document.getElementById('dlFooterNotes');
+      const navProductLink = document.getElementById('navProductLink');
+      const footerProductLink = document.getElementById('footerProductLink');
 
       function applyProductHuntVariant() {
         if (!isProductHuntVariant) {
@@ -3691,6 +3694,12 @@
         if (dlFooterNotes) {
           dlFooterNotes.innerHTML = '<p class="cta-note">7 days free.</p><p class="cta-note">Buy once later to unlock forever.</p>';
         }
+
+        [navProductLink, footerProductLink].forEach((element) => {
+          if (element) {
+            element.setAttribute('href', '/?ref=product-hunt');
+          }
+        });
 
         document.querySelectorAll('.dl-mac-btn .btn-text, .dl-mac-btn .btn-title').forEach((element) => {
           element.textContent = 'Try for Mac';

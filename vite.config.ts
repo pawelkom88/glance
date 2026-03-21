@@ -5,6 +5,39 @@ import path from 'path';
 import type { Plugin } from 'vite';
 
 function landingPageRouting(): Plugin {
+  const landingPageRoot = path.join(process.cwd(), 'landing-page');
+
+  function resolveLandingPageRequest(pathname: string): string | null {
+    if (pathname === '/' || pathname === '/index.html') {
+      return path.join(landingPageRoot, 'index.html');
+    }
+
+    const normalizedPath = pathname.replace(/^\/+/, '');
+
+    if (pathname.endsWith('/')) {
+      const indexPath = path.join(landingPageRoot, normalizedPath, 'index.html');
+      return fs.existsSync(indexPath) ? indexPath : null;
+    }
+
+    const extension = path.extname(pathname);
+    if (!extension) {
+      const htmlPath = path.join(landingPageRoot, `${normalizedPath}.html`);
+      if (fs.existsSync(htmlPath)) {
+        return htmlPath;
+      }
+
+      const indexPath = path.join(landingPageRoot, normalizedPath, 'index.html');
+      return fs.existsSync(indexPath) ? indexPath : null;
+    }
+
+    if (extension === '.html') {
+      const exactHtmlPath = path.join(landingPageRoot, normalizedPath);
+      return fs.existsSync(exactHtmlPath) ? exactHtmlPath : null;
+    }
+
+    return null;
+  }
+
   return {
     name: 'landing-page-routing',
     configureServer(server) {
@@ -24,24 +57,17 @@ function landingPageRouting(): Plugin {
           // console.log(`[landing-page-routing] ${msg}`);
         };
 
-        if (pathname.endsWith('/')) {
-          const indexPath = path.join(process.cwd(), 'landing-page', pathname, 'index.html');
-          if (fs.existsSync(indexPath)) {
-            debug(`Rewriting ${pathname} -> ${pathname}index.html`);
-            reqAny.url = pathname + 'index.html' + search;
-          }
-        } else if (!path.extname(pathname)) {
-          const htmlPath = path.join(process.cwd(), 'landing-page', pathname + '.html');
-          const indexPath = path.join(process.cwd(), 'landing-page', pathname, 'index.html');
-
-          if (fs.existsSync(htmlPath)) {
-            debug(`Rewriting ${pathname} -> ${pathname}.html`);
-            reqAny.url = pathname + '.html' + search;
-          } else if (fs.existsSync(indexPath)) {
-            debug(`Rewriting ${pathname} -> ${pathname}/index.html`);
-            reqAny.url = pathname + '/index.html' + search;
-          }
+        const landingPageFile = resolveLandingPageRequest(pathname);
+        if (landingPageFile) {
+          debug(`Serving ${pathname} from ${landingPageFile}`);
+          return server.transformIndexHtml(pathname, fs.readFileSync(landingPageFile, 'utf8'), reqAny.originalUrl || reqAny.url)
+            .then((html) => {
+              res.setHeader('Content-Type', 'text/html');
+              res.end(html);
+            })
+            .catch(next);
         }
+
         next();
       });
     }
@@ -86,6 +112,7 @@ export default defineConfig({
             main: path.resolve(__dirname, 'index.html'),
             docs: path.resolve(__dirname, 'landing-page/docs.html'),
             guides: path.resolve(__dirname, 'landing-page/guides/index.html'),
+            'script-template': path.resolve(__dirname, 'landing-page/script-template/index.html'),
             privacy: path.resolve(__dirname, 'landing-page/privacy.html'),
             terms: path.resolve(__dirname, 'landing-page/terms.html'),
             refund: path.resolve(__dirname, 'landing-page/refund.html'),

@@ -101,9 +101,37 @@ async function rewriteFlat(context, pathname, extension) {
   return null;
 }
 
+async function rewriteLandingPageDev(context, pathname, extension) {
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+  const candidates = [];
+  const prefersDirectoryIndex = pathname.endsWith("/");
+
+  if (normalizedPath === "/") {
+    candidates.push(`/landing-page/index${extension}`);
+  } else {
+    if (prefersDirectoryIndex) {
+      candidates.push(`/landing-page${normalizedPath}/index${extension}`);
+      candidates.push(`/landing-page${normalizedPath}${extension}`);
+    } else {
+      candidates.push(`/landing-page${normalizedPath}${extension}`);
+      candidates.push(`/landing-page${normalizedPath}/index${extension}`);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const response = await context.rewrite(candidate);
+    if (isSuccess(response.status)) {
+      return response;
+    }
+  }
+
+  return null;
+}
+
 export default async (request, context) => {
   const url = new URL(request.url);
   const pathname = url.pathname;
+  const isLocalDev = url.hostname === "localhost" || url.hostname === "127.0.0.1";
   const isAssetPath = /\.[a-z0-9]+$/i.test(pathname) && !pathname.endsWith(".html");
   if (isAssetPath || pathname.startsWith("/.netlify")) {
     return context.next();
@@ -127,7 +155,9 @@ export default async (request, context) => {
   // This is the critical fix: legacy stand-alone pages (/docs, /privacy,
   // /refund, /terms) live as flat HTML files and must not be shadowed by the
   // /path/index.html resolution that Netlify's directory serving would prefer.
-  const htmlResponse = await rewriteFlat(context, pathname, ".html");
+  const htmlResponse = isLocalDev
+    ? await rewriteLandingPageDev(context, pathname, ".html") || await rewriteFlat(context, pathname, ".html")
+    : await rewriteFlat(context, pathname, ".html");
   if (htmlResponse) {
     return withHeaders(htmlResponse, (headers) => {
       appendVaryHeader(headers, "Accept");

@@ -2,6 +2,10 @@
   base = "."
   publish = "landing-page"
 
+[dev]
+  command = "pnpm dev"
+  targetPort = 1420
+
 [[edge_functions]]
   function = "accept-markdown"
   path = "/*"
