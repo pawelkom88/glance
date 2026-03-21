@@ -81,8 +81,8 @@ https://atglance.app,https://www.atglance.app,http://127.0.0.1:5500,http://local
 Sandbox trusted price ids:
 
 ```text
-MAC_PRICE_ID=pri_01kk9wcy5j7a693sv9hjnymehx
-WINDOWS_PRICE_ID=pri_01kk9xwtfq4hvgzxzz4y4ppqs7
+MAC_PRICE_ID=pri_01km8ybs09f655g7c9nh3mq9jx
+WINDOWS_PRICE_ID=pri_01km8y9y48te17mynmcwcp5kg4
 PADDLE_WEBHOOK_TOLERANCE_SECONDS=30
 ```
 
