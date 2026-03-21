@@ -7,7 +7,7 @@ preview_urls = false
 enabled = true
 
 [vars]
-ALLOWED_ORIGINS = "https://atglance.app,https://www.atglance.app,http://127.0.0.1:5500,http://localhost:5500,http://localhost:1420,tauri://localhost,http://tauri.localhost"
+ALLOWED_ORIGINS = "https://atglance.app,https://www.atglance.app"
 MAC_PRICE_ID = "pri_01km8ybs09f655g7c9nh3mq9jx"
 WINDOWS_PRICE_ID = "pri_01km8y9y48te17mynmcwcp5kg4"
 PADDLE_WEBHOOK_TOLERANCE_SECONDS = "30"
