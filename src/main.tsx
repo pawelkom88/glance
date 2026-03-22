@@ -19,11 +19,10 @@ function AppBootstrap() {
   }, []);
 
   if (isOverlayWindow) {
-    return (
-      <LicenseGate>
-        <App />
-      </LicenseGate>
-    );
+    // The main window already gates access to the app. Re-running license
+    // bootstrap inside the secondary overlay window can strand Windows users on
+    // a blank loading surface if storage or network checks stall during launch.
+    return <App />;
   }
 
   return (
