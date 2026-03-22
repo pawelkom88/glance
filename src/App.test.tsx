@@ -391,4 +391,17 @@ describe('App shell behavior', () => {
       expect(useAppStore.getState().resolvedLanguage).toBe('fr');
     });
   });
+
+  it('does not call loadInitialState when in overlay route', async () => {
+    window.location.hash = '#overlay';
+    const loadInitialStateSpy = vi.fn().mockResolvedValue(undefined);
+    useAppStore.setState({ loadInitialState: loadInitialStateSpy });
+
+    render(<App />);
+
+    // Allow any pending effects to flush
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(loadInitialStateSpy).not.toHaveBeenCalled();
+  });
 });

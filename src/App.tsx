@@ -180,8 +180,11 @@ export default function App() {
   const hasStartupContentReady = isOverlay || initialized;
 
   useEffect(() => {
+    if (isOverlay) {
+      return;
+    }
     void loadInitialState();
-  }, [loadInitialState]);
+  }, [isOverlay, loadInitialState]);
 
   useEffect(() => {
     if (!hasStartupContentReady || typeof window === 'undefined') {
