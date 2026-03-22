@@ -1,0 +1,89 @@
+name: Product Hunt Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or SHA to release from
+        required: true
+        default: product-hunt-trial
+      tag_version:
+        description: Git tag / release version (for example v0.3.8-ph.7)
+        required: true
+      app_version:
+        description: App version used inside package metadata (for example 0.3.8-7)
+        required: true
+      release_body:
+        description: Release description
+        required: false
+        default: See the attached Windows assets to download and install Glance Trial.
+
+jobs:
+  build-product-hunt-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Enforce Product Hunt branch
+        shell: bash
+        run: |
+          if [[ "${{ inputs.ref }}" != "product-hunt-trial" ]]; then
+            echo "This workflow only ships from product-hunt-trial."
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust target
+        run: rustup target add x86_64-pc-windows-msvc
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Stamp Product Hunt versions for release build
+        shell: bash
+        run: |
+          APP_VERSION="${{ inputs.app_version }}"
+          node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version=process.env.APP_VERSION; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
+          node -e "const fs=require('fs'); const path='src-tauri/tauri.product-hunt.conf.json'; const json=JSON.parse(fs.readFileSync(path,'utf8')); json.version=process.env.APP_VERSION; fs.writeFileSync(path, JSON.stringify(json,null,2)+'\n');"
+          node -e "const fs=require('fs'); const path='src-tauri/Cargo.toml'; const next=fs.readFileSync(path,'utf8').replace(/^version = \".*\"$/m, 'version = \"'+process.env.APP_VERSION+'\"'); fs.writeFileSync(path,next);"
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+
+      - name: Build frontend
+        run: pnpm run build
+        env:
+          VITE_GLANCE_BUILD_CHANNEL: product_hunt
+
+      - name: Build and publish Windows Product Hunt release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GLANCE_LICENSE_PUBLIC_KEY: ${{ secrets.GLANCE_LICENSE_PUBLIC_KEY }}
+          GLANCE_BUILD_CHANNEL: product_hunt
+          VITE_GLANCE_BUILD_CHANNEL: product_hunt
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          args: --config src-tauri/tauri.product-hunt.conf.json --target x86_64-pc-windows-msvc --bundles msi,nsis
+          tagName: ${{ inputs.tag_version }}
+          releaseName: Glance Trial ${{ inputs.tag_version }}
+          releaseBody: ${{ inputs.release_body }}
+          releaseDraft: false
+          prerelease: true
