@@ -127,7 +127,7 @@ jobs:
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
   build:
-    if: "(startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && !contains(github.event_head_commit.message, '[skip gha]')"
+    if: ${{ (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && !contains(github.event_head_commit.message, '[skip gha]') && !(contains(github.ref_name, '-ph.') && startsWith(matrix.target, 'aarch64-apple-darwin')) && !(contains(github.ref_name, '-ph.') && startsWith(matrix.target, 'x86_64-apple-darwin')) }}
     permissions:
       contents: write
     strategy:
