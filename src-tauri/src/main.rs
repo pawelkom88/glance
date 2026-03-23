@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{Listener, Manager, WindowEvent};
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_updater::UpdaterExt;
 
 const APP_READY_EVENT: &str = "app_ready";
@@ -35,6 +35,28 @@ fn should_keep_only_global_hide_shortcut(window_label: &str, focused: bool) -> b
 
 fn should_exit_on_close_requested(window_label: &str) -> bool {
     matches!(window_label, MAIN_WINDOW_LABEL | OVERLAY_WINDOW_LABEL)
+}
+
+fn create_overlay_window_if_missing(app: &tauri::AppHandle) -> Result<(), String> {
+    if app.get_webview_window(OVERLAY_WINDOW_LABEL).is_some() {
+        return Ok(());
+    }
+
+    WebviewWindowBuilder::new(app, OVERLAY_WINDOW_LABEL, WebviewUrl::App("/#overlay".into()))
+        .title("Glance Overlay")
+        .always_on_top(true)
+        .visible(false)
+        .decorations(false)
+        .shadow(false)
+        .transparent(true)
+        .resizable(true)
+        .skip_taskbar(true)
+        .inner_size(1120.0, 400.0)
+        .min_inner_size(500.0, 200.0)
+        .build()
+        .map_err(|error: tauri::Error| error.to_string())?;
+
+    Ok(())
 }
 
 fn show_main_window(app: &tauri::AppHandle) {
@@ -229,6 +251,7 @@ fn main() {
                 saved_main_monitor_key: Mutex::new(None),
                 _log_guard: guard,
             });
+            create_overlay_window_if_missing(app.handle())?;
             register_main_window_ready_hooks(app.handle());
             register_main_window_monitor_change_hooks(app.handle())?;
 

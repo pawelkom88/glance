@@ -1,6 +1,6 @@
 {
   "name": "glance",
-  "version": "0.3.8-9",
+  "version": "0.3.8-10",
   "private": true,
   "type": "module",
   "scripts": {
