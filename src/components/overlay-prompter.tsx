@@ -2541,7 +2541,6 @@ export function OverlayPrompter() {
     }
 
     hasUserDraggedWindowRef.current = true;
-    queueFocusRecovery();
     void startOverlayDrag().finally(() => {
       queueFocusRecovery();
       window.setTimeout(() => {

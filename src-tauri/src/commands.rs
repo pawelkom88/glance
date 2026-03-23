@@ -564,7 +564,8 @@ pub fn start_overlay_drag(app: AppHandle, state: State<'_, AppState>) -> Result<
         .start_dragging()
         .map_err(|error| error.to_string())?;
 
-    recover_overlay_focus_inner(&app, &state)
+    let _ = state;
+    Ok(())
 }
 
 #[tauri::command]
