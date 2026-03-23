@@ -2559,6 +2559,12 @@ export function OverlayPrompter() {
       return;
     }
 
+    if (typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win')) {
+      event.preventDefault();
+      void startWindowDrag();
+      return;
+    }
+
     const startX = event.clientX;
     const startY = event.clientY;
 
