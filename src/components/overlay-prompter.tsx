@@ -2543,12 +2543,7 @@ export function OverlayPrompter() {
 
     hasUserDraggedWindowRef.current = true;
     if (isWindows) {
-      void getCurrentWindow().startDragging().finally(() => {
-        queueFocusRecovery();
-        window.setTimeout(() => {
-          void refreshWindowPlacement();
-        }, 180);
-      });
+      void getCurrentWindow().startDragging();
       return;
     }
 
