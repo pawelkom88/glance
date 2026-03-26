@@ -45,8 +45,6 @@ const maxFontScale = 2.0;
 const fontScaleStep = 0.05;
 const nonDraggableSelector = 'button, input, select, textarea, a, [role="menuitem"], [data-overlay-no-drag="true"]';
 const isWindows = typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win');
-const dragRegionProps = isWindows ? { 'data-tauri-drag-region': true } : {};
-const noDragRegionProps = isWindows ? { 'data-tauri-drag-region': false } : {};
 const timerPrefsStorageKey = 'glance-overlay-timer-prefs-v1';
 
 type TimerMode = 'count-up' | 'count-down';
@@ -1234,7 +1232,7 @@ export function OverlayPrompter() {
           <span className="overlay-timer-value">{formatTimerClock(timerDisplayMs)}</span>
         </button>
         {isTimerMenuOpen ? (
-          <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label={t('overlay.timerControlsAria')} {...noDragRegionProps}>
+          <div ref={timerMenuRef} className="overlay-popover overlay-timer-popover" role="dialog" aria-label={t('overlay.timerControlsAria')}>
             <div className="overlay-timer-mode-group" role="radiogroup" aria-label={t('overlay.timerModeAria')}>
               <button
                 type="button"
@@ -2544,6 +2542,16 @@ export function OverlayPrompter() {
     }
 
     hasUserDraggedWindowRef.current = true;
+    if (isWindows) {
+      void getCurrentWindow().startDragging().finally(() => {
+        queueFocusRecovery();
+        window.setTimeout(() => {
+          void refreshWindowPlacement();
+        }, 180);
+      });
+      return;
+    }
+
     void startOverlayDrag().finally(() => {
       queueFocusRecovery();
       window.setTimeout(() => {
@@ -2719,12 +2727,11 @@ export function OverlayPrompter() {
           overlayRootRef.current?.focus({ preventScroll: true });
         }}
         onMouseDown={handleDragMouseDown}
-        {...dragRegionProps}
       >
         <div className={`overlay-debug-size ${isResizing ? 'is-visible' : ''}`} aria-live="polite" aria-label={t('overlay.sizeAria')}>
           {overlaySize.width} × {overlaySize.height}
         </div>
-        <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown} {...dragRegionProps}>
+        <aside className="overlay-left-sidebar" onMouseDown={handleDragMouseDown}>
           {!isCompactTopBar ? (
             <div className="overlay-left-sidebar-layout">
               <div className="overlay-left-utility-cluster">
@@ -2754,7 +2761,7 @@ export function OverlayPrompter() {
           ) : null}
 
           {isFontMenuOpen ? (
-            <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label={t('overlay.fontSizeSettings')} {...noDragRegionProps}>
+            <div ref={fontMenuRef} className="overlay-popover overlay-font-popover" role="dialog" aria-label={t('overlay.fontSizeSettings')}>
               <div className="overlay-popover-header">TEXT & DISPLAY</div>
 
               <div className="overlay-popover-row">
@@ -2833,7 +2840,6 @@ export function OverlayPrompter() {
               role="menu"
               aria-label={t('overlay.jumpToSection')}
               onKeyDown={handleJumpMenuKeyDown}
-              {...noDragRegionProps}
             >
               {sections.map((section, index) => (
                 <button
@@ -2866,7 +2872,6 @@ export function OverlayPrompter() {
             '--spotlight-top': `${rulerStyle.top}px`,
             '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
           } as CSSProperties}
-          {...noDragRegionProps}
         >
           {showReadingRuler ? (
             <div
@@ -2941,9 +2946,9 @@ export function OverlayPrompter() {
           </div>
         </section>
 
-        <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown} {...dragRegionProps}>
+        <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
           {isCompactTopBar ? (
-            <div className={`overlay-compact-dock ${isControlsCollapsed ? 'is-collapsed' : ''}`} {...noDragRegionProps}>
+            <div className={`overlay-compact-dock ${isControlsCollapsed ? 'is-collapsed' : ''}`}>
               <div className="overlay-compact-panel">
                 <div className="overlay-compact-context-bar">
                   <div className="overlay-compact-context-main">
@@ -2986,7 +2991,6 @@ export function OverlayPrompter() {
               style={compactFontPopoverStyle}
               role="dialog"
               aria-label={t('overlay.fontSizeSettings')}
-              {...noDragRegionProps}
             >
               <div className="overlay-font-stepper" role="group" aria-label={t('overlay.fontSize')}>
                 <button
