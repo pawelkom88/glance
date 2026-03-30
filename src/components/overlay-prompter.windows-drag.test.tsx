@@ -168,11 +168,23 @@ describe('OverlayPrompter Windows drag regression', () => {
 
     await act(async () => {
       await Promise.resolve();
+    });
+
+    // Simulate the window being moved during the drag loop.
+    if (windowMocks.onMoved.mock.calls.length > 0) {
+      const onMovedCallback = windowMocks.onMoved.mock.calls[0][0];
+      onMovedCallback({ payload: { x: 50, y: 50 } });
+    }
+
+    // Now run all debounce timers (80ms moveTimeout)
+    await act(async () => {
       vi.runAllTimers();
+      await Promise.resolve();
     });
 
     expect(windowMocks.startDragging).toHaveBeenCalledTimes(1);
     expect(tauriMocks.startOverlayDrag).not.toHaveBeenCalled();
+    // Reclaiming focus during a drag breaks the native event loop on Windows
     expect(tauriMocks.recoverOverlayFocus).not.toHaveBeenCalled();
     expect(windowMocks.setFocus).not.toHaveBeenCalled();
   });

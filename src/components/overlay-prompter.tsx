@@ -2494,9 +2494,11 @@ export function OverlayPrompter() {
         }
         moveTimeoutRef.current = window.setTimeout(() => {
           void refreshWindowPlacement();
-          void recoverOverlayFocus().catch(() => {
-            getCurrentWindow().setFocus().catch(() => { });
-          });
+          if (!isWindows || !hasUserDraggedWindowRef.current) {
+            void recoverOverlayFocus().catch(() => {
+              getCurrentWindow().setFocus().catch(() => { });
+            });
+          }
           overlayRootRef.current?.focus({ preventScroll: true });
         }, 80);
       }
