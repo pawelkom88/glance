@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Primary SEO -->
+    <title>Microsoft Teams Teleprompter Overlay — Glance (Eye Contact on Calls)</title>
+    <meta name="description"
+        content="Glance is a discreet Microsoft Teams teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls. Local-first. No account." />
+    <link rel="canonical" href="https://atglance.app/microsoft-teams-teleprompter/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Microsoft Teams Teleprompter Overlay — Glance (Eye Contact on Calls)" />
+    <meta property="og:description"
+        content="Glance is a discreet Microsoft Teams teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls. Local-first. No account." />
+    <meta property="og:url" content="https://atglance.app/microsoft-teams-teleprompter/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Microsoft Teams Teleprompter Overlay — Glance (Eye Contact on Calls)" />
+    <meta name="twitter:description"
+        content="Glance is a discreet Microsoft Teams teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls. Local-first. No account." />
+    <meta name="twitter:image" content="https://atglance.app/OG.webp" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+        rel="stylesheet">
+
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@id": "https://atglance.app/#organization",
+                    "@type": "Organization",
+                    "name": "Glance",
+                    "url": "https://atglance.app/",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": "https://atglance.app/logo.png"
+                    }
+                },
+                {
+                    "@type": "SoftwareApplication",
+                    "name": "Glance — Microsoft Teams Teleprompter Overlay",
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": ["macOS", "Windows"],
+                    "description": "Glance is a discreet Microsoft Teams teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls.",
+                    "url": "https://atglance.app/microsoft-teams-teleprompter/",
+                    "publisher": { "@id": "https://atglance.app/#organization" }
+                },
+                {
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": 1,
+                            "name": "Home",
+                            "item": "https://atglance.app/"
+                        },
+                        {
+                            "@type": "ListItem",
+                            "position": 2,
+                            "name": "Microsoft Teams Teleprompter",
+                            "item": "https://atglance.app/microsoft-teams-teleprompter/"
+                        }
+                    ]
+                }
+            ]
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #f5f5f7;
+            --text-1: #1d1d1f;
+            --text-2: #424245;
+            --text-3: #86868b;
+            --accent: #007AFF;
+            --border: rgba(0, 0, 0, 0.08);
+            --placeholder: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-1);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            text-rendering: optimizeLegibility;
+            line-height: 1.6;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            border-radius: 6px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-1);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-1);
+        }
+
+        .article-shell {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 108px 32px 0;
+        }
+
+        .back-link {
+            border: 0;
+            background: transparent;
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-bottom: 34px;
+            text-decoration: none;
+        }
+
+        .back-link svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+        }
+
+        .article-eyebrow {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-family: "Commissioner", sans-serif;
+            font-size: clamp(34px, 6vw, 48px);
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .article-meta {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 22px;
+            margin-bottom: 40px;
+            color: var(--text-3);
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        article p {
+            font-size: 17px;
+            line-height: 1.75;
+            color: var(--text-1);
+            font-weight: 400;
+            margin-bottom: 24px;
+        }
+
+        article h2 {
+            font-family: "Commissioner", sans-serif;
+            font-size: 28px;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
+            font-weight: 700;
+            margin: 56px 0 20px;
+        }
+
+        article h3 {
+            font-family: "Commissioner", sans-serif;
+            font-size: 20px;
+            line-height: 1.4;
+            letter-spacing: -0.01em;
+            font-weight: 700;
+            margin: 32px 0 16px;
+        }
+
+        article ul,
+        article ol {
+            margin: 24px 0 32px;
+            padding: 0;
+            list-style: none;
+        }
+
+        article li {
+            position: relative;
+            padding: 12px 0 12px 24px;
+            border-bottom: 1px solid var(--border);
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--text-2);
+        }
+
+        article ul li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 1.15em;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        article q,
+        blockquote {
+            display: block;
+            margin: 40px 0;
+            padding: 24px;
+            background: var(--surface);
+            border-radius: 16px;
+            border-left: 4px solid var(--accent);
+        }
+
+        article blockquote p {
+            margin-bottom: 0;
+            font-weight: 500;
+            color: var(--text-1);
+        }
+
+        article blockquote a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        article hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 48px 0;
+        }
+
+        footer {
+            padding: 80px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            margin-top: 120px;
+        }
+
+        footer .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: var(--text-3);
+            margin-bottom: 20px;
+        }
+
+        footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        footer a {
+            color: var(--text-3);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: var(--text-1);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 52px;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                flex-direction: column;
+                padding: 20px 40px;
+                gap: 20px;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .article-shell {
+                padding: 100px 20px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-inner">
+            <a href="../index.html" class="logo">
+                <img src="../icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links">
+                <a href="../index.html">Product</a>
+                <a href="../docs.html">Docs</a>
+                <a href="/script-template/">Scripts</a>
+                <a href="../guides/">Guides</a>
+                <a href="../privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="article-shell">
+        <a href="../index.html" class="back-link">
+            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M7.75 2.25L4 6L7.75 9.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Back to home
+        </a>
+        <p class="article-eyebrow">Application</p>
+        <h1>Microsoft Teams Teleprompter Overlay — Glance</h1>
+        <p class="article-meta">Product Page · Keep eye contact on Teams calls</p>
+
+        <article>
+            <p>If you run team standups, client reviews, or all-hands in Microsoft Teams, you know the problem: your notes are on your desk, your camera is above your screen, and every time you glance down you break the connection.</p>
+            <p>A teleprompter overlay fixes this. Glance floats your script in a transparent window near your webcam so you maintain eye contact while reading naturally. It stays on top of your Teams window without appearing in your camera feed.</p>
+            <p><strong>macOS + Windows.</strong> Local-first privacy. No account.</p>
+
+            <blockquote>
+                <p><a href="https://atglance.app/">Download Glance</a> (macOS)</p>
+                <p><a href="https://atglance.app/">Download Glance</a> (Windows)</p>
+            </blockquote>
+
+            <hr />
+
+            <h2>Why Teams calls need a teleprompter overlay</h2>
+            <p>Microsoft Teams puts faces in the centre of the screen, but your webcam sits above the display. Your notes sit below the camera — on your desk, in a notebook, or in a window you have to scroll. That gap is the problem:</p>
+            <ul>
+                <li><strong>Looking down at notes</strong> reads as disengaged or unprepared</li>
+                <li><strong>Side-glancing at a second monitor</strong> is obvious to everyone watching</li>
+                <li><strong>Scanning a document on screen</strong> pulls your eyes away from the lens for seconds at a time</li>
+            </ul>
+            <p>Glance places your script in the <strong>top zone of your screen</strong> — right next to your camera — so you can read without breaking eye contact.</p>
+            <p>This matters more on Teams than on any other platform. Teams calls tend to be longer, involve more participants, and mix presentation with conversation. A visible note-check erodes trust faster in these settings.</p>
+
+            <hr />
+
+            <h2>Setting up Glance with Microsoft Teams</h2>
+            <p>The ideal Teams + Glance layout takes 30 seconds:</p>
+            <ol>
+                <li><strong>Open Microsoft Teams</strong> and join your meeting</li>
+                <li><strong>Launch Glance</strong> — it appears as a transparent overlay near your camera</li>
+                <li><strong>Drop your script</strong> — paste text or import a Markdown file</li>
+                <li><strong>Position Glance</strong> in the top-center of your screen, just below your webcam</li>
+                <li><strong>Adjust opacity</strong> so your script is readable but your video feed is visible behind it</li>
+            </ol>
+            <p>Glance stays on top of Teams without hiding behind it. Your audience sees only your face — not the overlay.</p>
+
+            <h3>Teams-specific layout tips</h3>
+            <p>Teams has a dense interface. The toolbar, chat sidebar, and raised-hands panel can push your video feed around. Keep your Glance overlay in the top-center of the display, away from Teams UI elements. If you use Together Mode, position Glance slightly above where your face appears on screen.</p>
+
+            <hr />
+
+            <h2>Tips for screen sharing on Teams</h2>
+            <p>Screen sharing in Teams works differently depending on what you share. Glance behaviour changes with it:</p>
+            <ul>
+                <li><strong>Share your entire screen</strong> — participants see Glance. Keep the overlay opacity low so it blends into your background.</li>
+                <li><strong>Share a single window</strong> (e.g. a browser or PowerPoint) — Glance stays invisible to participants. This is the safest option for demos.</li>
+                <li><strong>Share a PowerPoint Live presentation</strong> — your slides are shared, but Glance stays on your main display, hidden from viewers.</li>
+            </ul>
+            <p>Best practice for Teams demos:</p>
+            <ul>
+                <li>Share only the <strong>window you are presenting from</strong>, not the full screen</li>
+                <li>Keep Glance on your main display — it stays private while your audience sees only the shared window</li>
+                <li>Test your layout before the live call with a Teams test meeting</li>
+            </ul>
+
+            <hr />
+
+            <h2>Use cases for Teams + Glance</h2>
+            <ul>
+                <li><strong>Client reviews:</strong> Walk through quarterly results or project updates with confidence, hitting every talking point</li>
+                <li><strong>Team standups:</strong> Deliver your daily updates without forgetting key metrics or action items</li>
+                <li><strong>All-hands meetings:</strong> Follow your agenda script naturally while watching reactions across the room</li>
+                <li><strong>Sales calls:</strong> Keep your pitch structure on hand while adapting to live questions</li>
+                <li><strong>Internal training:</strong> Guide new team members through processes with a prepared walkthrough</li>
+            </ul>
+
+            <hr />
+
+            <h2>Built for live calls, not recording</h2>
+            <p>Most teleprompter apps assume you are recording a video — script, record, retake, edit. Glance is designed for the live moment you cannot redo: the Teams meeting where people are watching in real time.</p>
+            <p>Real-time controls that matter in conversation:</p>
+            <ul>
+                <li><strong>Auto-Pause with Voice</strong> — Glance pauses when you stop speaking, resumes when you continue. No manual fumbling.</li>
+                <li><strong>Speed adjustment</strong> — slow down for complex topics, speed through transitions</li>
+                <li><strong>Section jumps</strong> — Markdown headings become Ctrl+[number] shortcuts so you can skip between agenda items instantly</li>
+                <li><strong>Quick Hide</strong> — dismiss the overlay with a keyboard shortcut when going off-script or answering unexpected questions</li>
+            </ul>
+
+            <hr />
+
+            <h2>Privacy-first by design</h2>
+            <p>Glance runs entirely on your device. Your scripts never leave your machine. Audio analysis for Auto-Pause happens locally — nothing is stored, uploaded, or transmitted.</p>
+            <ul>
+                <li><strong>No accounts. No login.</strong></li>
+                <li><strong>Offline after activation.</strong> One-time internet connection to activate your license, then fully offline.</li>
+                <li><strong>No recording.</strong> Glance does not record your screen, camera, or audio.</li>
+                <li><strong>Your scripts stay on your device.</strong> Always.</li>
+            </ul>
+
+            <hr />
+
+            <h2>Cross-platform</h2>
+            <ul>
+                <li><strong>macOS:</strong> Download the ZIP, drag Glance to Applications, approve in Privacy & Security.</li>
+                <li><strong>Windows:</strong> Available via the Microsoft Store for a clean, automatic install.</li>
+            </ul>
+
+            <hr />
+
+            <h2>FAQ</h2>
+            <h3>Does Glance appear in my Teams camera feed?</h3>
+            <p>No. Glance is an on-screen overlay on your device. It never appears in your camera feed or in any recording.</p>
+            <h3>Will meeting participants see the teleprompter when I share my screen?</h3>
+            <p>Only if you share your entire screen. If you share a single window (like a browser, PowerPoint, or specific app), Glance stays invisible to participants.</p>
+            <h3>Does Glance work with Teams on both macOS and Windows?</h3>
+            <p>Yes. Glance is available for both macOS and Windows. The overlay behaviour is identical on both platforms.</p>
+            <h3>Can I use Glance with Teams Together Mode?</h3>
+            <p>Yes. Position the overlay slightly above where your face appears in Together Mode. Glance remains on top and readable.</p>
+            <h3>Does Glance work with Teams breakout rooms?</h3>
+            <p>Yes. Glance stays active across all Teams contexts — main room, breakout rooms, and lobby.</p>
+            <h3>How do I hide Glance during a Teams recording?</h3>
+            <p>Use Quick Hide (keyboard shortcut) before recording starts, or share a single window instead of your full screen.</p>
+            <h3>Does Glance work with Teams on the web (browser)?</h3>
+            <p>Yes. Glance is a window-level overlay, so it works with any app — including Teams in a browser, the desktop client, or the Progressive Web App.</p>
+            <h3>Do I need an account?</h3>
+            <p>No account required. No login. No cloud sync. Just the app.</p>
+            <h3>Can I use Glance offline?</h3>
+            <p>Yes. After a one-time internet connection to activate your license on this device, Glance works fully offline.</p>
+
+            <hr />
+
+            <h2>Get Glance</h2>
+            <p>If you present, demo, or lead calls in Microsoft Teams and need to stay on script without looking away, Glance is built for that.</p>
+            <blockquote>
+                <p><a href="https://atglance.app/">Download Glance</a> (macOS)</p>
+                <p><a href="https://atglance.app/">Download Glance</a> (Windows)</p>
+            </blockquote>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. Not affiliated with Zoom, Microsoft, or Google.</p>
+            <div class="footer-links">
+                <a href="../index.html">Product</a>
+                <a href="../docs.html">Docs</a>
+                <a href="/script-template/">Script Templates</a>
+                <a href="../guides/">Guides</a>
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../refund.html">Refund Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelector(".mobile-menu-toggle").addEventListener("click", () => {
+            document.querySelector(".nav-links").classList.toggle("active");
+        });
+
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => {
+            el.textContent = year;
+        });
+    </script>
+</body>
+
+</html>
