@@ -6,6 +6,12 @@
   function = "accept-markdown"
   path = "/*"
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
 [[redirects]]
   from = "https://www.atglance.app/*"
   to = "https://atglance.app/:splat"
@@ -17,3 +23,44 @@
   to = "https://atglance.app/:splat"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/feeds*"
+  to = "/"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/feed*"
+  to = "/"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/article*"
+  to = "/"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/articles*"
+  to = "/"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/blog*"
+  to = "/"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/rss*"
+  to = "/"
+  status = 410
+  force = true
+
+[[headers]]
+  for = "https://*.netlify.app/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"
