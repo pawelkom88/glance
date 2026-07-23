@@ -16,6 +16,12 @@
     X-Robots-Tag = "noindex, nofollow"
 
 [[headers]]
+  for = "/auth.md"
+  [headers.values]
+    Content-Type = "text/markdown; charset=utf-8"
+    X-Robots-Tag = "all"
+
+[[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
@@ -25,12 +31,12 @@
 [[headers]]
   for = "/"
   [headers.values]
-    Link = '</.well-known/api-catalog>; rel="api-catalog", </docs.html>; rel="service-doc", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource"'
+    Link = '</.well-known/api-catalog>; rel="api-catalog", </docs.html>; rel="service-doc", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource", </auth.md>; rel="auth-md", </.well-known/dns-aid.json>; rel="dns-aid"'
 
 [[headers]]
   for = "/index.html"
   [headers.values]
-    Link = '</.well-known/api-catalog>; rel="api-catalog", </docs.html>; rel="service-doc", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource"'
+    Link = '</.well-known/api-catalog>; rel="api-catalog", </docs.html>; rel="service-doc", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource", </auth.md>; rel="auth-md", </.well-known/dns-aid.json>; rel="dns-aid"'
 
 [[headers]]
   for = "/.well-known/api-catalog"
