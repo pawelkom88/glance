@@ -5,24 +5,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Primary SEO -->
-  <title>Guides | At a Glance</title>
+  <title>Guides | Glance</title>
   <meta name="description"
-    content="Practical guides for better video-call presence, camera confidence, and daily productivity habits with At a Glance." />
+    content="Practical guides for video call eye contact, script reading, camera confidence, and remote presentation habits with Glance." />
   <link rel="canonical" href="https://atglance.app/guides/" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="Guides | At a Glance" />
+  <meta property="og:title" content="Guides | Glance" />
   <meta property="og:description"
-    content="Practical guides for better video-call presence, camera confidence, and daily productivity habits with At a Glance." />
+    content="Practical guides for video call eye contact, script reading, camera confidence, and remote presentation habits with Glance." />
   <meta property="og:url" content="https://atglance.app/guides/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://atglance.app/OG.webp" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Guides | At a Glance" />
+  <meta name="twitter:title" content="Guides | Glance" />
   <meta name="twitter:description"
-    content="Practical guides for better video-call presence, camera confidence, and daily productivity habits with At a Glance." />
+    content="Practical guides for video call eye contact, script reading, camera confidence, and remote presentation habits with Glance." />
   <meta name="twitter:image" content="https://atglance.app/OG.webp" />
 
   <!-- Icons -->
@@ -43,14 +43,14 @@
           "url": "https://atglance.app/",
           "logo": {
             "@type": "ImageObject",
-            "url": "https://atglance.app/logo.png"
+            "url": "https://atglance.app/icon-300.png"
           }
         },
         {
           "@type": "CollectionPage",
-          "name": "Guides | At a Glance",
+          "name": "Guides | Glance",
           "url": "https://atglance.app/guides/",
-          "description": "Practical guides for better video-call presence, camera confidence, and daily productivity habits.",
+          "description": "Practical guides for video call eye contact, script reading, camera confidence, and remote presentation habits.",
           "publisher": { "@id": "https://atglance.app/#organization" }
         },
         {
@@ -77,20 +77,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:wght@300;400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:wght@300;400;500;600&display=swap"
     rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  
   <style>
-    :root {
-      --bg: #ffffff;
-      --surface: #f5f5f7;
-      --text-1: #000000;
-      --text-2: #6e6e73;
-      --text-3: #aeaeb2;
-      --accent: #007AFF;
-      --border: rgba(0, 0, 0, 0.08);
-      --placeholder: #e0e0e0;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -105,10 +96,25 @@
       font-weight: 300;
       text-rendering: optimizeLegibility;
       padding: 0;
+      line-height: 1.5;
     }
 
-    button {
-      font: inherit;
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 20px;
+      background: #1d1d1f;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2000;
+      text-decoration: none;
+      transition: top 0.2s ease;
+    }
+    .skip-link:focus {
+      top: 12px;
     }
 
     nav {
@@ -127,7 +133,7 @@
 
     .nav-inner {
       width: 100%;
-      max-width: 1200px;
+      max-width: 1100px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -146,6 +152,7 @@
 
     .logo img {
       width: 32px;
+      height: 32px;
       border-radius: 6px;
     }
 
@@ -176,9 +183,9 @@
       color: var(--text-1);
     }
 
-    #view-grid,
-    #view-article {
+    main {
       padding-top: 108px;
+      padding-bottom: 80px;
     }
 
     .grid-shell {
@@ -192,405 +199,171 @@
       line-height: 1.2;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--accent);
-      font-weight: 500;
+      color: var(--blue);
+      font-weight: 600;
       margin-bottom: 14px;
     }
 
     .header-title {
       font-family: "Commissioner", sans-serif;
-      font-size: clamp(42px, 6.3vw, 60px);
-      line-height: 1.08;
-      letter-spacing: -0.03em;
+      font-size: clamp(32px, 4vw, 44px);
       font-weight: 700;
-      max-width: 760px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text-1);
+      margin-bottom: 16px;
     }
 
     .header-subtitle {
-      margin-top: 18px;
-      font-size: 17px;
-      line-height: 1.6;
+      font-size: 18px;
       color: var(--text-2);
-      font-weight: 300;
-      max-width: 460px;
+      line-height: 1.6;
+      max-width: 680px;
+      margin-bottom: 48px;
     }
 
-    .card-interactive {
-      cursor: pointer;
-      border: 0;
-      background: var(--surface);
-      text-align: left;
-      transition: transform 0.22s ease, box-shadow 0.22s ease;
+    .featured-card {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 0;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: var(--bg-2);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      margin-bottom: 48px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .card-interactive:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.08);
+    .featured-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
+    }
+
+    .featured-visual {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .featured-visual img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .featured-content {
+      padding: 44px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .category {
       font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .meta {
-      font-size: 13px;
-      color: var(--text-3);
-      line-height: 1.4;
-      font-weight: 400;
-    }
-
-    .featured-card {
-      width: 100%;
-      margin-top: 52px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-radius: 20px;
-      overflow: hidden;
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .featured-visual img {
-      object-fit: cover;
-      width: 100%;
-      height: 100%;
-    }
-
-    .featured-content {
-      padding: 48px 44px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      justify-content: center;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: var(--blue);
+      margin-bottom: 12px;
     }
 
     .featured-title {
       font-family: "Commissioner", sans-serif;
+      font-size: 24px;
       font-weight: 700;
-      font-size: 26px;
       line-height: 1.25;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
       color: var(--text-1);
+      margin-bottom: 14px;
     }
 
     .featured-excerpt {
       font-size: 15px;
-      line-height: 1.65;
       color: var(--text-2);
-      font-weight: 300;
-      max-width: 420px;
-    }
-
-    .featured-read {
-      margin-top: 10px;
-      font-size: 14px;
-      line-height: 1.3;
-      color: var(--accent);
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .featured-read svg {
-      width: 14px;
-      height: 14px;
-      transition: transform 0.22s ease;
-    }
-
-    .featured-card:hover .featured-read svg {
-      transform: translateX(3px);
-    }
-
-    .cards-grid {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .guide-card {
-      border-radius: 16px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 322px;
-    }
-
-    .card-visual {
-      height: 150px;
-      background: var(--placeholder);
-      flex-shrink: 0;
-    }
-
-    .card-content {
-      padding: 20px 22px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      height: 100%;
-    }
-
-    .card-title {
-      font-family: "Commissioner", sans-serif;
-      font-size: 16px;
-      line-height: 1.3;
-      letter-spacing: -0.01em;
-      font-weight: 600;
-      color: var(--text-1);
-    }
-
-    .card-excerpt {
-      font-size: 13px;
       line-height: 1.6;
-      color: var(--text-2);
-      font-weight: 300;
-    }
-
-    .card-read {
-      margin-top: auto;
-      font-size: 12px;
-      color: var(--text-3);
-      font-weight: 400;
-    }
-
-    .guide-card.wide {
-      grid-column: span 2;
-      flex-direction: row;
-      min-height: 246px;
-    }
-
-    .guide-card.wide .card-visual {
-      width: 220px;
-      height: auto;
-      min-height: 100%;
-    }
-
-    .guide-card.wide .card-content {
-      padding: 24px 24px 24px;
-    }
-
-    #view-article {
-      display: none;
-      opacity: 0;
-      transform: translateY(10px);
-      max-width: 100%;
-    }
-
-    #view-article.is-visible {
-      opacity: 1;
-      transform: translateY(0);
-      transition: opacity 0.28s ease, transform 0.28s ease;
-    }
-
-    .article-shell {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 0 32px;
-    }
-
-    .back-button {
-      border: 0;
-      background: transparent;
-      color: var(--accent);
-      font-size: 14px;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      margin-bottom: 34px;
-    }
-
-    .back-button svg {
-      width: 12px;
-      height: 12px;
-      flex-shrink: 0;
-    }
-
-    .article-eyebrow {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-      font-weight: 500;
-      margin-bottom: 12px;
-    }
-
-    .article-title {
-      font-family: "Commissioner", sans-serif;
-      font-size: clamp(34px, 6vw, 52px);
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-      font-weight: 700;
-      margin-bottom: 18px;
-    }
-
-    .article-meta {
-      display: inline-flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      width: 100%;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 22px;
-      margin-bottom: 24px;
-      color: var(--text-3);
-      font-size: 14px;
-      font-weight: 400;
-      line-height: 1.5;
-    }
-
-    .article-hero-visual {
-      width: 100%;
-      height: 300px;
-      border-radius: 20px;
-      background: var(--placeholder);
-      margin-bottom: 34px;
-    }
-
-    .article-body p {
-      font-size: 16px;
-      line-height: 1.78;
-      color: #1d1d1f;
-      font-weight: 300;
       margin-bottom: 20px;
     }
 
-    .article-body h2 {
-      font-family: "Commissioner", sans-serif;
-      font-size: 24px;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
-      font-weight: 700;
-      margin: 44px 0 16px;
+    .meta {
+      font-size: 13px;
+      color: var(--text-2);
+      margin-bottom: 16px;
     }
 
-    .article-body h3 {
+    .featured-read {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    .featured-read svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .guide-card {
+      border-radius: 20px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      padding: 30px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .guide-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    }
+
+    .guide-card .card-title {
       font-family: "Commissioner", sans-serif;
       font-size: 19px;
-      line-height: 1.4;
-      letter-spacing: -0.01em;
-      font-weight: 600;
-      margin: 26px 0 12px;
-    }
-
-    .article-body ul,
-    .article-body ol {
-      margin: 14px 0 26px;
-      padding: 0;
-      list-style: none;
-    }
-
-    .article-body li {
-      position: relative;
-      padding: 14px 0 14px 22px;
-      border-bottom: 1px solid var(--border);
-      font-size: 16px;
-      line-height: 1.65;
-      color: #1d1d1f;
-      font-weight: 300;
-    }
-
-    .article-body ul li::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 1.15em;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--accent);
-    }
-
-    .article-body ol {
-      counter-reset: step;
-    }
-
-    .article-body ol li::before {
-      counter-increment: step;
-      content: counter(step) ".";
-      position: absolute;
-      left: 0;
-      top: 14px;
-      color: var(--accent);
-      font-weight: 500;
-      font-size: 14px;
-    }
-
-    .article-body strong {
-      font-weight: 500;
-    }
-
-    .article-body em {
-      font-style: italic;
-    }
-
-    .callout {
-      margin: 30px 0;
-      background: #f0f6ff;
-      border-left: 3px solid var(--accent);
-      border-radius: 0 12px 12px 0;
-      padding: 22px 26px;
-    }
-
-    .callout p {
-      margin: 0;
-      color: var(--text-2);
-      font-style: italic;
-      font-weight: 300;
-      font-size: 16px;
-      line-height: 1.7;
-    }
-
-    .related-shell {
-      max-width: 980px;
-      margin: 56px auto 0;
-      padding: 48px 32px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .related-title {
-      font-family: "Commissioner", sans-serif;
-      font-size: 22px;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
       font-weight: 700;
-      padding-bottom: 28px;
-    }
-
-    .related-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .related-card {
-      border-radius: 16px;
-      background: var(--surface);
-      padding: 22px;
-      border: 0;
-      text-align: left;
-    }
-
-    .related-card .card-title {
+      line-height: 1.3;
+      color: var(--text-1);
       margin-top: 10px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+    }
+
+    .guide-card .card-excerpt {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .guide-card .card-read {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--blue);
     }
 
     footer {
       padding: 60px 0;
       border-top: 1px solid var(--border);
       text-align: center;
-      margin-top: 64px;
     }
 
     footer .container {
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 0 40px;
     }
@@ -621,16 +394,6 @@
       color: var(--text-1);
     }
 
-    @media (max-width: 980px) {
-      .cards-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .guide-card.wide {
-        grid-column: span 2;
-      }
-    }
-
     @media (max-width: 768px) {
       .mobile-menu-toggle {
         display: block;
@@ -658,9 +421,7 @@
         padding: 0 20px;
       }
 
-      .grid-shell,
-      .article-shell,
-      .related-shell {
+      .grid-shell {
         padding-left: 20px;
         padding-right: 20px;
       }
@@ -669,35 +430,7 @@
         grid-template-columns: 1fr;
       }
 
-      .featured-visual {
-        min-height: 220px;
-      }
-
-      .featured-content {
-        padding: 30px 24px;
-      }
-
       .cards-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .guide-card,
-      .guide-card.wide {
-        grid-column: span 1;
-        flex-direction: column;
-        min-height: 0;
-      }
-
-      .guide-card.wide .card-visual {
-        width: 100%;
-        height: 150px;
-      }
-
-      .article-hero-visual {
-        height: 220px;
-      }
-
-      .related-grid {
         grid-template-columns: 1fr;
       }
 
@@ -709,13 +442,15 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
   <nav>
     <div class="nav-inner">
       <a href="/index.html" class="logo">
-        <img src="/icon.png" alt="Glance Logo">
+        <img width="32" height="32" src="/icon.png" alt="Glance Logo">
         Glance
       </a>
-      <button class="mobile-menu-toggle" aria-label="Toggle menu">
+      <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -723,7 +458,7 @@
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
-      <div class="nav-links">
+      <div class="nav-links" id="primary-navigation">
         <a href="/index.html">Product</a>
         <a href="/docs.html">Docs</a>
         <a href="/script-template/">Scripts</a>
@@ -733,267 +468,109 @@
     </div>
   </nav>
 
-  <section id="view-grid">
+  <main id="main-content">
     <div class="grid-shell">
       <p class="header-eyebrow">Guides</p>
-      <h1 class="header-title">Learn how to look better on camera and work with less friction.</h1>
-      <p class="header-subtitle">Practical guides for eye contact, confident video calls, focused routines, and everyday
-        productivity systems.</p>
+      <h1 class="header-title">Look natural on camera. Present with confidence.</h1>
+      <p class="header-subtitle">Practical guides for eye contact, video call setups, scroll speed, script structure, and discreet note placement.</p>
 
-      <a href="/guides/read-notes-without-looking-down-zoom/" class="featured-card card-interactive">
+      <a href="/guides/read-notes-without-looking-down-zoom/" class="featured-card">
         <div class="featured-visual" aria-hidden="true">
-          <img width="100%" src="../read-notes-without-looking-down-zoom.webp"
-            alt="How to Read Notes on Zoom Without Looking Down">
+          <img width="600" height="338" src="../read-notes-without-looking-down-zoom.webp" loading="lazy" decoding="async" alt="How to Read Notes on Zoom Without Looking Down">
         </div>
         <div class="featured-content">
           <p class="category">Communication</p>
           <h2 class="featured-title">How to Read Notes on Zoom Without Looking Down</h2>
-          <p class="featured-excerpt">A practical guide to using notes on Zoom without looking distracted. Fix your
-            screen
-            layout, shorten your notes, and keep your eyes near the camera.</p>
+          <p class="featured-excerpt">A practical guide to using notes on Zoom without looking distracted. Fix your screen layout, shorten your notes, and keep your eyes near the camera.</p>
           <p class="meta">9 min read · March 2026</p>
           <span class="featured-read">Read guide
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M4 8H12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-              <path d="M8.5 4.5L12 8L8.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-                stroke-linejoin="round" />
+              <path d="M8.5 4.5L12 8L8.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </span>
         </div>
       </a>
 
       <div class="cards-grid">
-        <!--
-        <button type="button" class="guide-card wide card-interactive" onclick="openArticle()">
-          <div class="card-visual" aria-hidden="true"></div>
+        <a href="/guides/how-to-maintain-eye-contact-on-video-calls/" class="guide-card">
           <div class="card-content">
-            <p class="category">Widgets</p>
-            <h3 class="card-title">Building the perfect widget stack for your lock screen</h3>
-            <p class="card-excerpt">A step-by-step guide to choosing, sizing, and arranging widgets so your lock screen
-              tells you exactly what you need.</p>
-            <p class="card-read">6 min read</p>
+            <p class="category">Eye Contact</p>
+            <h3 class="card-title">How to Maintain Natural Eye Contact on Video Calls</h3>
+            <p class="card-excerpt">Discover camera anchor techniques and window placement strategies to stay connected with your audience.</p>
           </div>
-        </button>
+          <p class="card-read">6 min read →</p>
+        </a>
 
-        <button type="button" class="guide-card card-interactive" onclick="openArticle()">
-          <div class="card-visual" aria-hidden="true"></div>
+        <a href="/guides/how-to-read-a-script-naturally/" class="guide-card">
           <div class="card-content">
-            <p class="category">Habits</p>
-            <h3 class="card-title">How to track habits without the guilt</h3>
-            <p class="card-excerpt">Streaks are motivating until they aren't. A gentler approach to consistency.</p>
-            <p class="card-read">5 min read</p>
+            <p class="category">Delivery</p>
+            <h3 class="card-title">How to Read a Teleprompter Script Naturally</h3>
+            <p class="card-excerpt">Learn vocal pacing, natural pausing techniques, and how to write spoken-word cues.</p>
           </div>
-        </button>
+          <p class="card-read">7 min read →</p>
+        </a>
 
-        <button type="button" class="guide-card card-interactive" onclick="openArticle()">
-          <div class="card-visual" aria-hidden="true"></div>
+        <a href="/guides/where-to-place-notes-during-video-calls/" class="guide-card">
           <div class="card-content">
-            <p class="category">Tips &amp; Tricks</p>
-            <h3 class="card-title">10 shortcuts power users swear by</h3>
-            <p class="card-excerpt">From quick-add gestures to Siri shortcuts — features most people miss entirely.</p>
-            <p class="card-read">4 min read</p>
+            <p class="category">Setup</p>
+            <h3 class="card-title">Where to Place Your Notes During Video Calls</h3>
+            <p class="card-excerpt">Single monitor vs dual monitor note positioning strategies for Zoom, Teams, and Meet.</p>
           </div>
-        </button>
-        
-        <button type="button" class="guide-card card-interactive" onclick="openArticle()">
-          <div class="card-visual" aria-hidden="true"></div>
-          <div class="card-content">
-            <p class="category">Productivity</p>
-            <h3 class="card-title">Designing a morning routine with your phone</h3>
-            <p class="card-excerpt">The right widgets at the right time turn your phone from distraction into compass.
-            </p>
-            <p class="card-read">7 min read</p>
-          </div>
-        </button>
+          <p class="card-read">5 min read →</p>
+        </a>
 
-        <button type="button" class="guide-card card-interactive" onclick="openArticle()">
-          <div class="card-visual" aria-hidden="true"></div>
+        <a href="/guides/teleprompter-scroll-speed/" class="guide-card">
           <div class="card-content">
-            <p class="category">Productivity</p>
-            <h3 class="card-title">Using Focus Modes with At a Glance</h3>
-            <p class="card-excerpt">Different widget layouts for Work, Personal, and Wind Down — your home screen adapts
-              to you.</p>
-            <p class="card-read">5 min read</p>
+            <p class="category">Technique</p>
+            <h3 class="card-title">Mastering Teleprompter Scroll Speed and Pacing</h3>
+            <p class="card-excerpt">Find your ideal word-per-minute speed and use voice-aware auto-pausing effectively.</p>
           </div>
-        </button>
+          <p class="card-read">5 min read →</p>
+        </a>
 
-        <button type="button" class="guide-card wide card-interactive" onclick="openArticle()">
-          <div class="card-visual" aria-hidden="true"></div>
+        <a href="/guides/teleprompter-font-size/" class="guide-card">
           <div class="card-content">
-            <p class="category">Tips &amp; Tricks</p>
-            <h3 class="card-title">Taming notifications: the ultimate setup guide</h3>
-            <p class="card-excerpt">Most people see 60+ notifications a day. Here's how to cut that down to only the
-              ones that actually matter.</p>
-            <p class="card-read">9 min read</p>
+            <p class="category">Readability</p>
+            <h3 class="card-title">Choosing the Best Font Size and Opacity for Teleprompters</h3>
+            <p class="card-excerpt">Optimize contrast, line height, and overlay transparency to avoid squinting on camera.</p>
           </div>
-        </button>
-        -->
+          <p class="card-read">4 min read →</p>
+        </a>
+
+        <a href="/guides/script-vs-talking-points/" class="guide-card">
+          <div class="card-content">
+            <p class="category">Preparation</p>
+            <h3 class="card-title">Full Script vs. Talking Points: Which Should You Use?</h3>
+            <p class="card-excerpt">When to use verbatim scripts versus bulleted talking points for live calls and presentations.</p>
+          </div>
+          <p class="card-read">6 min read →</p>
+        </a>
+
+        <a href="/guides/how-to-present-on-teams-with-notes/" class="guide-card">
+          <div class="card-content">
+            <p class="category">Microsoft Teams</p>
+            <h3 class="card-title">How to Present on Microsoft Teams with Discreet Notes</h3>
+            <p class="card-excerpt">A complete walkthrough for managing PowerPoint, presenter view, and overlay notes on Teams.</p>
+          </div>
+          <p class="card-read">8 min read →</p>
+        </a>
+
+        <a href="/guides/how-to-use-notes-in-a-video-interview/" class="guide-card">
+          <div class="card-content">
+            <p class="category">Interviews</p>
+            <h3 class="card-title">How to Use Notes in a Video Job Interview Without Getting Caught</h3>
+            <p class="card-excerpt">Keep STAR method examples and story anchors right beside your camera for confident answers.</p>
+          </div>
+          <p class="card-read">7 min read →</p>
+        </a>
       </div>
     </div>
-  </section>
-
-  <section id="view-article">
-    <div class="article-shell">
-      <button type="button" class="back-button" onclick="closeArticle()">
-        <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path d="M7.75 2.25L4 6L7.75 9.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        <span>All guides</span>
-      </button>
-
-      <p class="article-eyebrow">Communication</p>
-      <h1 class="article-title">How to Read Notes on Zoom Without Looking Down</h1>
-      <p class="article-meta">9 min read · March 2026 · Intermediate</p>
-      <div class="article-hero-visual" aria-hidden="true"></div>
-
-      <article class="article-body">
-        <p>Everyone does it. The quick glance to the notes. The “just checking one thing” dip of the eyes.</p>
-        <p>And then the other person’s expression changes. Slightly. Like they’re not sure you’re fully there.</p>
-        <p>On Zoom, looking down doesn’t read as thoughtful. It reads as you reading.</p>
-        <p>If you want to keep eye contact on video calls while still using notes, you need two things: <strong>better
-            note design</strong> and <strong>better note placement</strong>. Not willpower.</p>
-
-        <h2>Why looking down is so obvious on Zoom</h2>
-        <p>On a laptop, the camera is above your screen. Your notes are usually below it. Your gaze drops. Repeatedly.
-          It’s subtle on your side. It’s loud on theirs.</p>
-        <p>On video, people can’t see what you’re looking at. They only see you looking away.</p>
-        <p>That’s why this isn’t about “confidence.” It’s about reducing the distance between your notes and the camera.
-        </p>
-
-        <h2>The rule: notes go beside the camera, never below it</h2>
-        <p>If you remember one thing, make it this:</p>
-        <ul>
-          <li><strong>Side glance</strong> = looks like thinking</li>
-          <li><strong>Down glance</strong> = looks like reading</li>
-        </ul>
-        <p>So stop putting notes on your lap, on a notebook on the desk, or at the bottom of your screen. Put them
-          <strong>beside the webcam</strong>.
-        </p>
-
-        <h3>The easiest layout (works on one screen)</h3>
-        <ol>
-          <li>Put Zoom in the <strong>top center</strong> of your screen.</li>
-          <li>Shrink the Zoom window so faces sit close to the camera.</li>
-          <li>Put your notes in a narrow window <strong>right next to Zoom</strong>, at the top.</li>
-        </ol>
-        <p>If you have a big monitor, this is easy. If you’re on a laptop, keep things tight and minimal.</p>
-
-        <h3>If you have two screens</h3>
-        <p>Two screens can help. Or they can ruin you.</p>
-        <p>Best setup: Zoom window on the screen with the camera, and notes window on the <strong>same</strong> screen,
-          right near the lens.</p>
-        <p>Worst setup: Zoom on laptop, notes on a monitor off to the side. Now you’re turning your head and it looks
-          like you’re checking a second person in the room.</p>
-
-        <h2>The real fix: write notes you can glance at, not read</h2>
-        <p>Most “Zoom notes” are written like a speech. That’s the mistake.</p>
-        <p>If you need to read, you’ll look like you’re reading.</p>
-
-        <h3>Write cue notes, not sentences</h3>
-        <p>Use single words, short bullets, numbers, names, and transitions.</p>
-        <ul>
-          <li>5 yrs x-functional</li>
-          <li>shipped X</li>
-          <li>metric: +18%</li>
-          <li>lesson: Y</li>
-        </ul>
-        <p>Cue notes let you glance and return. Reading sentences pulls your eyes away for too long.</p>
-
-        <h3>Limit yourself: one screenful max</h3>
-        <p>If your notes require scrolling, you’re going to look away. Scrolling is the giveaway. Your eyes move, your
-          posture shifts, and the rhythm breaks.</p>
-        <p>Aim for one page, one screen, one glanceable layout.</p>
-
-        <h2>The “camera anchor” trick</h2>
-        <p>Put a tiny visual marker next to your webcam. A dot sticker. A sticky note corner. Anything.</p>
-        <p>It gives your eyes a home base. You glance at notes, then immediately return to the anchor.</p>
-        <p>This is the simplest way to look at the camera naturally while still using notes.</p>
-
-        <h2>What to do when you need a script (not just notes)</h2>
-        <p>Sometimes you’re not using notes. You’re delivering exact lines: a product demo, a pitch, a recorded intro, a
-          high-stakes interview answer.</p>
-        <p>That’s when cue notes aren’t enough.</p>
-        <p>A practical option is a <strong>teleprompter overlay</strong> — text that sits near your webcam so you don’t
-          keep looking down.</p>
-        <p>A tool like <strong>Glance</strong> is designed for this specific problem: keeping your script close to the
-          camera, with controls to adjust pace and jump between sections without switching windows mid-call.</p>
-        <ul>
-          <li>script for key lines, not every line</li>
-          <li>write like you speak</li>
-          <li>leave room to react</li>
-        </ul>
-        <p>If it sounds read, it will feel read.</p>
-
-        <h2>Common mistakes (and what to do instead)</h2>
-        <ul>
-          <li><strong>Mistake:</strong> Notes on paper on the desk<br><strong>Do instead:</strong> Notes beside the
-            webcam on-screen</li>
-          <li><strong>Mistake:</strong> Long paragraphs<br><strong>Do instead:</strong> Cue bullets</li>
-          <li><strong>Mistake:</strong> Scrolling notes<br><strong>Do instead:</strong> One screenful only</li>
-          <li><strong>Mistake:</strong> Two monitors with head-turning<br><strong>Do instead:</strong> Notes near the
-            camera screen</li>
-          <li><strong>Mistake:</strong> Trying to “hide” note use<br><strong>Do instead:</strong> Make it invisible
-            through placement and brevity</li>
-        </ul>
-
-        <h2>A 90-second practice drill</h2>
-        <ol>
-          <li>Open a private Zoom meeting.</li>
-          <li>Put 6 bullets on screen beside the camera.</li>
-          <li>Answer a common question while glancing only when needed.</li>
-          <li>Record it.</li>
-          <li>Watch for one thing: do your eyes drop down?</li>
-        </ol>
-        <p>Adjust layout. Try once more.</p>
-        <p>You’re training the motion, not the speech.</p>
-
-        <h2>Quick FAQ</h2>
-        <h3>How do I read notes on Zoom without looking down?</h3>
-        <p>Place notes beside your webcam, use short cue bullets, and keep Zoom faces near the camera.</p>
-        <h3>Where should I put my notes during a Zoom meeting?</h3>
-        <p>Near the camera — top of the screen, next to the Zoom window. Not below it.</p>
-        <h3>How can I maintain eye contact on Zoom while using notes?</h3>
-        <p>Use cue notes and a simple gaze rhythm: glance → return to lens.</p>
-        <h3>Are teleprompter apps worth it for Zoom calls?</h3>
-        <p>If you need to deliver exact lines, yes. Keep the text close to the webcam and don’t read long paragraphs.
-        </p>
-
-        <h2>The takeaway</h2>
-        <p>On Zoom, your notes aren’t the enemy. Your layout is.</p>
-        <p>Shorten the notes. Move them near the camera. Stop scrolling.</p>
-        <p>You’ll still be using help. It just won’t look like it.</p>
-      </article>
-    </div>
-
-    <div class="related-shell">
-      <h2 class="related-title">Related guides</h2>
-      <div class="related-grid">
-        <!--
-        <button type="button" class="related-card card-interactive" onclick="openArticle()">
-          <p class="category">Widgets</p>
-          <h3 class="card-title">Building the perfect widget stack for your lock screen</h3>
-          <p class="card-read">6 min read</p>
-        </button>
-        <button type="button" class="related-card card-interactive" onclick="openArticle()">
-          <p class="category">Habits</p>
-          <h3 class="card-title">How to track habits without the guilt</h3>
-          <p class="card-read">5 min read</p>
-        </button>
-        <button type="button" class="related-card card-interactive" onclick="openArticle()">
-          <p class="category">Tips &amp; Tricks</p>
-          <h3 class="card-title">10 shortcuts power users swear by</h3>
-          <p class="card-read">4 min read</p>
-        </button>
-        -->
-      </div>
-    </div>
-  </section>
+  </main>
 
   <footer>
     <div class="container">
-      <p>&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with
-        Zoom, Microsoft, or Google.</p>
+      <p>&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with Zoom, Microsoft, or Google.</p>
       <div class="footer-links">
         <a href="/index.html">Product</a>
         <a href="/docs.html">Docs</a>
@@ -1006,31 +583,8 @@
     </div>
   </footer>
 
+  <script src="/assets/js/navigation.js"></script>
   <script>
-    document.querySelector(".mobile-menu-toggle").addEventListener("click", () => {
-      document.querySelector(".nav-links").classList.toggle("active");
-    });
-
-    function openArticle() {
-      const grid = document.getElementById("view-grid");
-      const article = document.getElementById("view-article");
-      grid.style.display = "none";
-      article.style.display = "block";
-      article.classList.remove("is-visible");
-      void article.offsetWidth;
-      article.classList.add("is-visible");
-      window.scrollTo(0, 0);
-    }
-
-    function closeArticle() {
-      const grid = document.getElementById("view-grid");
-      const article = document.getElementById("view-article");
-      article.classList.remove("is-visible");
-      article.style.display = "none";
-      grid.style.display = "block";
-      window.scrollTo(0, 0);
-    }
-
     const year = new Date().getFullYear();
     document.querySelectorAll(".current-year").forEach((el) => {
       el.textContent = year;

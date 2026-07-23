@@ -1,0 +1,25 @@
+{
+  "issuer": "https://atglance.app",
+  "authorization_endpoint": "https://atglance.app/oauth/authorize",
+  "token_endpoint": "https://atglance.app/oauth/token",
+  "jwks_uri": "https://atglance.app/.well-known/jwks.json",
+  "grant_types_supported": [
+    "authorization_code",
+    "refresh_token",
+    "urn:ietf:params:oauth:grant-type:token-exchange"
+  ],
+  "response_types_supported": [
+    "code"
+  ],
+  "scopes_supported": [
+    "openid",
+    "profile",
+    "license:verify",
+    "scripts:read"
+  ],
+  "agent_auth": {
+    "register_uri": "https://atglance.app/oauth/register",
+    "supported_identity_types": ["agent", "user", "workstation"],
+    "credential_types": ["bearer_token", "api_key"]
+  }
+}

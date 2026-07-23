@@ -1,0 +1,10 @@
+{
+  "issuer": "https://atglance.app",
+  "authorization_endpoint": "https://atglance.app/oauth/authorize",
+  "token_endpoint": "https://atglance.app/oauth/token",
+  "userinfo_endpoint": "https://atglance.app/oauth/userinfo",
+  "jwks_uri": "https://atglance.app/.well-known/jwks.json",
+  "response_types_supported": ["code", "id_token"],
+  "subject_types_supported": ["public"],
+  "id_token_signing_alg_values_supported": ["RS256"]
+}

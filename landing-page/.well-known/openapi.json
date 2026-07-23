@@ -1,0 +1,52 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Glance API Catalog & Licensing Services",
+    "version": "1.2.0",
+    "description": "API services for Glance teleprompter application licensing, version updates, and script template discovery."
+  },
+  "servers": [
+    {
+      "url": "https://atglance.app/api/v1",
+      "description": "Production API Server"
+    }
+  ],
+  "paths": {
+    "/status": {
+      "get": {
+        "summary": "Health status endpoint",
+        "responses": {
+          "200": {
+            "description": "API status online"
+          }
+        }
+      }
+    },
+    "/license/verify": {
+      "post": {
+        "summary": "Verify Glance device license key",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "license_key": {
+                    "type": "string"
+                  }
+                },
+                "required": ["license_key"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "License status result"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agentskills.io/schemas/v0.2.0/index.json",
+  "version": "0.2.0",
+  "skills": [
+    {
+      "name": "glance-teleprompter-control",
+      "type": "web-tool",
+      "description": "Control floating teleprompter window settings, scroll speeds, and Markdown heading jumps for Zoom and Teams video calls.",
+      "url": "https://atglance.app/.well-known/agent-skills/teleprompter-control/SKILL.md",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "glance-script-generator",
+      "type": "prompt-template",
+      "description": "Format and optimize presentation scripts for teleprompter overlays.",
+      "url": "https://atglance.app/.well-known/agent-skills/script-generator/SKILL.md",
+      "sha256": "ca978112ca1bbdcafac231b39a23dac4059104828656f422295600d4f4161a00"
+    }
+  ]
+}

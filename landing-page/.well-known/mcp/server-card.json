@@ -1,0 +1,54 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/mcp-server-card.v1.json",
+  "serverInfo": {
+    "name": "Glance Teleprompter MCP Server",
+    "version": "1.2.0",
+    "description": "MCP Server allowing AI agents to generate Markdown scripts, adjust teleprompter overlays, and query Glance documentation.",
+    "vendor": "Glance"
+  },
+  "transport": {
+    "type": "sse",
+    "url": "https://atglance.app/api/mcp/sse"
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": true
+    },
+    "prompts": {
+      "listChanged": true
+    },
+    "resources": {
+      "subscribe": true,
+      "listChanged": true
+    }
+  },
+  "tools": [
+    {
+      "name": "generate_script_template",
+      "description": "Generates a Markdown teleprompter script template for presentations, sales calls, or webinars.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["zoom-presentation", "sales-discovery-call", "product-demo", "webinar", "team-update", "job-interview-notes"]
+          }
+        },
+        "required": ["category"]
+      }
+    },
+    {
+      "name": "verify_license",
+      "description": "Verifies a Glance license key.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "type": "string"
+          }
+        },
+        "required": ["licenseKey"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Primary SEO -->
+    <title>Teleprompter App for Windows — Glance (Windows Desktop Overlay)</title>
+    <meta name="description"
+        content="Glance is a high-performance Windows teleprompter overlay for Windows 10 & 11. Read notes naturally beside your camera during Zoom, Teams, and Meet calls." />
+    <link rel="canonical" href="https://atglance.app/teleprompter-for-windows/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Teleprompter App for Windows — Glance" />
+    <meta property="og:description"
+        content="Glance is a high-performance Windows teleprompter overlay for Windows 10 & 11. Read notes naturally beside your camera during Zoom, Teams, and Meet calls." />
+    <meta property="og:url" content="https://atglance.app/teleprompter-for-windows/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Teleprompter App for Windows — Glance" />
+    <meta name="twitter:description"
+        content="Glance is a high-performance Windows teleprompter overlay for Windows 10 & 11. Read notes naturally beside your camera during Zoom, Teams, and Meet calls." />
+    <meta name="twitter:image" content="https://atglance.app/OG.webp" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@id": "https://atglance.app/#organization",
+                    "@type": "Organization",
+                    "name": "Glance",
+                    "url": "https://atglance.app/",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": "https://atglance.app/icon-300.png"
+                    }
+                },
+                {
+                    "@type": "SoftwareApplication",
+                    "name": "Glance — Teleprompter for Windows",
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": ["Windows"],
+                    "description": "Glance teleprompter desktop overlay app for Windows 10 and Windows 11.",
+                    "url": "https://atglance.app/teleprompter-for-windows/",
+                    "publisher": { "@id": "https://atglance.app/#organization" }
+                },
+                {
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": 1,
+                            "name": "Home",
+                            "item": "https://atglance.app/"
+                        },
+                        {
+                            "@type": "ListItem",
+                            "position": 2,
+                            "name": "Teleprompter for Windows",
+                            "item": "https://atglance.app/teleprompter-for-windows/"
+                        }
+                    ]
+                }
+            ]
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #f5f5f7;
+            --text-1: #1d1d1f;
+            --text-2: #424245;
+            --text-3: #86868b;
+            --accent: #007AFF;
+            --border: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-1);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 20px;
+            background: #1d1d1f;
+            color: #ffffff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 2000;
+            text-decoration: none;
+            transition: top 0.2s ease;
+        }
+        .skip-link:focus {
+            top: 12px;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-1);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-1);
+        }
+
+        main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 108px 32px 80px;
+        }
+
+        h1 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: clamp(30px, 5vw, 42px);
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-2);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .hero-img {
+            width: 100%;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 48px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        }
+
+        article h2 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-top: 40px;
+            margin-bottom: 16px;
+        }
+
+        article p {
+            font-size: 16px;
+            color: var(--text-1);
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        article ul, article ol {
+            margin-bottom: 24px;
+            padding-left: 20px;
+        }
+
+        article li {
+            font-size: 16px;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--border);
+            margin: 40px 0;
+        }
+
+        .cta-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            text-align: center;
+            margin-top: 48px;
+        }
+
+        .cta-box h3 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 12px 28px;
+            border-radius: 999px;
+            text-decoration: none;
+            margin-top: 16px;
+            transition: opacity 0.2s ease;
+        }
+
+        footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: var(--text-2);
+            margin-bottom: 16px;
+        }
+
+        footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        footer a {
+            color: var(--text-2);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 52px;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                flex-direction: column;
+                padding: 20px 40px;
+                gap: 20px;
+                border-bottom: 1px solid var(--border);
+            }
+            .nav-links.active {
+                display: flex;
+            }
+            main {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <nav>
+        <div class="nav-inner">
+            <a href="/index.html" class="logo">
+                <img width="32" height="32" src="../icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links" id="primary-navigation">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Scripts</a>
+                <a href="/guides/">Guides</a>
+                <a href="/privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <h1>Teleprompter App for Windows 10 &amp; 11</h1>
+        <p class="subtitle">A lightweight, standalone teleprompter overlay for Windows PCs, laptops, and multi-monitor setups.</p>
+
+        <img src="../docs-glance-windows.webp" width="760" height="428" loading="lazy" decoding="async" alt="Glance teleprompter overlay on Windows 11 desktop" class="hero-img" />
+
+        <article>
+            <h2>Smooth presentation overlay on Windows</h2>
+            <p>Glance gives Windows users a clean, distraction-free teleprompter overlay that sits on top of Zoom, Microsoft Teams, Google Meet, or Webex. Stay on message without looking down at physical notes or struggling with secondary monitor placement.</p>
+
+            <hr />
+
+            <h2>Key Windows features</h2>
+            <ul>
+                <li><strong>Windows 10 &amp; 11 support:</strong> Optimized for all modern 64-bit Windows PC devices and laptops.</li>
+                <li><strong>Custom Hotkey Controls:</strong> Adjust scroll speed, font size, and section jumps instantly using global hotkeys.</li>
+                <li><strong>SmartScreen Guidance:</strong> Direct download installer with quick installation verification instructions.</li>
+                <li><strong>Local-first Data:</strong> Your speech notes and presentation scripts are stored locally on your device.</li>
+            </ul>
+
+            <hr />
+
+            <h2>Installation &amp; SmartScreen guidance</h2>
+            <p>Because Glance is downloaded directly from our site, Windows Defender SmartScreen may display a standard security prompt upon first launch. Simply click <strong>More info</strong>, then select <strong>Run anyway</strong>. You can view full setup guidance on our <a href="/help/windows-install/">Windows installation help page</a>.</p>
+
+            <div class="cta-box">
+                <h3>Get Glance for Windows</h3>
+                <p>Standalone purchase. One-time license per device.</p>
+                <a href="/index.html" class="cta-btn">Buy Glance for Windows</a>
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. Windows is a registered trademark of Microsoft Corporation.</p>
+            <div class="footer-links">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Script Templates</a>
+                <a href="/guides/">Guides</a>
+                <a href="/privacy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms of Service</a>
+                <a href="/refund.html">Refund Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../assets/js/navigation.js"></script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => {
+            el.textContent = year;
+        });
+    </script>
+</body>
+
+</html>

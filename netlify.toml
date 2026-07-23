@@ -10,6 +10,33 @@
   function = "accept-markdown"
   path = "/*"
 
+[[headers]]
+  for = "/*.md"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Signal = "search=yes, ai-input=yes, ai-train=no"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Link = '</.well-known/api-catalog>; rel="api-catalog", </docs.html>; rel="service-doc", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource"'
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Link = '</.well-known/api-catalog>; rel="api-catalog", </docs.html>; rel="service-doc", </.well-known/agent-skills/index.json>; rel="agent-skills", </.well-known/mcp/server-card.json>; rel="mcp-server-card", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource"'
+
+[[headers]]
+  for = "/.well-known/api-catalog"
+  [headers.values]
+    Content-Type = "application/linkset+json"
+
 [[redirects]]
   from = "https://www.atglance.app/*"
   to = "https://atglance.app/:splat"

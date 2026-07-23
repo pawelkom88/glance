@@ -1,0 +1,77 @@
+/* Common Component Styles (Buttons, Cards, Dialogs, Footers) */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 980px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background-color: var(--accent);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: var(--surface);
+    color: var(--text-1);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background-color: #e8e8ed;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+footer {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+footer p {
+    font-size: 14px;
+    color: var(--text-2);
+    margin-bottom: 16px;
+}
+
+footer .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+footer a {
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+footer a:hover {
+    color: var(--text-1);
+}

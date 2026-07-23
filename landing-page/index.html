@@ -6,25 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Primary SEO -->
-  <title>Teleprompter for Zoom, Teams & Meet | AtGlance</title>
+  <title>Teleprompter for Zoom, Teams & Google Meet | Glance</title>
   <meta name="description"
-    content="Desktop teleprompter overlay for Zoom, Teams & Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
+    content="Desktop teleprompter overlay for Zoom, Teams & Google Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
   <link rel="canonical" href="https://atglance.app/" />
-  <link rel="preload" as="video" href="glance-demo.mp4" type="video/mp4" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="Teleprompter for Zoom, Teams & Meet | AtGlance" />
+  <meta property="og:title" content="Teleprompter for Zoom, Teams & Google Meet | Glance" />
   <meta property="og:description"
-    content="Desktop teleprompter overlay for Zoom, Teams & Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
+    content="Desktop teleprompter overlay for Zoom, Teams & Google Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
   <meta property="og:url" content="https://atglance.app/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://atglance.app/OG.webp" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Teleprompter for Zoom, Teams & Meet | AtGlance" />
+  <meta name="twitter:title" content="Teleprompter for Zoom, Teams & Google Meet | Glance" />
   <meta name="twitter:description"
-    content="Desktop teleprompter overlay for Zoom, Teams & Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
+    content="Desktop teleprompter overlay for Zoom, Teams & Google Meet. Keep eye contact and read naturally. Runs locally — no cloud, no account required." />
   <meta name="twitter:image" content="https://atglance.app/OG.webp" />
 
   <!-- Structured data -->
@@ -39,7 +38,7 @@
           "url": "https://atglance.app/",
           "logo": {
             "@type": "ImageObject",
-            "url": "https://atglance.app/logo.png"
+            "url": "https://atglance.app/icon-300.png"
           }
         },
         {
@@ -444,6 +443,7 @@
     :root {
       --blue: #007AFF;
       --blue-soft: #E8F2FF;
+      --toggle-arch-color: #007AFF;
       --green: #34C759;
       --green-soft: #EBF9EE;
       --gold: #FFCC00;
@@ -2658,14 +2658,15 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
 
   <nav>
     <div class="nav-inner">
       <a href="index.html" class="logo">
-        <img width="32" height="32" src="icon.png" alt="Glance">
+        <img width="32" height="32" src="icon.png" alt="Glance logo">
         Glance
       </a>
-      <button class="mobile-menu-toggle" aria-label="Toggle menu">
+      <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -2673,76 +2674,78 @@
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
-      <div class="nav-links">
+      <div class="nav-links" id="primary-navigation">
         <a href="index.html" id="navProductLink">Product</a>
         <a href="docs.html">Docs</a>
         <a href="/script-template/">Scripts</a>
         <a href="/guides/">Guides</a>
         <a href="privacy.html">Privacy</a>
       </div>
-
     </div>
   </nav>
 
-  <!-- HERO -->
-  <!-- BACKGROUND SCRIPT -->
-  <div class="hero-bg-text">
-    <div class="scrolling-text" style="animation: scrollText 120s linear infinite;">
-      your script, invisible to them. confidence in every call. present flawlessly. maintain eye contact. engage your
-      audience. your script, invisible to them. confidence in every call. present flawlessly. maintain eye contact.
-      engage your audience. your script, invisible to them. confidence in every call. present flawlessly. maintain eye
-      contact. engage your audience.
-    </div>
-    <div class="scrolling-text" style="animation: scrollTextReverse 150s linear infinite; margin-left: -100px;">
-      confidence in every call. present flawlessly. maintain eye contact. engage your audience. your script, invisible
-      to them. confidence in every call. present flawlessly. maintain eye contact. engage your audience. your script,
-      invisible to them. confidence in every call. present flawlessly. maintain eye contact. engage your audience.
-    </div>
-  </div>
-
-  <section class="hero" style="position: relative;">
-    <div class="container">
-      <div class="hero-eyebrow reveal" id="heroEyebrow"><span class="record-dot"></span>Teleprompter for Zoom, Teams & Google Meet</div>
-
-      <div class="hero-mid-visual reveal">
-        <video autoplay muted loop playsinline poster="glance-demo-poster.webp" preload="auto">
-          <source src="glance-demo.webm" type="video/webm">
-          <source src="glance-demo.mp4" type="video/mp4">
-        </video>
+  <main id="main-content">
+    <!-- HERO -->
+    <!-- BACKGROUND SCRIPT -->
+    <div class="hero-bg-text" aria-hidden="true">
+      <div class="scrolling-text" style="animation: scrollText 120s linear infinite;">
+        your script, invisible to them. confidence in every call. present flawlessly. maintain eye contact. engage your
+        audience. your script, invisible to them. confidence in every call. present flawlessly. maintain eye contact.
+        engage your audience.
       </div>
-      <h1 class="headline reveal" id="heroHeadline">Keep eye contact. <br><span class="cursive-blue">Read your script.</span>
-      </h1>
-      <p class="subhead reveal" id="heroSubhead">A teleprompter placed beside your camera for Zoom, Teams and Google Meet.</p>
-
-      <div class="btn-group reveal">
-        <div class="cta-wrapper">
-          <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
-            data-items='[{"priceId":"pri_01km8ybs09f655g7c9nh3mq9jx","quantity":1}]'
-            data-custom-data='{"platform":"macos"}'>
-            <span class="btn-text">Buy for Mac</span>
-            <span class="btn-subtext dl-mac-subtext">Detecting...</span>
-          </a>
-          <div class="cta-caption dl-mac-caption">Checking version...</div>
-        </div>
-
-        <div class="cta-wrapper">
-          <a href="#" class="btn btn-secondary dl-win-btn" data-display-mode="overlay" data-theme="light"
-            data-locale="en" data-items='[{"priceId":"pri_01km8y9y48te17mynmcwcp5kg4","quantity":1}]'
-            data-custom-data='{"platform":"windows"}'>
-            <span class="btn-text">Buy for Windows</span>
-            <span class="btn-subtext dl-win-subtext">Checking version...</span>
-          </a>
-          <p class="cta-caption dl-win-caption">No cloud access. Internet only for activation.
-        </div>
-
+      <div class="scrolling-text" style="animation: scrollTextReverse 150s linear infinite; margin-left: -100px;">
+        confidence in every call. present flawlessly. maintain eye contact. engage your audience. your script, invisible
+        to them. confidence in every call. present flawlessly. maintain eye contact. engage your audience.
       </div>
     </div>
 
-    </div>
-    <p id="heroMicrocopy"
-      style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em;padding-inline: 42px">
-      Private & local • No account • Internet only for activation • Works with Zoom/Teams/Meet
-    </p>
+    <section class="hero" style="position: relative;">
+      <div class="container">
+        <div class="hero-eyebrow reveal" id="heroEyebrow"><span class="record-dot"></span>Desktop teleprompter for macOS and Windows</div>
+
+        <h1 class="headline reveal" id="heroHeadline">Teleprompter for Zoom, Teams and Google Meet</h1>
+        
+        <p class="subhead reveal" id="heroSubhead" style="margin-bottom: 12px; font-weight: 600; color: #007aff;">Keep eye contact. Read your script.</p>
+        
+        <p class="reveal" style="font-size: var(--fs-body); color: var(--text-2); max-width: 660px; margin: 0 auto 36px; line-height: 1.6;">
+          Keep your notes beside the camera and control them while you speak. Built for live interviews, presentations, demos and video calls.
+        </p>
+
+        <div class="hero-mid-visual reveal">
+          <video autoplay muted loop playsinline poster="glance-demo-poster.webp" preload="metadata">
+            <source src="glance-demo.webm" type="video/webm">
+            <source src="glance-demo.mp4" type="video/mp4">
+          </video>
+        </div>
+
+        <div class="btn-group reveal">
+          <div class="cta-wrapper">
+            <a href="#" class="btn btn-primary dl-mac-btn" data-display-mode="overlay" data-theme="light" data-locale="en"
+              data-items='[{"priceId":"pri_01km8ybs09f655g7c9nh3mq9jx","quantity":1}]'
+              data-custom-data='{"platform":"macos"}'>
+              <span class="btn-text">Buy for Mac</span>
+              <span class="btn-subtext dl-mac-subtext">Detecting...</span>
+            </a>
+            <div class="cta-caption dl-mac-caption">Checking version...</div>
+          </div>
+
+          <div class="cta-wrapper">
+            <a href="#" class="btn btn-secondary dl-win-btn" data-display-mode="overlay" data-theme="light"
+              data-locale="en" data-items='[{"priceId":"pri_01km8y9y48te17mynmcwcp5kg4","quantity":1}]'
+              data-custom-data='{"platform":"windows"}'>
+              <span class="btn-text">Buy for Windows</span>
+              <span class="btn-subtext dl-win-subtext">Checking version...</span>
+            </a>
+            <p class="cta-caption dl-win-caption">No cloud access. Internet only for activation.</p>
+          </div>
+        </div>
+
+        <p id="heroMicrocopy"
+          style="margin-top: 24px; color: var(--text-2); font-size: var(--fs-caption); font-weight: 400; line-height: 1.45; letter-spacing: 0.01em; padding-inline: 20px;">
+          Private & local • No account • Internet only for activation • Works with Zoom, Teams & Meet
+        </p>
+      </div>
+    </section>
 
     <div class="install-security-block">
       <div class="install-security-wrapper">
@@ -2934,7 +2937,7 @@
       <p
         style="text-align: center; color: var(--text-2); max-width: 660px; margin: -40px auto 64px; font-size: var(--fs-body-lg);">
         Our discreet teleprompter overlay is placed by the camera so you can read your script naturally while
-        maintaining perfect eye contact on Zoom, Teams, and Google Meet.
+        maintaining natural eye contact on Zoom, Teams, and Google Meet.
       </p>
 
       <div class="cards-grid">
@@ -2963,6 +2966,34 @@
     </div>
   </section>
 
+  <!-- DIFFERENTIATION: NONLINEAR CONVERSATIONS -->
+  <section class="section" style="background: #f8f8fa; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div style="text-align: center; max-width: 760px; margin: 0 auto 48px;">
+        <span style="color: var(--blue); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; display: block; margin-bottom: 12px;">Nonlinear Control</span>
+        <h2 style="font-family: 'Commissioner', sans-serif; font-size: var(--fs-h2); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 16px;">Built for conversations that do not follow a script</h2>
+        <p style="font-size: var(--fs-body); color: var(--text-2); line-height: 1.6;">Unlike traditional studio teleprompters built for rigid speeches, Glance is engineered for interactive video calls where questions interrupt your flow and discussions branch off.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <div style="background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px;">
+          <h3 style="font-family: 'Commissioner', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-1);">Section jumps</h3>
+          <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">Jump directly to answers or specific talk points using keyboard shortcuts or Markdown heading markers when a client asks an unexpected question.</p>
+        </div>
+
+        <div style="background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px;">
+          <h3 style="font-family: 'Commissioner', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-1);">Voice-aware auto-pausing</h3>
+          <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">Glance automatically pauses scrolling when you pause or answer an interjection, resuming cleanly as soon as you resume speaking.</p>
+        </div>
+
+        <div style="background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px;">
+          <h3 style="font-family: 'Commissioner', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-1);">Quick overlay shutter</h3>
+          <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">Press a hotkey to instantly hide or show your script overlay whenever screen sharing or unscripted Q&amp;A requires your full display.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FEATURES -->
   <section class="section" id="features">
     <div class="container">
@@ -2982,7 +3013,7 @@
               <div class="dot dot-2"></div>
               <div class="dot dot-3"></div>
             </div>
-            <img src="Session-editor.webp" loading="lazy" alt="AtGlance markdown teleprompter editor interface"
+            <img src="Session-editor.webp" width="600" height="380" loading="lazy" decoding="async" alt="Glance markdown teleprompter editor interface"
               class="mockup-img">
             <button type="button" class="mockup-trigger" data-dialog-image="Markup.webp"
               data-dialog-alt="Markdown Editor preview" data-dialog-title="Simple Workflow preview"
@@ -2997,7 +3028,7 @@
             style="color:var(--gold); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.14em; margin-bottom:16px; display:block">Step
             02</span>
           <h2>Launch the <br>topmost overlay.</h2>
-          <p>Glance appears near your camera, sitting above Zoom, Teams, or Meet, so your Eyes stay forward.</p>
+          <p>Glance appears near your camera, sitting above Zoom, Teams, or Meet, so your eyes stay forward.</p>
         </div>
         <div class="feature-visual">
           <div class="mac-window mockup-interactive">
@@ -3006,7 +3037,7 @@
               <div class="dot dot-2"></div>
               <div class="dot dot-3"></div>
             </div>
-            <img src="docs-zoom-call.webp" loading="lazy" alt="Zoom call with AtGlance teleprompter overlay"
+            <img src="docs-zoom-call.webp" width="600" height="380" loading="lazy" decoding="async" alt="Zoom call with Glance teleprompter overlay"
               class="mockup-img gif zoom-call">
           </div>
         </div>
@@ -3028,7 +3059,7 @@
               <div class="dot dot-2"></div>
               <div class="dot dot-3"></div>
             </div>
-            <img src="onboarding-video.gif" alt="Help screen with keyboard shortcuts and 5-step call flow"
+            <img src="onboarding-video.gif" width="600" height="380" loading="lazy" decoding="async" alt="Help screen with keyboard shortcuts and call flow"
               class="mockup-img gif">
           </div>
         </div>
@@ -3359,6 +3390,7 @@
 
 
   </section>
+  </main>
   <footer>
     <div class="container">
       <p>&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with
@@ -3870,6 +3902,8 @@
     const year = new Date().getFullYear();
     document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
   </script>
+  <script src="assets/js/navigation.js"></script>
+  <script src="assets/js/dialogs.js"></script>
   <script src="assets/release-config.js"></script>
   <script src="assets/release-config-ph.js"></script>
   <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
@@ -3949,6 +3983,7 @@
       });
     });
   </script>
+  <script src="assets/js/webmcp.js" defer></script>
 </body>
 
 </html>

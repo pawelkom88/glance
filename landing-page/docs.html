@@ -1051,6 +1051,7 @@
 </head>
 
 <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="purchase-success-modal" id="purchaseSuccessModal" hidden>
         <div class="purchase-success-card" role="dialog" aria-modal="true" aria-labelledby="purchaseSuccessTitle"
             aria-describedby="purchaseSuccessText">
@@ -1086,7 +1087,7 @@
                         <path d="m4.75 6.75 3.25 3.5 3.25-3.5"></path>
                         <path d="M2.5 12.5h11"></path>
                     </svg>
-                    <span id="purchaseSuccessPrimaryLabel">Download At Glance</span>
+                    <span id="purchaseSuccessPrimaryLabel">Download Glance</span>
                 </a>
                 <a class="purchase-success-button purchase-success-button-secondary" id="purchaseSuccessSecondary"
                     href="index.html">Back to
@@ -1097,10 +1098,10 @@
     <nav>
         <div class="nav-inner">
             <a href="index.html" class="logo">
-                <img src="icon.png" alt="Glance Logo">
+                <img width="32" height="32" src="icon.png" alt="Glance Logo">
                 Glance
             </a>
-            <button class="mobile-menu-toggle" aria-label="Toggle menu">
+            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -1108,7 +1109,7 @@
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
-            <div class="nav-links">
+            <div class="nav-links" id="primary-navigation">
                 <a href="index.html">Product</a>
                 <a href="docs.html" class="active">Docs</a>
                 <a href="/script-template/">Scripts</a>
@@ -1761,10 +1762,12 @@
             showErrorState({ canRetryVerification: false });
         })();
     </script>
+    <script src="assets/js/navigation.js"></script>
     <script>
         const year = new Date().getFullYear();
         document.querySelectorAll('.current-year').forEach(el => el.textContent = year);
     </script>
+    <script src="assets/js/webmcp.js" defer></script>
 </body>
 
 </html>

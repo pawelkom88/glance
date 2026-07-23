@@ -504,22 +504,32 @@
 </head>
 
 <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
     <nav>
         <div class="nav-inner">
-            <a href="../?ref=product-hunt" class="logo">
-                <img src="../icon.png" alt="Glance">
+            <a href="../index.html" class="logo">
+                <img width="32" height="32" src="../icon.png" alt="Glance Logo">
                 Glance
             </a>
-            <div class="nav-links">
-                <a href="../?ref=product-hunt">Product</a>
+            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links" id="primary-navigation">
+                <a href="../index.html">Product</a>
                 <a href="../docs.html">Docs</a>
-                <a href="../guides/" class="active">Guides</a>
+                <a href="/script-template/" class="active">Scripts</a>
+                <a href="../guides/">Guides</a>
                 <a href="../privacy.html">Privacy</a>
             </div>
         </div>
     </nav>
 
-    <main class="container">
+    <main class="container" id="main-content">
         <section class="hero">
             <h1 class="hero-title">Nail your next video call.</h1>
             <p class="hero-subtitle">Free script templates for sales demos, presentations, and team updates.
@@ -827,6 +837,7 @@
             el.textContent = year;
         });
     </script>
+    <script src="../assets/js/navigation.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,25 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://atglance.app/api/v1/",
+      "service-desc": [
+        {
+          "href": "https://atglance.app/.well-known/openapi.json",
+          "type": "application/json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://atglance.app/docs.html",
+          "type": "text/html"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://atglance.app/api/v1/status",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}

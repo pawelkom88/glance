@@ -5,13 +5,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Primary SEO -->
-  <title>How to Read Notes on Zoom Without Looking Down</title>
+  <title>How to Read Notes on Zoom Without Looking Down | Glance</title>
   <meta name="description"
     content="A practical guide to using notes on Zoom without looking distracted. Fix your screen layout, shorten your notes, and keep your eyes near the camera." />
   <link rel="canonical" href="https://atglance.app/guides/read-notes-without-looking-down-zoom/" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="How to Read Notes on Zoom Without Looking Down" />
+  <meta property="og:title" content="How to Read Notes on Zoom Without Looking Down | Glance" />
   <meta property="og:description"
     content="A practical guide to using notes on Zoom without looking distracted. Fix your screen layout, shorten your notes, and keep your eyes near the camera." />
   <meta property="og:url" content="https://atglance.app/guides/read-notes-without-looking-down-zoom/" />
@@ -20,7 +20,7 @@
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="How to Read Notes on Zoom Without Looking Down" />
+  <meta name="twitter:title" content="How to Read Notes on Zoom Without Looking Down | Glance" />
   <meta name="twitter:description"
     content="A practical guide to using notes on Zoom without looking distracted. Fix your screen layout, shorten your notes, and keep your eyes near the camera." />
   <meta name="twitter:image" content="https://atglance.app/read-notes-without-looking-down-zoom.webp" />
@@ -43,7 +43,7 @@
           "url": "https://atglance.app/",
           "logo": {
             "@type": "ImageObject",
-            "url": "https://atglance.app/logo.png"
+            "url": "https://atglance.app/icon-300.png"
           }
         },
         {
@@ -114,6 +114,24 @@
       text-rendering: optimizeLegibility;
     }
 
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 20px;
+      background: #1d1d1f;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2000;
+      text-decoration: none;
+      transition: top 0.2s ease;
+    }
+    .skip-link:focus {
+      top: 12px;
+    }
+
     nav {
       position: fixed;
       top: 0;
@@ -149,6 +167,7 @@
 
     .logo img {
       width: 32px;
+      height: 32px;
       border-radius: 6px;
     }
 
@@ -186,63 +205,58 @@
     }
 
     .back-link {
-      border: 0;
-      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       color: var(--accent);
       font-size: 14px;
       font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      margin-bottom: 34px;
       text-decoration: none;
+      margin-bottom: 24px;
+      transition: opacity 0.2s;
+    }
+
+    .back-link:hover {
+      opacity: 0.8;
     }
 
     .back-link svg {
       width: 12px;
       height: 12px;
-      flex-shrink: 0;
     }
 
     .article-eyebrow {
       font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
+      font-weight: 600;
       color: var(--accent);
-      font-weight: 500;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     h1 {
       font-family: "Commissioner", sans-serif;
-      font-size: clamp(34px, 6vw, 52px);
-      line-height: 1.1;
-      letter-spacing: -0.03em;
+      font-size: clamp(30px, 4vw, 42px);
       font-weight: 700;
-      margin-bottom: 18px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
     }
 
     .article-meta {
-      display: inline-flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      width: 100%;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 22px;
-      margin-bottom: 24px;
-      color: var(--text-3);
       font-size: 14px;
-      font-weight: 400;
-      line-height: 1.5;
+      color: var(--text-2);
+      margin-bottom: 32px;
     }
 
     .hero-visual {
-      height: 300px;
+      width: 100%;
+      height: 340px;
       border-radius: 20px;
-      background: var(--placeholder);
-      margin-bottom: 34px;
+      overflow: hidden;
+      margin-bottom: 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
     }
 
     .hero-visual img {
@@ -251,54 +265,54 @@
       object-fit: cover;
     }
 
-    article p {
-      font-size: 16px;
-      line-height: 1.78;
-      color: #1d1d1f;
-      font-weight: 300;
-      margin-bottom: 20px;
-    }
-
     article h2 {
       font-family: "Commissioner", sans-serif;
-      font-size: 24px;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
+      font-size: clamp(22px, 3vw, 28px);
       font-weight: 700;
-      margin: 44px 0 16px;
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+      margin-top: 48px;
+      margin-bottom: 18px;
     }
 
     article h3 {
       font-family: "Commissioner", sans-serif;
-      font-size: 19px;
-      line-height: 1.4;
-      letter-spacing: -0.01em;
+      font-size: clamp(17px, 2vw, 20px);
       font-weight: 600;
-      margin: 26px 0 12px;
+      line-height: 1.3;
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    article p {
+      font-size: 16px;
+      line-height: 1.75;
+      color: #1d1d1f;
+      margin-bottom: 20px;
+      font-weight: 400;
     }
 
     article ul,
     article ol {
-      margin: 14px 0 26px;
-      padding: 0;
+      margin-bottom: 24px;
+      padding-left: 0;
       list-style: none;
     }
 
     article li {
-      position: relative;
-      padding: 14px 0 14px 22px;
-      border-bottom: 1px solid var(--border);
       font-size: 16px;
-      line-height: 1.65;
+      line-height: 1.7;
       color: #1d1d1f;
-      font-weight: 300;
+      margin-bottom: 10px;
+      padding-left: 20px;
+      position: relative;
     }
 
     article ul li::before {
       content: "";
       position: absolute;
       left: 0;
-      top: 1.15em;
+      top: 0.65em;
       width: 5px;
       height: 5px;
       border-radius: 50%;
@@ -314,14 +328,14 @@
       content: counter(step) ".";
       position: absolute;
       left: 0;
-      top: 14px;
+      top: 0px;
       color: var(--accent);
-      font-weight: 500;
-      font-size: 14px;
+      font-weight: 600;
+      font-size: 15px;
     }
 
     article strong {
-      font-weight: 500;
+      font-weight: 600;
     }
 
     article em {
@@ -410,13 +424,15 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
   <nav>
     <div class="nav-inner">
       <a href="/index.html" class="logo">
-        <img src="/icon.png" alt="Glance Logo">
+        <img width="32" height="32" src="/icon.png" alt="Glance Logo">
         Glance
       </a>
-      <button class="mobile-menu-toggle" aria-label="Toggle menu">
+      <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -424,7 +440,7 @@
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
-      <div class="nav-links">
+      <div class="nav-links" id="primary-navigation">
         <a href="/index.html">Product</a>
         <a href="/docs.html">Docs</a>
         <a href="/script-template/">Scripts</a>
@@ -434,7 +450,7 @@
     </div>
   </nav>
 
-  <main class="article-shell">
+  <main class="article-shell" id="main-content">
     <a class="back-link" href="/guides/">
       <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
         <path d="M7.75 2.25L4 6L7.75 9.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
@@ -585,11 +601,8 @@
     </div>
   </footer>
 
+  <script src="/assets/js/navigation.js"></script>
   <script>
-    document.querySelector(".mobile-menu-toggle").addEventListener("click", () => {
-      document.querySelector(".nav-links").classList.toggle("active");
-    });
-
     const year = new Date().getFullYear();
     document.querySelectorAll(".current-year").forEach((el) => {
       el.textContent = year;

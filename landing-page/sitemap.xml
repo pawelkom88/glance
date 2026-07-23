@@ -6,31 +6,72 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <video:video>
-      <video:thumbnail_loc>https://atglance.app/poster.webp</video:thumbnail_loc>
+      <video:thumbnail_loc>https://atglance.app/glance-demo-poster.webp</video:thumbnail_loc>
       <video:title>Glance — The discreet teleprompter for professionals</video:title>
       <video:description>See how Glance sits above your Zoom or Teams call to help you maintain eye contact while reading your script.</video:description>
-      <video:content_loc>https://atglance.app/glance-apple-promo-final.mp4</video:content_loc>
+      <video:content_loc>https://atglance.app/glance-demo.mp4</video:content_loc>
       <video:publication_date>2026-03-01T08:00:00+00:00</video:publication_date>
     </video:video>
+  </url>
+  <url>
+    <loc>https://atglance.app/zoom-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/microsoft-teams-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/google-meet-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/teleprompter-for-mac/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/teleprompter-for-windows/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/job-interview-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/sales-call-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/product-demo-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/team-update-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/webinar-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/presentation-teleprompter/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://atglance.app/docs.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
-    <video:video>
-      <video:thumbnail_loc>https://atglance.app/poster.webp</video:thumbnail_loc>
-      <video:title>Glance Onboarding Flow</video:title>
-      <video:description>Learn how to get started with Glance in seconds.</video:description>
-      <video:content_loc>https://atglance.app/onboarding-video.mp4</video:content_loc>
-      <video:publication_date>2026-03-01T08:00:00+00:00</video:publication_date>
-    </video:video>
-    <video:video>
-      <video:thumbnail_loc>https://atglance.app/poster.webp</video:thumbnail_loc>
-      <video:title>Glance Section Jumps</video:title>
-      <video:description>See how to use Markdown headings to create instant jump points in your script.</video:description>
-      <video:content_loc>https://atglance.app/docs-sections-jump.mov</video:content_loc>
-      <video:publication_date>2026-03-01T08:00:00+00:00</video:publication_date>
-    </video:video>
   </url>
   <url>
     <loc>https://atglance.app/guides/</loc>
@@ -43,13 +84,83 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://atglance.app/privacy.html</loc>
+    <loc>https://atglance.app/guides/how-to-maintain-eye-contact-on-video-calls/</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/how-to-read-a-script-naturally/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/where-to-place-notes-during-video-calls/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/teleprompter-scroll-speed/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/teleprompter-font-size/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/script-vs-talking-points/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/how-to-present-on-teams-with-notes/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/guides/how-to-use-notes-in-a-video-interview/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://atglance.app/script-template/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/script-template/zoom-presentation/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/script-template/sales-discovery-call/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/script-template/product-demo/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/script-template/webinar/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/script-template/team-update/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/script-template/job-interview-notes/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://atglance.app/privacy.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
 </urlset>
