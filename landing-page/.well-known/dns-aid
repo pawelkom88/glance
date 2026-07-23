@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "domain": "atglance.app",
+  "records": [
+    {
+      "name": "_index._agents.atglance.app",
+      "type": "HTTPS",
+      "target": "atglance.app",
+      "params": {
+        "alpn": ["h2", "h3"],
+        "port": 443,
+        "path": "/.well-known/agent-skills/index.json"
+      }
+    },
+    {
+      "name": "_a2a._agents.atglance.app",
+      "type": "HTTPS",
+      "target": "atglance.app",
+      "params": {
+        "alpn": ["h2", "h3"],
+        "port": 443,
+        "path": "/.well-known/mcp/server-card.json"
+      }
+    }
+  ]
+}

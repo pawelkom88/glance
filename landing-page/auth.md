@@ -1,20 +1,29 @@
-# Agent Authentication & Registration Guide for Glance
+# Auth
 
-Welcome AI Agents! This document describes how autonomous agents can authenticate, register, and interact with Glance services and local teleprompter instances.
+This document specifies authentication details and dynamic registration procedures for AI agents interacting with Glance (atglance.app).
 
-## 1. Discovery Endpoints
+## Overview
+
+Glance provides local-first teleprompter software and web tools. AI agents can dynamically register client credentials, verify device licenses, and request access scopes.
+
+## Discovery
 
 - **OAuth Authorization Server Metadata:** `/.well-known/oauth-authorization-server`
-- **Protected Resource Metadata:** `/.well-known/oauth-protected-resource`
-- **OpenID Configuration:** `/.well-known/openid-configuration`
+- **OAuth Protected Resource Metadata:** `/.well-known/oauth-protected-resource`
+- **OpenID Connect Configuration:** `/.well-known/openid-configuration`
 - **API Catalog (RFC 9727):** `/.well-known/api-catalog`
+- **MCP Server Card (SEP-1649):** `/.well-known/mcp/server-card.json`
+- **Agent Skills Discovery (v0.2.0):** `/.well-known/agent-skills/index.json`
 
-## 2. Dynamic Agent Registration
+## Registration
 
-Agents can dynamically register by issuing a POST request to:
-`POST https://atglance.app/oauth/register`
+Agents can dynamically register by making an HTTP POST request:
 
-```json
+```http
+POST /oauth/register HTTP/1.1
+Host: atglance.app
+Content-Type: application/json
+
 {
   "client_name": "Autonomous AI Agent",
   "grant_types": ["authorization_code", "refresh_token"],
@@ -23,19 +32,15 @@ Agents can dynamically register by issuing a POST request to:
 }
 ```
 
-## 3. License Verification API
+## Credentials & Identity Types
 
-To verify a Glance desktop license key programmatically:
+- **Supported Identity Types:** `agent`, `user`, `workstation`
+- **Supported Credential Types:** `bearer_token`, `api_key`
+- **Registration URI:** `https://atglance.app/oauth/register`
+- **Token Endpoint:** `https://atglance.app/oauth/token`
 
-`POST https://atglance.app/api/v1/license/verify`
+## Scopes
 
-**Headers:**
-- `Authorization: Bearer <agent_access_token>`
-- `Content-Type: application/json`
-
-**Body:**
-```json
-{
-  "license_key": "YOUR-LICENSE-KEY"
-}
-```
+- `license:verify`: Validate desktop application license keys.
+- `scripts:read`: Access template scripts for teleprompter overlays.
+- `teleprompter:control`: Interface with WebMCP and local teleprompter instances.
