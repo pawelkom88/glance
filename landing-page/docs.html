@@ -1528,16 +1528,13 @@
             }
 
             const getDownloadUrl = async (purchasePlatform) => {
-                if (purchasePlatform === 'windows') {
+                const normalizedPlatform = typeof purchasePlatform === 'string' ? purchasePlatform.toLowerCase() : '';
+
+                if (normalizedPlatform === 'windows') {
                     return WINDOWS_URL;
                 }
 
-                if (purchasePlatform && purchasePlatform !== 'macos') {
-                    return MAC_ARM_URL;
-                }
-
                 let isAppleSilicon = false;
-
                 try {
                     if (navigator.userAgentData?.getHighEntropyValues) {
                         const hints = await navigator.userAgentData.getHighEntropyValues(['architecture']);
@@ -1548,6 +1545,16 @@
                     }
                 } catch (_error) {
                     isAppleSilicon = false;
+                }
+
+                if (normalizedPlatform === 'macos' || normalizedPlatform === 'mac') {
+                    return isAppleSilicon ? MAC_ARM_URL : MAC_INTEL_URL;
+                }
+
+                // Fallback: If the API did not return a platform (null/undefined), gracefully detect the OS
+                const isWindowsOS = navigator.platform.indexOf('Win') > -1 || /Windows/.test(navigator.userAgent);
+                if (isWindowsOS) {
+                    return WINDOWS_URL;
                 }
 
                 return isAppleSilicon ? MAC_ARM_URL : MAC_INTEL_URL;
