@@ -3940,6 +3940,10 @@
         const redirectUrl = new URL(DOCS_CHECKOUT_URL.href);
         redirectUrl.searchParams.set('checkout', 'pending');
         redirectUrl.searchParams.set('transaction_id', transactionId);
+        const purchasePlatform = event?.data?.custom_data?.platform;
+        if (purchasePlatform) {
+          redirectUrl.searchParams.set('platform', purchasePlatform);
+        }
         window.location.assign(redirectUrl.toString());
       }
     });

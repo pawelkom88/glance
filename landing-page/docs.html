@@ -1704,7 +1704,7 @@
                     const checkoutStatus = await getCheckoutStatus(transactionId);
 
                     if (checkoutStatus?.state === 'completed') {
-                        await showSuccessState(checkoutStatus.platform, transactionId);
+                        await showSuccessState(urlPlatform || checkoutStatus.platform, transactionId);
                         return;
                     }
 
@@ -1724,6 +1724,7 @@
             const searchParams = new URLSearchParams(window.location.search);
             const checkoutState = searchParams.get('checkout');
             const transactionId = searchParams.get('transaction_id');
+            const urlPlatform = searchParams.get('platform');
             activeTransactionId = transactionId;
 
             primaryAction.addEventListener('click', (event) => {
