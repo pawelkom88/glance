@@ -586,3 +586,90 @@ test('checkout-status reconciles a paid Paddle transaction before the webhook ar
   assert.equal(db.licenses.length, 1);
   assert.equal(JSON.parse(env.KV.values.get('txn:txn_123')).state, 'completed');
 });
+
+test('checkout-status returns platform "windows" for a completed Windows purchase', async () => {
+  const db = new FakeD1Database();
+  db.checkoutTransactions.push({
+    transaction_id: 'txn_win1',
+    customer_id: 'ctm_win1',
+    email: null,
+    platform: 'windows',
+    price_ids_json: '["pri_win"]',
+    state: 'completed',
+    last_event_id: 'evt_win1',
+    last_event_type: 'transaction.completed',
+    created_at: '2026-03-10T12:00:00Z',
+    updated_at: '2026-03-10T12:01:00Z',
+  });
+  const env = createEnv(db);
+
+  const response = await worker.fetch(
+    new Request('https://example.com/checkout-status?transaction_id=txn_win1'),
+    env
+  );
+  const payload = await responseJson(response);
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.state, 'completed');
+  assert.equal(payload.platform, 'windows', 'checkout-status must return platform "windows" for Windows purchases');
+});
+
+test('completed webhook maps Windows price ID to platform "windows"', async () => {
+  const db = new FakeD1Database();
+  const env = createEnv(db);
+  const response = await worker.fetch(
+    await createWebhookRequest({
+      event_id: 'evt_win2',
+      event_type: 'transaction.completed',
+      data: {
+        id: 'txn_win2',
+        customer_id: 'ctm_win2',
+        items: [{ price: { id: 'pri_win' } }],
+      },
+    }, env.PADDLE_WEBHOOK_SECRET),
+    env
+  );
+  const payload = await responseJson(response);
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(payload, { received: true });
+  assert.equal(db.checkoutTransactions.length, 1);
+  assert.equal(db.checkoutTransactions[0].platform, 'windows', 'webhook must store platform as "windows" for Windows price ID');
+  assert.equal(db.licenses.length, 1);
+  assert.equal(db.licenses[0].platform, 'windows', 'license must be issued with platform "windows"');
+});
+
+test('checkout-status reconciles a paid Windows Paddle transaction with correct platform', async () => {
+  const db = new FakeD1Database();
+  const env = {
+    ...createEnv(db),
+    PADDLE_API_KEY: 'pdl_sdbx_test_123',
+  };
+
+  const response = await withMockFetch(async (input) => {
+    assert.equal(String(input), 'https://sandbox-api.paddle.com/transactions/txn_win3');
+
+    return new Response(JSON.stringify({
+      data: {
+        id: 'txn_win3',
+        status: 'paid',
+        customer_id: 'ctm_win3',
+        items: [{ price: { id: 'pri_win' } }],
+      },
+    }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }, async () => worker.fetch(
+    new Request('https://example.com/checkout-status?transaction_id=txn_win3'),
+    env
+  ));
+  const payload = await responseJson(response);
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.state, 'completed');
+  assert.equal(payload.platform, 'windows', 'reconciled checkout-status must return platform "windows" for Windows price ID');
+});
+
