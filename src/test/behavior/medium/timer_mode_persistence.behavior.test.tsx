@@ -39,6 +39,8 @@ vi.mock('../../../lib/tauri', () => ({
   setLastActiveSessionId: vi.fn(),
   closeOverlayWindow: tauriMocks.closeOverlayWindow,
   listenForShortcutEvents: tauriMocks.listenForShortcutEvents,
+  listenForVadChanged: vi.fn().mockResolvedValue(() => undefined),
+  listenForVoiceSyncChanged: vi.fn().mockResolvedValue(() => undefined),
   quitApp: tauriMocks.quitApp,
   recoverOverlayFocus: tauriMocks.recoverOverlayFocus,
   saveOverlayBoundsForMonitor: tauriMocks.saveOverlayBoundsForMonitor,

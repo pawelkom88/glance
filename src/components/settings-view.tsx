@@ -314,6 +314,10 @@ export function SettingsView() {
   };
 
   const handleVadToggle = async () => {
+    if (voiceSyncEnabled) {
+      return;
+    }
+
     if (vadEnabled) {
       setVadEnabled(false);
       return;
@@ -903,15 +907,22 @@ export function SettingsView() {
             <div className="setting-row">
               <div className="setting-copy">
                 <span className="setting-title">{t('settingsView.vad.enabledTitle')}</span>
-                <span className="setting-subtitle">{t('settingsView.vad.enabledSubtitle')}</span>
+                <span className="setting-subtitle">
+                  {voiceSyncEnabled
+                    ? t('settingsView.vad.supersededByVoiceSync')
+                    : t('settingsView.vad.enabledSubtitle')}
+                </span>
               </div>
               <button
                 type="button"
-                className={`setting-switch ${vadEnabled ? 'is-on' : ''}`}
+                className={`setting-switch ${vadEnabled && !voiceSyncEnabled ? 'is-on' : ''} ${voiceSyncEnabled ? 'is-disabled' : ''}`}
                 role="switch"
-                aria-checked={vadEnabled}
+                aria-checked={voiceSyncEnabled ? false : vadEnabled}
+                aria-disabled={voiceSyncEnabled}
+                disabled={voiceSyncEnabled}
                 aria-label={t('settingsView.vad.enabledAria')}
                 onClick={() => {
+                  if (voiceSyncEnabled) return;
                   void handleVadToggle();
                 }}
               >
@@ -919,7 +930,7 @@ export function SettingsView() {
               </button>
             </div>
 
-            {vadEnabled ? (
+            {vadEnabled && !voiceSyncEnabled ? (
               <div className="setting-row">
                 <div className="setting-copy">
                   <span className="setting-title">{t('settingsView.vad.pauseDelayTitle')}</span>

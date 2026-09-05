@@ -15,6 +15,8 @@ const tauriMocks = vi.hoisted(() => ({
   closeOverlayWindow: vi.fn(),
   emitThemeChanged: vi.fn(),
   emitLanguageChanged: vi.fn(),
+  emitVadChanged: vi.fn(),
+  emitVoiceSyncChanged: vi.fn(),
   getLastMainMonitorName: vi.fn(),
   hideMainWindow: vi.fn(),
   listenForLanguageChanged: vi.fn(),
@@ -34,6 +36,8 @@ vi.mock('../../../lib/tauri', async (importOriginal) => {
     closeOverlayWindow: tauriMocks.closeOverlayWindow,
     emitLanguageChanged: tauriMocks.emitLanguageChanged,
     emitThemeChanged: tauriMocks.emitThemeChanged,
+    emitVadChanged: tauriMocks.emitVadChanged,
+    emitVoiceSyncChanged: tauriMocks.emitVoiceSyncChanged,
     getLastMainMonitorName: tauriMocks.getLastMainMonitorName,
     hideMainWindow: tauriMocks.hideMainWindow,
     listenForLanguageChanged: tauriMocks.listenForLanguageChanged,
@@ -58,6 +62,10 @@ describe('Critical behavior: launch gating and persistence', () => {
     tauriMocks.listenForThemeChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForMainWindowShown.mockResolvedValue(() => undefined);
     tauriMocks.listenForMonitorChanged.mockResolvedValue(() => undefined);
+    tauriMocks.emitLanguageChanged.mockResolvedValue(undefined);
+    tauriMocks.emitThemeChanged.mockResolvedValue(undefined);
+    tauriMocks.emitVadChanged.mockResolvedValue(undefined);
+    tauriMocks.emitVoiceSyncChanged.mockResolvedValue(undefined);
     tauriMocks.openOverlayWindow.mockResolvedValue({ monitorName: 'Built-in', usedSavedBounds: false });
     tauriMocks.hideMainWindow.mockResolvedValue(undefined);
     tauriMocks.emitThemeChanged.mockResolvedValue(undefined);

@@ -6,9 +6,13 @@ import {
   clearActivationRecord,
   clearStoredLicense,
   emitLanguageChanged,
+  emitVadChanged,
+  emitVoiceSyncChanged,
   getOrCreateLicenseDeviceId,
   getMonitors,
   listenForLanguageChanged,
+  listenForVadChanged,
+  listenForVoiceSyncChanged,
   listMonitors,
   loadActivationRecord,
   loadSavedLicenseKey,
@@ -264,6 +268,44 @@ describe('tauri monitor bridge behavior', () => {
     const listener = listenMock.mock.calls[0]?.[1] as ((event: { payload: { language: 'en' | 'fr' | 'es' } }) => void);
     listener({ payload: { language: 'en' } });
     expect(callback).toHaveBeenCalledWith({ language: 'en' });
+
+    unlisten();
+    expect(detach).toHaveBeenCalled();
+  });
+
+  it('emits and listens for voice-sync-changed events', async () => {
+    const detach = vi.fn();
+    listenMock.mockResolvedValue(detach);
+    const callback = vi.fn();
+
+    await emitVoiceSyncChanged({ enabled: true, apiKey: 'test-key' });
+    expect(emitMock).toHaveBeenCalledWith('glance-voice-sync-changed', { enabled: true, apiKey: 'test-key' });
+
+    const unlisten = await listenForVoiceSyncChanged(callback);
+    expect(listenMock).toHaveBeenCalledWith('glance-voice-sync-changed', expect.any(Function));
+
+    const listener = listenMock.mock.calls[0]?.[1] as ((event: { payload: { enabled: boolean; apiKey: string } }) => void);
+    listener({ payload: { enabled: true, apiKey: 'test-key' } });
+    expect(callback).toHaveBeenCalledWith({ enabled: true, apiKey: 'test-key' });
+
+    unlisten();
+    expect(detach).toHaveBeenCalled();
+  });
+
+  it('emits and listens for vad-changed events', async () => {
+    const detach = vi.fn();
+    listenMock.mockResolvedValue(detach);
+    const callback = vi.fn();
+
+    await emitVadChanged({ enabled: false, delayMs: 1200 });
+    expect(emitMock).toHaveBeenCalledWith('glance-vad-changed', { enabled: false, delayMs: 1200 });
+
+    const unlisten = await listenForVadChanged(callback);
+    expect(listenMock).toHaveBeenCalledWith('glance-vad-changed', expect.any(Function));
+
+    const listener = listenMock.mock.calls[0]?.[1] as ((event: { payload: { enabled: boolean; delayMs: number } }) => void);
+    listener({ payload: { enabled: false, delayMs: 1200 } });
+    expect(callback).toHaveBeenCalledWith({ enabled: false, delayMs: 1200 });
 
     unlisten();
     expect(detach).toHaveBeenCalled();

@@ -331,6 +331,7 @@ export const plCatalog: TranslationCatalog = {
             enabledAria: 'Włącz wykrywanie aktywności głosowej',
             pauseDelayTitle: 'Pauza po ciszy',
             pauseDelaySubtitle: 'Jak długo Glance czeka przed zatrzymaniem po tym, jak przestaniesz mówić.',
+            supersededByVoiceSync: 'Zarządzane automatycznie przez synchronizację z głosem (pauzuje i przewija wraz z Twoim głosem).'
         },
         voiceSync: {
             title: 'Przewijanie synchronizowane głosem',

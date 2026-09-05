@@ -1028,3 +1028,62 @@ export async function listenForLanguageChanged(
     unlisten();
   };
 }
+
+export interface VoiceSyncChangedPayload {
+  readonly enabled: boolean;
+  readonly apiKey: string;
+}
+
+export async function emitVoiceSyncChanged(payload: VoiceSyncChangedPayload): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await emit<VoiceSyncChangedPayload>('glance-voice-sync-changed', payload);
+}
+
+export async function listenForVoiceSyncChanged(
+  onVoiceSyncChanged: (payload: VoiceSyncChangedPayload) => void
+): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen<VoiceSyncChangedPayload>('glance-voice-sync-changed', (event) => {
+    onVoiceSyncChanged(event.payload);
+  });
+
+  return () => {
+    unlisten();
+  };
+}
+
+export interface VadChangedPayload {
+  readonly enabled: boolean;
+  readonly delayMs: number;
+}
+
+export async function emitVadChanged(payload: VadChangedPayload): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await emit<VadChangedPayload>('glance-vad-changed', payload);
+}
+
+export async function listenForVadChanged(
+  onVadChanged: (payload: VadChangedPayload) => void
+): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen<VadChangedPayload>('glance-vad-changed', (event) => {
+    onVadChanged(event.payload);
+  });
+
+  return () => {
+    unlisten();
+  };
+}
+

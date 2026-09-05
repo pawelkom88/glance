@@ -39,6 +39,8 @@ vi.mock('../hooks/useAppLicense', () => ({
 
 vi.mock('../lib/tauri', () => ({
   emitLanguageChanged: vi.fn().mockResolvedValue(undefined),
+  emitVadChanged: vi.fn().mockResolvedValue(undefined),
+  emitVoiceSyncChanged: vi.fn().mockResolvedValue(undefined),
   exportDiagnostics: vi.fn().mockResolvedValue('/tmp/logs.zip'),
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
   getMonitors: vi.fn().mockResolvedValue([]),
@@ -746,5 +748,21 @@ describe('SettingsView behavior', () => {
       expect(useAppStore.getState().speechmaticsApiKey).toBe('');
     });
   });
+
+  it('disables Auto-Pause with Voice and shows superseded notice when Voice Sync is enabled', async () => {
+    useAppStore.setState({ voiceSyncEnabled: true, vadEnabled: true });
+
+    render(<SettingsView />);
+
+    const vadSwitch = screen.getByRole('switch', { name: 'Enable voice activity detection' });
+    expect((vadSwitch as HTMLButtonElement).disabled).toBe(true);
+    expect(vadSwitch.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByText('Managed automatically by Voice-Synced Scrolling (pauses and scrolls with your speech).')).toBeTruthy();
+
+    // Clicking does not toggle VAD
+    fireEvent.click(vadSwitch);
+    expect(useAppStore.getState().vadEnabled).toBe(true);
+  });
 });
+
 

@@ -276,6 +276,7 @@ export const frCatalog: TranslationCatalog = {
       enabledAria: 'Activer la détection d\'activité vocale',
       pauseDelayTitle: 'Pause après silence',
       pauseDelaySubtitle: 'Temps d\'attente de Glance avant la pause quand vous cessez de parler.',
+      supersededByVoiceSync: 'Géré automatiquement par le défilement synchronisé avec la voix (se met en pause et défile avec votre voix).'
     },
     voiceSync: {
       title: 'Défilement synchronisé par la voix',

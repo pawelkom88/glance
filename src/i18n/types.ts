@@ -284,6 +284,7 @@ export interface TranslationCatalog {
       readonly enabledAria: string;
       readonly pauseDelayTitle: string;
       readonly pauseDelaySubtitle: string;
+      readonly supersededByVoiceSync: string;
     };
     readonly voiceSync: {
       readonly title: string;

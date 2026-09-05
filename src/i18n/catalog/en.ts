@@ -276,6 +276,7 @@ export const enCatalog: TranslationCatalog = {
       enabledAria: 'Enable voice activity detection',
       pauseDelayTitle: 'Pause After Silence',
       pauseDelaySubtitle: 'How long Glance waits before pausing after you stop speaking.',
+      supersededByVoiceSync: 'Managed automatically by Voice-Synced Scrolling (pauses and scrolls with your speech).'
     },
     voiceSync: {
       title: 'Voice-Synced Scrolling',

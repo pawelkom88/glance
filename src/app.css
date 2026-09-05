@@ -3546,6 +3546,13 @@ body.is-session-dragging * {
   outline-offset: 2px;
 }
 
+.setting-switch:disabled,
+.setting-switch.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .display-picker {
   position: relative;
   min-width: 180px;
@@ -6698,6 +6705,20 @@ body.is-session-dragging * {
 
   .overlay-compact-setting-value.is-accent {
     color: var(--accent);
+  }
+
+  .overlay-compact-setting-row--voice-sync {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .overlay-compact-setting-value--voice-sync {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #38bdf8;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .overlay-compact-text-size-row {

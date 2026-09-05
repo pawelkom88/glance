@@ -8,6 +8,8 @@
  * 4. Dispatches transcribed words and partials to callbacks
  */
 
+import { requestMicrophonePermission } from './tauri';
+
 export interface SpeechmaticsWord {
   readonly word: string;
   readonly startTime: number;
@@ -275,6 +277,19 @@ export function createSpeechmaticsRealtimeClient(
       if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
         // eslint-disable-next-line no-console
         console.log('[VoiceSync:Mic] 🎙️ Requesting microphone access...');
+
+        try {
+          const nativeStatus = await requestMicrophonePermission();
+          if (nativeStatus === 'denied') {
+            throw new Error('Microphone permission denied by system settings. Please enable microphone access in System Settings.');
+          }
+        } catch (permErr) {
+          if (permErr instanceof Error && permErr.message.includes('permission denied')) {
+            throw permErr;
+          }
+          // Non-tauri or fallback environments continue to browser getUserMedia
+        }
+
         audioStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,

@@ -7,8 +7,34 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 loadLocalBuildEnv(repoRoot);
 
+if (process.env.TAURI_PRIVATE_KEY && !process.env.TAURI_SIGNING_PRIVATE_KEY) {
+  process.env.TAURI_SIGNING_PRIVATE_KEY = process.env.TAURI_PRIVATE_KEY;
+}
+if (process.env.TAURI_KEY_PASSWORD && !process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
+  process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD = process.env.TAURI_KEY_PASSWORD;
+}
+
+const hasPrivateKey = Boolean(
+  process.env.TAURI_SIGNING_PRIVATE_KEY || process.env.TAURI_PRIVATE_KEY
+);
+
 const args = process.argv.slice(2);
-const result = spawnSync('pnpm', ['exec', 'tauri', 'build', ...args], {
+const extraArgs = [];
+
+if (!hasPrivateKey) {
+  const specifiesUpdaterArtifacts = args.some((arg) =>
+    arg.includes('createUpdaterArtifacts')
+  );
+
+  if (!specifiesUpdaterArtifacts) {
+    console.log(
+      '[build] No TAURI_SIGNING_PRIVATE_KEY found; disabling updater artifact generation for local build.'
+    );
+    extraArgs.push('--config', '{"bundle":{"createUpdaterArtifacts":false}}');
+  }
+}
+
+const result = spawnSync('pnpm', ['exec', 'tauri', 'build', ...extraArgs, ...args], {
   cwd: repoRoot,
   stdio: 'inherit',
   env: process.env,
@@ -19,3 +45,4 @@ if (typeof result.status === 'number') {
 }
 
 process.exit(1);
+

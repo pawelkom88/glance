@@ -12,6 +12,8 @@ import { parseMarkdown } from './lib/markdown';
 import {
   closeOverlayWindow,
   emitThemeChanged,
+  emitVadChanged,
+  emitVoiceSyncChanged,
   getLastMainMonitorName,
   hideMainWindow,
   listenForLanguageChanged,
@@ -641,6 +643,14 @@ export default function App() {
                 });
                 await openOverlayWindow();
                 await emitThemeChanged(themeMode);
+                await emitVoiceSyncChanged({
+                  enabled: useAppStore.getState().voiceSyncEnabled,
+                  apiKey: useAppStore.getState().speechmaticsApiKey
+                });
+                await emitVadChanged({
+                  enabled: useAppStore.getState().vadEnabled,
+                  delayMs: useAppStore.getState().voicePauseDelayMs
+                });
                 await hideMainWindow();
                 setMainWindowTransition('idle');
               } catch (error) {

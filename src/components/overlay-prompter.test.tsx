@@ -9,6 +9,8 @@ const tauriMocks = vi.hoisted(() => ({
   quitApp: vi.fn(),
   showMainWindow: vi.fn(),
   listenForShortcutEvents: vi.fn(),
+  listenForVadChanged: vi.fn().mockResolvedValue(() => undefined),
+  listenForVoiceSyncChanged: vi.fn().mockResolvedValue(() => undefined),
   recoverOverlayFocus: vi.fn(),
   saveOverlayBoundsForMonitor: vi.fn(),
   setLastOverlayMonitorName: vi.fn(),
@@ -84,6 +86,8 @@ vi.mock('../lib/tauri', () => ({
   getLastActiveSessionId: vi.fn().mockReturnValue(null),
   getLastOverlayMonitorName: vi.fn().mockReturnValue(null),
   listenForShortcutEvents: tauriMocks.listenForShortcutEvents,
+  listenForVadChanged: tauriMocks.listenForVadChanged,
+  listenForVoiceSyncChanged: tauriMocks.listenForVoiceSyncChanged,
   quitApp: tauriMocks.quitApp,
   recoverOverlayFocus: tauriMocks.recoverOverlayFocus,
   saveOverlayBoundsForMonitor: tauriMocks.saveOverlayBoundsForMonitor,
@@ -902,5 +906,48 @@ describe('OverlayPrompter behavior', () => {
     });
 
     expect(useAppStore.getState().playbackState).toBe('paused');
+  });
+
+  it('hides speed slider and renders voice sync status in compact controls when voice sync is active', async () => {
+    setViewport(1100, 900);
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-test-key',
+      isControlsCollapsed: false,
+      markdown: '# Test\n\nScript content'
+    });
+
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<OverlayPrompter />);
+    });
+    const { container } = renderResult;
+
+    // Speed slider should be hidden in compact controls
+    expect(container.querySelector('.overlay-speed-slider')).toBeNull();
+    // Voice sync setting row should be present
+    expect(container.querySelector('.overlay-compact-setting-row--voice-sync')).not.toBeNull();
+  });
+
+  it('initializes first word as active with is-voice-current when voiceSyncEnabled and apiKey are configured', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-test-key',
+      markdown: 'Welcome to Glance.'
+    });
+
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<OverlayPrompter />);
+    });
+    const { container } = renderResult;
+
+    const words = container.querySelectorAll('.voice-word');
+    expect(words.length).toBe(3);
+    // Word 0 ('Welcome') should be active immediately
+    expect(words[0]?.classList.contains('is-voice-current')).toBe(true);
+    // Word 1 and 2 should be upcoming
+    expect(words[1]?.classList.contains('is-voice-upcoming')).toBe(true);
+    expect(words[2]?.classList.contains('is-voice-upcoming')).toBe(true);
   });
 });

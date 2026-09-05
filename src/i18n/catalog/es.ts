@@ -276,6 +276,7 @@ export const esCatalog: TranslationCatalog = {
       enabledAria: 'Activar detección de actividad de voz',
       pauseDelayTitle: 'Pausar tras el silencio',
       pauseDelaySubtitle: 'Cuánto espera Glance antes de pausar cuando dejas de hablar.',
+      supersededByVoiceSync: 'Administrado automáticamente por el desplazamiento sincronizado por voz (se pausa y desplaza con su voz).'
     },
     voiceSync: {
       title: 'Desplazamiento sincronizado por voz',

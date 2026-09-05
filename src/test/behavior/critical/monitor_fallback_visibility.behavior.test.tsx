@@ -16,6 +16,8 @@ const tauriMocks = vi.hoisted(() => ({
   closeOverlayWindow: vi.fn(),
   emitLanguageChanged: vi.fn(),
   emitThemeChanged: vi.fn(),
+  emitVadChanged: vi.fn(),
+  emitVoiceSyncChanged: vi.fn(),
   exportDiagnostics: vi.fn(),
   getLastMainMonitorName: vi.fn(),
   getMonitors: vi.fn(),
@@ -41,6 +43,8 @@ vi.mock('../../../lib/tauri', async (importOriginal) => {
     closeOverlayWindow: tauriMocks.closeOverlayWindow,
     emitLanguageChanged: tauriMocks.emitLanguageChanged,
     emitThemeChanged: tauriMocks.emitThemeChanged,
+    emitVadChanged: tauriMocks.emitVadChanged,
+    emitVoiceSyncChanged: tauriMocks.emitVoiceSyncChanged,
     exportDiagnostics: tauriMocks.exportDiagnostics,
     getLastMainMonitorName: tauriMocks.getLastMainMonitorName,
     getMonitors: tauriMocks.getMonitors,
@@ -78,6 +82,9 @@ describe('Critical behavior: monitor fallback visibility', () => {
     tauriMocks.listenForThemeChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForMainWindowShown.mockResolvedValue(() => undefined);
     tauriMocks.listenForMonitorChanged.mockResolvedValue(() => undefined);
+    tauriMocks.emitThemeChanged.mockResolvedValue(undefined);
+    tauriMocks.emitVadChanged.mockResolvedValue(undefined);
+    tauriMocks.emitVoiceSyncChanged.mockResolvedValue(undefined);
     tauriMocks.getOverlayAlwaysOnTopPreference.mockReturnValue(true);
   });
 

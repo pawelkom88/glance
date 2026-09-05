@@ -17,6 +17,8 @@ import {
   getLastActiveSessionId,
   getLastOverlayMonitorName,
   listenForShortcutEvents,
+  listenForVadChanged,
+  listenForVoiceSyncChanged,
   quitApp,
   recoverOverlayFocus,
   saveOverlayBoundsForMonitor,
@@ -444,6 +446,9 @@ export function OverlayPrompter() {
   const vadPausedByVadRef = useRef(false);
   const { permissionError, vadEnabled, vadRuntimeStatus, vadState } = useVoiceActivity({
     onSilence: useCallback(() => {
+      if (useAppStore.getState().voiceSyncEnabled) {
+        return;
+      }
       const currentPlayback = useAppStore.getState().playbackState;
       if (currentPlayback === 'running') {
         vadPausedByVadRef.current = true;
@@ -451,6 +456,9 @@ export function OverlayPrompter() {
       }
     }, []),
     onSpeech: useCallback(() => {
+      if (useAppStore.getState().voiceSyncEnabled) {
+        return;
+      }
       if (vadPausedByVadRef.current) {
         vadPausedByVadRef.current = false;
         useAppStore.getState().setPlaybackState('running');
@@ -1442,31 +1450,48 @@ export function OverlayPrompter() {
 
   const renderCompactSettings = () => (
     <div className="overlay-compact-settings-section" aria-label={t('overlay.fontSizeSettings')}>
-      <div className="overlay-compact-setting-row">
-        <span className="overlay-compact-setting-label">{t('overlay.controlSpeedLabel')}</span>
-        <div className="overlay-compact-setting-control">
-          <input
-            className="overlay-speed-slider overlay-compact-setting-slider"
-            type="range"
-            min={MIN_SPEED_MULTIPLIER}
-            max={MAX_SPEED_MULTIPLIER}
-            step={speedStep}
-            value={scrollSpeed}
-            onChange={(event) => {
-              setScrollSpeed(Number(event.target.value));
-            }}
-            aria-label={t('overlay.scrollSpeedAria')}
-            onPointerUp={(event) => {
-              event.currentTarget.blur();
-              overlayRootRef.current?.focus({ preventScroll: true });
-            }}
-            style={{
-              '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
-            } as CSSProperties}
-          />
+      {(!voiceSync.voiceSyncEnabled || !voiceSync.hasApiKey) ? (
+        <div className="overlay-compact-setting-row">
+          <span className="overlay-compact-setting-label">{t('overlay.controlSpeedLabel')}</span>
+          <div className="overlay-compact-setting-control">
+            <input
+              className="overlay-speed-slider overlay-compact-setting-slider"
+              type="range"
+              min={MIN_SPEED_MULTIPLIER}
+              max={MAX_SPEED_MULTIPLIER}
+              step={speedStep}
+              value={scrollSpeed}
+              onChange={(event) => {
+                setScrollSpeed(Number(event.target.value));
+              }}
+              aria-label={t('overlay.scrollSpeedAria')}
+              onPointerUp={(event) => {
+                event.currentTarget.blur();
+                overlayRootRef.current?.focus({ preventScroll: true });
+              }}
+              style={{
+                '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
+              } as CSSProperties}
+            />
+          </div>
+          <span className="overlay-compact-setting-value">{formattedSpeedValue}×</span>
         </div>
-        <span className="overlay-compact-setting-value">{formattedSpeedValue}×</span>
-      </div>
+      ) : (
+        <div className="overlay-compact-setting-row overlay-compact-setting-row--voice-sync">
+          <span className="overlay-compact-setting-label">{t('overlay.voiceSyncStatusLabel')}</span>
+          <span className="overlay-compact-setting-value overlay-compact-setting-value--voice-sync">
+            {voiceSync.voiceSyncState === 'syncing'
+              ? (voiceSync.activeSpokenWord ? `“${voiceSync.activeSpokenWord}”` : t('overlay.voiceSyncStatusSyncing'))
+              : voiceSync.voiceSyncState === 'listening'
+                ? t('overlay.voiceSyncStatusListening')
+                : voiceSync.voiceSyncState === 'connecting' || voiceSync.voiceSyncState === 'authorizing'
+                  ? t('overlay.voiceSyncStatusConnecting')
+                  : voiceSync.voiceSyncState === 'error'
+                    ? (voiceSync.errorMessage || t('overlay.voiceSyncStatusError'))
+                    : t('overlay.voiceSyncStatusLabel')}
+          </span>
+        </div>
+      )}
 
       <div className="overlay-compact-setting-row">
         <span className="overlay-compact-setting-label">{t('overlay.controlContrastLabel')}</span>
@@ -1835,6 +1860,12 @@ export function OverlayPrompter() {
     engineRef.current = new ScrollEngine({
       getSpeed: () => speedRef.current * BASE_SPEED_UNITS,
       onTick: (position) => {
+        const state = useAppStore.getState();
+        const isVoiceSyncActive = (state.voiceSyncEnabled || voiceSync.voiceSyncEnabled) &&
+          Boolean(state.speechmaticsApiKey?.trim() || voiceSync.hasApiKey);
+        if (isVoiceSyncActive) {
+          return;
+        }
         setScrollPosition(Math.min(position, maxPosition));
       }
     });
@@ -1843,7 +1874,10 @@ export function OverlayPrompter() {
       Math.min(useAppStore.getState().scrollPosition, maxPosition)
     );
 
-    if (useAppStore.getState().playbackState === 'running') {
+    const state = useAppStore.getState();
+    const isVoiceSyncActive = (state.voiceSyncEnabled || voiceSync.voiceSyncEnabled) &&
+      Boolean(state.speechmaticsApiKey?.trim() || voiceSync.hasApiKey);
+    if (state.playbackState === 'running' && !isVoiceSyncActive) {
       engineRef.current.play();
     }
 
@@ -1851,7 +1885,7 @@ export function OverlayPrompter() {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
-  }, [linePositions.totalHeight, lineStride, setScrollPosition]);
+  }, [linePositions.totalHeight, lineStride, setScrollPosition, voiceSync.hasApiKey, voiceSync.voiceSyncEnabled]);
 
   useEffect(() => {
     const maxPosition = Math.max(0, linePositions.totalHeight - lineStride);
@@ -1875,12 +1909,9 @@ export function OverlayPrompter() {
       return;
     }
 
-    if (playbackState === 'running') {
-      if (voiceSync.voiceSyncEnabled && voiceSync.hasApiKey) {
-        engineRef.current.pause();
-      } else {
-        engineRef.current.play();
-      }
+    const isVoiceSyncActive = voiceSync.voiceSyncEnabled && voiceSync.hasApiKey;
+    if (playbackState === 'running' && !isVoiceSyncActive) {
+      engineRef.current.play();
       return;
     }
 
@@ -2068,6 +2099,34 @@ export function OverlayPrompter() {
   }, []);
 
   useEffect(() => {
+    let unlistenSync: (() => void) | null = null;
+    let unlistenVad: (() => void) | null = null;
+
+    void listenForVoiceSyncChanged((payload) => {
+      useAppStore.setState({
+        voiceSyncEnabled: payload.enabled,
+        speechmaticsApiKey: payload.apiKey
+      });
+    }).then((fn) => {
+      unlistenSync = fn;
+    });
+
+    void listenForVadChanged((payload) => {
+      useAppStore.setState({
+        vadEnabled: payload.enabled,
+        voicePauseDelayMs: payload.delayMs
+      });
+    }).then((fn) => {
+      unlistenVad = fn;
+    });
+
+    return () => {
+      unlistenSync?.();
+      unlistenVad?.();
+    };
+  }, []);
+
+  useEffect(() => {
     const syncActiveSession = () => {
       const preferredSessionId = getLastActiveSessionId();
       if (!preferredSessionId || preferredSessionId === activeSessionId) {
@@ -2083,6 +2142,8 @@ export function OverlayPrompter() {
       return;
     }
 
+    useAppStore.getState().rehydratePreferencesFromStorage();
+
     const appWindow = getCurrentWindow();
     let unlistenFocus: (() => void) | null = null;
 
@@ -2095,6 +2156,7 @@ export function OverlayPrompter() {
     void appWindow.onFocusChanged(({ payload }) => {
       setIsOverlayFocused(payload);
       if (payload) {
+        useAppStore.getState().rehydratePreferencesFromStorage();
         syncActiveSession();
         return;
       }
@@ -2984,8 +3046,10 @@ export function OverlayPrompter() {
               };
 
               const renderVoiceWords = () => {
-                const activeWordIdx = voiceSync.activeMatchedWordIndex;
                 const followerCursor = voiceSync.followerCursorIndex;
+                const activeWordIdx =
+                  voiceSync.activeMatchedWordIndex ??
+                  (voiceSync.voiceSyncEnabled && voiceSync.hasApiKey ? followerCursor : null);
 
                 if (line.segments && line.segments.length > 0) {
                   return line.segments.map((segment) => {

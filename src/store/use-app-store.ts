@@ -11,6 +11,8 @@ import {
   deleteSession,
   duplicateSession,
   emitLanguageChanged,
+  emitVadChanged,
+  emitVoiceSyncChanged,
   exportSessionToPath,
   getLastActiveSessionId,
   listFolders,
@@ -113,6 +115,7 @@ interface AppStoreState {
   readonly setVoicePauseDelayMs: (value: number) => void;
   readonly setVoiceSyncEnabled: (value: boolean) => void;
   readonly setSpeechmaticsApiKey: (value: string) => void;
+  readonly rehydratePreferencesFromStorage: () => void;
 }
 
 function readLocalOnboardingState(): boolean {
@@ -877,22 +880,60 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     setVadEnabled: (value: boolean) => {
       writeVadEnabled(value);
       set({ vadEnabled: value });
+      void emitVadChanged({
+        enabled: value,
+        delayMs: get().voicePauseDelayMs
+      });
     },
 
     setVoicePauseDelayMs: (value: number) => {
       const nextValue = normalizeVoicePauseDelayMs(value);
       writeVoicePauseDelayMs(nextValue);
       set({ voicePauseDelayMs: nextValue });
+      void emitVadChanged({
+        enabled: get().vadEnabled,
+        delayMs: nextValue
+      });
     },
 
     setVoiceSyncEnabled: (value: boolean) => {
       writeVoiceSyncEnabled(value);
       set({ voiceSyncEnabled: value });
+      void emitVoiceSyncChanged({
+        enabled: value,
+        apiKey: get().speechmaticsApiKey
+      });
     },
 
     setSpeechmaticsApiKey: (value: string) => {
       writeSpeechmaticsApiKey(value);
-      set({ speechmaticsApiKey: value.trim() });
+      const trimmed = value.trim();
+      set({ speechmaticsApiKey: trimmed });
+      void emitVoiceSyncChanged({
+        enabled: get().voiceSyncEnabled,
+        apiKey: trimmed
+      });
+    },
+
+    rehydratePreferencesFromStorage: () => {
+      const vsEnabled = readVoiceSyncEnabled();
+      const smKey = readSpeechmaticsApiKey();
+      const vad = readVadEnabled();
+      const vadDelay = readVoicePauseDelayMs();
+      const ruler = readShowReadingRuler();
+      const step = readSpeedStep();
+      const overlayState = readOverlayPersistentState();
+
+      set({
+        voiceSyncEnabled: vsEnabled,
+        speechmaticsApiKey: smKey,
+        vadEnabled: vad,
+        voicePauseDelayMs: vadDelay,
+        showReadingRuler: overlayState.showReadingRuler ?? ruler,
+        speedStep: step,
+        scrollSpeed: overlayState.speed,
+        overlayFontScale: overlayState.fontScale
+      });
     },
 
     setIsControlsCollapsed: (value: boolean) => {
