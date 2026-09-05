@@ -96,6 +96,9 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
   },
   clearScreen: false,
+  css: {
+    postcss: {}
+  },
   server: {
     port: 1420,
     strictPort: true,

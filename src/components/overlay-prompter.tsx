@@ -586,7 +586,7 @@ export function OverlayPrompter() {
 
   const scaledLineHeight = Math.max(60, Math.round(baseLineHeight * overlayFontScale));
   const lineStride = scaledLineHeight + overlayLineGapPx;
-  const focusLaneRatio = voiceSyncEnabled ? 0.48 : 0.14;
+  const focusLaneRatio = voiceSyncEnabled ? 0.38 : 0.14;
   const lanePadding = useMemo(
     () => {
       const preferredOffset = contentMetrics.height * focusLaneRatio;
@@ -1392,6 +1392,7 @@ export function OverlayPrompter() {
             setPlaybackState('paused');
             setScrollPosition(0);
             voiceSync.repositionToLine(0);
+            voiceSync.syncCurrentScroll(0);
             resetPresentationTimer();
             e.currentTarget.blur();
             overlayRootRef.current?.focus({ preventScroll: true });
@@ -1671,6 +1672,8 @@ export function OverlayPrompter() {
     const targetY = node
       ? Math.max(0, node.offsetTop - effectivePadding)
       : (linePositions.positions[targetLineIndex] ?? 0);
+
+    voiceSync.syncCurrentScroll(targetY);
 
     // Cancel any in-progress jump animation.
     if (jumpScrollRafRef.current !== null) {
@@ -2937,14 +2940,6 @@ export function OverlayPrompter() {
                 />
               ) : null}
 
-              {voiceSync.voiceSyncEnabled ? (
-                <div
-                  className="voice-eyeline-guide"
-                  aria-hidden="true"
-                  style={{ top: `${lanePadding + Math.round(scaledLineHeight * 0.42)}px` }}
-                />
-              ) : null}
-
           <div
             className={`overlay-lines ${voiceSync.voiceSyncEnabled ? 'is-voice-synced' : ''}`}
             style={{
@@ -2979,25 +2974,121 @@ export function OverlayPrompter() {
               };
 
               const renderVoiceWords = () => {
+                const activeWordIdx = voiceSync.activeMatchedWordIndex;
+                const followerCursor = voiceSync.followerCursorIndex;
+
+                if (line.segments && line.segments.length > 0) {
+                  return line.segments.map((segment) => {
+                    if (segment.kind === 'cue') {
+                      return (
+                        <span key={segment.id} className="overlay-cue-chip">
+                          {segment.text}
+                        </span>
+                      );
+                    }
+
+                    const segWords = voiceSync.wordsBySegment.get(segment.id) ?? [];
+                    if (segWords.length === 0) {
+                      if (segment.kind === 'strong') {
+                        return <strong key={segment.id}>{segment.text}</strong>;
+                      }
+                      if (segment.kind === 'emphasis') {
+                        return <em key={segment.id}>{segment.text}</em>;
+                      }
+                      return <span key={segment.id}>{segment.text}</span>;
+                    }
+
+                    const renderedWords = segWords.map((w, wIdx) => {
+                      const isActive = activeWordIdx !== null && w.globalIndex === activeWordIdx;
+                      const isSpoken = !isActive && (
+                        activeWordIdx !== null
+                          ? w.globalIndex < activeWordIdx
+                          : w.globalIndex < followerCursor
+                      );
+                      const wordStateClass = isActive
+                        ? 'is-voice-current'
+                        : isSpoken
+                          ? 'is-voice-spoken'
+                          : 'is-voice-upcoming';
+
+                      return (
+                        <span key={w.globalIndex}>
+                          <span
+                            className={`voice-word ${wordStateClass}`}
+                            data-word-global={w.globalIndex}
+                            data-voice-active={isActive ? 'true' : undefined}
+                          >
+                            {w.text}
+                          </span>
+                          {wIdx < segWords.length - 1 ? ' ' : ''}
+                        </span>
+                      );
+                    });
+
+                    const leadingSpace = /^\s+/.test(segment.text) ? ' ' : '';
+                    const trailingSpace = /\s+$/.test(segment.text) ? ' ' : '';
+
+                    const content = (
+                      <>
+                        {leadingSpace}
+                        {renderedWords}
+                        {trailingSpace}
+                      </>
+                    );
+
+                    if (segment.kind === 'strong') {
+                      return <strong key={segment.id}>{content}</strong>;
+                    }
+                    if (segment.kind === 'emphasis') {
+                      return <em key={segment.id}>{content}</em>;
+                    }
+                    return <span key={segment.id}>{content}</span>;
+                  });
+                }
+
                 const lineWords = voiceSync.wordsByLine.get(index) ?? [];
                 if (lineWords.length === 0) {
                   return renderInlineContent();
                 }
 
-                const activeWordIdx = voiceSync.activeMatchedWordIndex;
-
                 return lineWords.map((w, wIdx) => {
-                  const isSpoken = activeWordIdx !== null && w.globalIndex < activeWordIdx;
                   const isActive = activeWordIdx !== null && w.globalIndex === activeWordIdx;
-                  const wordStateClass = isActive ? 'is-voice-current' : isSpoken ? 'is-voice-spoken' : 'is-voice-upcoming';
+                  const isSpoken = !isActive && (
+                    activeWordIdx !== null
+                      ? w.globalIndex < activeWordIdx
+                      : w.globalIndex < followerCursor
+                  );
+                  const wordStateClass = isActive
+                    ? 'is-voice-current'
+                    : isSpoken
+                      ? 'is-voice-spoken'
+                      : 'is-voice-upcoming';
 
                   const wordNode =
                     w.kind === 'strong' ? (
-                      <strong className={`voice-word ${wordStateClass}`}>{w.text}</strong>
+                      <strong
+                        className={`voice-word ${wordStateClass}`}
+                        data-word-global={w.globalIndex}
+                        data-voice-active={isActive ? 'true' : undefined}
+                      >
+                        {w.text}
+                      </strong>
                     ) : w.kind === 'emphasis' ? (
-                      <em className={`voice-word ${wordStateClass}`}>{w.text}</em>
+                      <em
+                        className={`voice-word ${wordStateClass}`}
+                        data-word-global={w.globalIndex}
+                        data-voice-active={isActive ? 'true' : undefined}
+                      >
+                        {w.text}
+                      </em>
                     ) : (
-                      <span className={`voice-word ${wordStateClass}`}>{w.text}</span>
+                      <span
+                        className={`voice-word ${wordStateClass}`}
+                        data-word-global={w.globalIndex}
+                        data-voice-active={isActive ? 'true' : undefined}
+                      >
+                        {w.text}
+                      </span>
                     );
 
                   return (

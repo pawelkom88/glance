@@ -490,6 +490,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           ? sessions.find((session) => session.id === preferredSessionId) ?? sessions[0]
           : sessions[0];
         await get().openSession(initialSession.id);
+      } else if (!isTauri()) {
+        await get().importMarkdown('Getting Started', SAMPLE_SESSION_MARKDOWN, false);
       } else {
         clearLastActiveSessionId();
       }
@@ -514,6 +516,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             set({ vadEnabled: readVadEnabled() });
           } else if (event.key === voicePauseDelayStorageKey) {
             set({ voicePauseDelayMs: readVoicePauseDelayMs() });
+          } else if (event.key === voiceSyncEnabledStorageKey) {
+            set({ voiceSyncEnabled: readVoiceSyncEnabled() });
+          } else if (event.key === speechmaticsApiKeyStorageKey) {
+            set({ speechmaticsApiKey: readSpeechmaticsApiKey() });
           }
         });
       }

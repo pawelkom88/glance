@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useVoiceSync } from './useVoiceSync';
 import { useAppStore } from '../store/use-app-store';
@@ -96,5 +96,150 @@ describe('useVoiceSync', () => {
 
     expect(result.current.hasApiKey).toBe(true);
     expect(result.current.voiceSyncState).toBe('listening');
+  });
+
+  it('matches spoken words, tracks active word index, and handles repositionToLine', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-api-key'
+    });
+
+    const lines: DisplayLine[] = [
+      { id: '1', kind: 'text', text: 'Welcome everyone to Glance', sectionIndex: 0 },
+      { id: '2', kind: 'text', text: 'Second line here', sectionIndex: 1 }
+    ];
+
+    let onWordCallback: ((word: { word: string; isPartial?: boolean }) => void) | null = null;
+    const { createSpeechmaticsRealtimeClient } = await import('../lib/speechmatics');
+    vi.mocked(createSpeechmaticsRealtimeClient).mockImplementationOnce((opts: any) => {
+      onWordCallback = opts.onWord;
+      return {
+        start: vi.fn().mockImplementation(async () => {
+          opts.onStatusChange('listening');
+        }),
+        stop: vi.fn(),
+        getStatus: () => 'listening'
+      };
+    });
+
+    const onTargetScrollChange = vi.fn();
+    const { result } = renderHook(() =>
+      useVoiceSync({
+        lines,
+        linePositions: { positions: [0, 60], totalHeight: 120 },
+        lineRefs: { current: [] },
+        lanePadding: 40,
+        firstLineLaneNudge: 0,
+        playbackState: 'running',
+        onTargetScrollChange
+      })
+    );
+
+    expect(result.current.activeMatchedWordIndex).toBeNull();
+
+    // Simulate speechmatics sending first word
+    act(() => {
+      onWordCallback?.({ word: 'Welcome', isPartial: false });
+    });
+
+    expect(result.current.activeSpokenWord).toBe('Welcome');
+    expect(result.current.activeMatchedWordIndex).toBe(0);
+    expect(result.current.activeMatchedLineIndex).toBe(0);
+
+    // Simulate next word
+    act(() => {
+      onWordCallback?.({ word: 'everyone', isPartial: false });
+    });
+
+    expect(result.current.activeSpokenWord).toBe('everyone');
+    expect(result.current.activeMatchedWordIndex).toBe(1);
+
+    // Reposition back to line 0
+    act(() => {
+      result.current.repositionToLine(0);
+    });
+
+    expect(result.current.activeMatchedWordIndex).toBeNull();
+    expect(result.current.activeSpokenWord).toBeNull();
+
+    // Test syncCurrentScroll
+    act(() => {
+      result.current.syncCurrentScroll(120);
+    });
+
+    // Test repositioning to line 1 (no stale word or active highlight before speaking)
+    act(() => {
+      result.current.repositionToLine(1);
+    });
+
+    expect(result.current.activeMatchedWordIndex).toBeNull();
+    expect(result.current.activeSpokenWord).toBeNull();
+    expect(result.current.followerCursorIndex).toBe(4);
+    expect(result.current.wordsByLine.size).toBe(2);
+  });
+
+  it('does not reset follower cursor when lanePadding changes (e.g. window resize)', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-api-key'
+    });
+
+    const lines: DisplayLine[] = [
+      { id: '1', kind: 'text', text: 'Alpha beta gamma delta', sectionIndex: 0 },
+      { id: '2', kind: 'text', text: 'Epsilon zeta eta theta', sectionIndex: 1 }
+    ];
+
+    let onWordCallback: ((word: { word: string; isPartial?: boolean }) => void) | null = null;
+    const { createSpeechmaticsRealtimeClient } = await import('../lib/speechmatics');
+    vi.mocked(createSpeechmaticsRealtimeClient).mockImplementationOnce((opts: any) => {
+      onWordCallback = opts.onWord;
+      return {
+        start: vi.fn().mockImplementation(async () => {
+          opts.onStatusChange('listening');
+        }),
+        stop: vi.fn(),
+        getStatus: () => 'listening'
+      };
+    });
+
+    const onTargetScrollChange = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ lanePadding }) =>
+        useVoiceSync({
+          lines,
+          linePositions: { positions: [0, 60], totalHeight: 120 },
+          lineRefs: { current: [] },
+          lanePadding,
+          firstLineLaneNudge: 0,
+          playbackState: 'running',
+          onTargetScrollChange
+        }),
+      { initialProps: { lanePadding: 40 } }
+    );
+
+    // Speak first two words
+    act(() => {
+      onWordCallback?.({ word: 'Alpha', isPartial: false });
+    });
+    act(() => {
+      onWordCallback?.({ word: 'beta', isPartial: false });
+    });
+
+    expect(result.current.activeMatchedWordIndex).toBe(1);
+    expect(result.current.followerCursorIndex).toBe(2);
+
+    // Simulate window resize changing lanePadding from 40 to 80
+    rerender({ lanePadding: 80 });
+
+    // Verify cursor did not get wiped to 0
+    expect(result.current.activeMatchedWordIndex).toBe(1);
+    expect(result.current.followerCursorIndex).toBe(2);
+
+    // Next spoken word should match gamma (word index 2), NOT restart from Alpha
+    act(() => {
+      onWordCallback?.({ word: 'gamma', isPartial: false });
+    });
+    expect(result.current.activeMatchedWordIndex).toBe(2);
+    expect(result.current.activeSpokenWord).toBe('gamma');
   });
 });

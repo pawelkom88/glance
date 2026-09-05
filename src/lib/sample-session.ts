@@ -1,19 +1,35 @@
-export const SAMPLE_SESSION_MARKDOWN = `# Welcome to Glance
-*Your words. Your machine. Period.*
+export const SAMPLE_SESSION_MARKDOWN = `# Welcome to Glance Voice Sync
+*Your words lead the way. Glance follows.*
 
-Glance is a beautifully simple, privacy-first teleprompter. It doesn't read your scripts, and it doesn't need the Internet to work.
+Glance is a local-first teleprompter designed for effortless presentations. With real-time speech tracking, you never have to adjust your scrolling speed manually or worry about losing your spot.
 
-## How to use this Prompter
+## The Challenge with Manual Scrolling
 
-1. Press **Space** to play or pause the scrolling. Try it now!
-2. Use **Cmd+Up** and **Cmd+Down** to change the scroll speed.
-3. Use **Cmd+1...9** to instantly jump to different sections.
+1. Conventional teleprompters scroll at a rigid, predetermined speed that forces you to match an artificial cadence.
+2. If you pause for emphasis, take an unexpected breath, or interact with your audience, the script keeps running without you.
+3. If you speed up to deliver an exciting idea, the prompter lags behind and leaves you reciting from memory.
 
-## Zero Friction
+## How Voice Tracking Works
 
-There are no confusing menus or endless tutorials. Your script just plays. You have full control over the overlay bounds, font sizes, and custom shortcut keybindings from the settings menu.
+Glance uses Speechmatics realtime speech recognition to transcribe your voice directly as you speak. The script follower matches each spoken word against your markdown text within an adaptive lookahead window.
 
-> **Privacy First**
-> Because everything happens locally on your computer, you never have to worry about data leaks. If you run into any bugs, you can manually export your diagnostic logs from the Settings tab.
+- **Exact and Fuzzy Matching**: The follower handles minor pronunciation variations, abbreviations, and informal speech.
+- **Inertial Spring Physics**: An exponential damping curve smoothly glides the text forward to match your natural speaking rhythm.
+- **Visual Eyeline Guide**: A subtle guide keeps your gaze anchored right below your camera lens for natural eye contact.
 
-Happy reading!`;
+## Best Practices for Presenting
+
+Remember that your voice is your most expressive communication tool. Modulate your tone, leave room for quiet pauses, and speak with confidence.
+
+> *Great speakers do not rush to finish. They pause to let their most important ideas land.*
+
+## Practicing with Voice Sync
+
+As you read these sentences out loud, notice how the active word highlights in blue and preceding words gently dim. When you pause to take a sip of water or collect your thoughts, the prompter waits patiently for you to resume.
+
+## Final Remarks
+
+Whether you are delivering a keynote, recording a product video, or leading a company all-hands meeting, Glance stays perfectly synchronized with your speech.
+
+Thank you for testing Glance voice-synced scrolling.`;
+

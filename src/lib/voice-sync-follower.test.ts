@@ -57,6 +57,29 @@ describe('voice-sync-follower', () => {
       expect(words[4]?.text).toBe('teleprompter.');
       expect(words[4]?.normalized).toBe('teleprompter');
     });
+
+    it('attaches segmentId to words and ignores cue segments for matching', () => {
+      const lines: DisplayLine[] = [
+        {
+          id: '1',
+          kind: 'text',
+          text: 'Welcome [pause] everyone',
+          sectionIndex: 0,
+          segments: [
+            { id: 'seg-1', kind: 'plain', text: 'Welcome ' },
+            { id: 'seg-2', kind: 'cue', text: 'pause' },
+            { id: 'seg-3', kind: 'plain', text: ' everyone' }
+          ]
+        }
+      ];
+
+      const words = extractScriptWords(lines);
+      expect(words.length).toBe(2);
+      expect(words[0]?.text).toBe('Welcome');
+      expect(words[0]?.segmentId).toBe('seg-1');
+      expect(words[1]?.text).toBe('everyone');
+      expect(words[1]?.segmentId).toBe('seg-3');
+    });
   });
 
   describe('createVoiceSyncFollower', () => {

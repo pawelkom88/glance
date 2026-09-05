@@ -15,6 +15,7 @@ export interface ScriptWord {
   readonly wordIndexInLine: number;
   readonly totalWordsInLine: number;
   readonly kind?: 'plain' | 'strong' | 'emphasis' | 'cue';
+  readonly segmentId?: string;
 }
 
 export interface WordMatchEvent {
@@ -59,7 +60,12 @@ export function extractScriptWords(lines: readonly DisplayLine[]): ScriptWord[] 
       return;
     }
 
-    const lineTokens: Array<{ text: string; normalized: string; kind?: 'plain' | 'strong' | 'emphasis' | 'cue' }> = [];
+    const lineTokens: Array<{
+      text: string;
+      normalized: string;
+      kind?: 'plain' | 'strong' | 'emphasis' | 'cue';
+      segmentId?: string;
+    }> = [];
 
     if (line.segments && line.segments.length > 0) {
       line.segments.forEach((seg) => {
@@ -70,7 +76,7 @@ export function extractScriptWords(lines: readonly DisplayLine[]): ScriptWord[] 
         tokens.forEach((t) => {
           const norm = normalizeWord(t);
           if (norm.length > 0) {
-            lineTokens.push({ text: t, normalized: norm, kind: seg.kind });
+            lineTokens.push({ text: t, normalized: norm, kind: seg.kind, segmentId: seg.id });
           }
         });
       });
@@ -97,7 +103,8 @@ export function extractScriptWords(lines: readonly DisplayLine[]): ScriptWord[] 
         lineIndex,
         wordIndexInLine,
         totalWordsInLine,
-        kind: item.kind
+        kind: item.kind,
+        segmentId: item.segmentId
       });
       globalIndex += 1;
       wordIndexInLine += 1;
@@ -115,6 +122,21 @@ export function groupScriptWordsByLine(scriptWords: readonly ScriptWord[]): Map<
       list.push(word);
     } else {
       map.set(word.lineIndex, [word]);
+    }
+  });
+  return map;
+}
+
+export function groupScriptWordsBySegment(scriptWords: readonly ScriptWord[]): Map<string, ScriptWord[]> {
+  const map = new Map<string, ScriptWord[]>();
+  scriptWords.forEach((word) => {
+    if (word.segmentId) {
+      const list = map.get(word.segmentId);
+      if (list) {
+        list.push(word);
+      } else {
+        map.set(word.segmentId, [word]);
+      }
     }
   });
   return map;

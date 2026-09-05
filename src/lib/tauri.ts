@@ -326,9 +326,28 @@ export function clearLastActiveSessionId(): void {
   window.localStorage.removeItem(lastActiveSessionStorageKey);
 }
 
+const BROWSER_SESSIONS_STORAGE_KEY = 'glance-browser-sessions-v1';
+const BROWSER_SESSION_DATA_PREFIX = 'glance-browser-session-data-v1:';
+
+function getBrowserSessions(): SessionSummary[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(BROWSER_SESSIONS_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function saveBrowserSessions(sessions: readonly SessionSummary[]): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(BROWSER_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+}
+
 export async function listSessions(): Promise<readonly SessionSummary[]> {
   if (!inTauri()) {
-    return [];
+    return getBrowserSessions();
   }
 
   return invoke<SessionSummary[]>('list_sessions');
@@ -452,14 +471,75 @@ export async function listFolders(): Promise<readonly SessionFolder[]> {
 }
 
 export async function createSession(name: string): Promise<SessionSummary> {
+  if (!inTauri()) {
+    const id = `session-${Date.now()}`;
+    const now = new Date().toISOString();
+    const summary: SessionSummary = {
+      id,
+      title: name,
+      createdAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      folderId: null
+    };
+    saveBrowserSessions([summary, ...getBrowserSessions()]);
+    const meta: SessionMeta = {
+      id,
+      title: name,
+      createdAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      scroll: { position: 0, speed: 1.0, running: false },
+      overlay: { fontScale: 1, showReadingRuler: true },
+      folderId: null,
+      wordCount: 0
+    };
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(`${BROWSER_SESSION_DATA_PREFIX}${id}`, JSON.stringify({ markdown: '', meta }));
+    }
+    return summary;
+  }
   return invoke<SessionSummary>('create_session', { name });
 }
 
 export async function createSessionFromMarkdown(name: string, markdown: string): Promise<SessionSummary> {
+  if (!inTauri()) {
+    const id = `session-${Date.now()}`;
+    const now = new Date().toISOString();
+    const wordCount = markdown.trim().length > 0 ? markdown.trim().split(/\s+/).filter(Boolean).length : 0;
+    const summary: SessionSummary = {
+      id,
+      title: name,
+      createdAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      folderId: null
+    };
+    saveBrowserSessions([summary, ...getBrowserSessions().filter((s) => s.id !== id)]);
+    const meta: SessionMeta = {
+      id,
+      title: name,
+      createdAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      scroll: { position: 0, speed: 1.0, running: false },
+      overlay: { fontScale: 1, showReadingRuler: true },
+      folderId: null,
+      wordCount
+    };
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(`${BROWSER_SESSION_DATA_PREFIX}${id}`, JSON.stringify({ markdown, meta }));
+    }
+    return summary;
+  }
   return invoke<SessionSummary>('create_session_from_markdown', { name, markdown });
 }
 
 export async function duplicateSession(id: string): Promise<SessionSummary> {
+  if (!inTauri()) {
+    const original = await loadSession(id);
+    return createSessionFromMarkdown(`${original.meta.title} (Copy)`, original.markdown);
+  }
   return invoke<SessionSummary>('duplicate_session', { id });
 }
 
@@ -483,6 +563,13 @@ export async function moveSessionsToFolder(sessionIds: readonly string[], folder
 }
 
 export async function deleteSession(id: string): Promise<void> {
+  if (!inTauri()) {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(`${BROWSER_SESSION_DATA_PREFIX}${id}`);
+    }
+    saveBrowserSessions(getBrowserSessions().filter((s) => s.id !== id));
+    return;
+  }
   await invoke('delete_session', { id });
 }
 
@@ -499,10 +586,61 @@ export async function readTextFile(path: string): Promise<string> {
 }
 
 export async function loadSession(id: string): Promise<SessionData> {
+  if (!inTauri()) {
+    if (typeof window !== 'undefined') {
+      const raw = window.localStorage.getItem(`${BROWSER_SESSION_DATA_PREFIX}${id}`);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          return {
+            id,
+            markdown: parsed.markdown ?? '',
+            meta: parsed.meta ?? {
+              id,
+              title: 'Untitled Session',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              lastOpenedAt: new Date().toISOString(),
+              scroll: { position: 0, speed: 1.0, running: false },
+              overlay: { fontScale: 1, showReadingRuler: true },
+              folderId: null,
+              wordCount: 0
+            }
+          };
+        } catch {
+          // fallback
+        }
+      }
+    }
+    return {
+      id,
+      markdown: '',
+      meta: {
+        id,
+        title: 'Untitled Session',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastOpenedAt: new Date().toISOString(),
+        scroll: { position: 0, speed: 1.0, running: false },
+        overlay: { fontScale: 1, showReadingRuler: true },
+        folderId: null,
+        wordCount: 0
+      }
+    };
+  }
   return invoke<SessionData>('load_session', { id });
 }
 
 export async function saveSession(id: string, markdown: string, meta: SessionMeta): Promise<void> {
+  if (!inTauri()) {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(`${BROWSER_SESSION_DATA_PREFIX}${id}`, JSON.stringify({ markdown, meta }));
+    }
+    const sessions = getBrowserSessions();
+    const updated = sessions.map((s) => (s.id === id ? { ...s, title: meta.title, updatedAt: meta.updatedAt } : s));
+    saveBrowserSessions(updated);
+    return;
+  }
   await invoke('save_session', { id, markdown, meta });
 }
 
@@ -723,7 +861,11 @@ export async function resetOverlayPosition(): Promise<void> {
 
 export async function openOverlayWindow(): Promise<ShowOverlayResult | null> {
   if (!inTauri()) {
-    return null;
+    if (typeof window !== 'undefined') {
+      window.location.hash = 'overlay';
+      window.location.reload();
+    }
+    return { ok: true } as any;
   }
 
   const result = await invoke<ShowOverlayResult>('show_overlay_window');

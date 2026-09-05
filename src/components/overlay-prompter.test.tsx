@@ -773,4 +773,76 @@ describe('OverlayPrompter behavior', () => {
 
     expect(tauriMocks.startOverlayDrag).not.toHaveBeenCalled();
   });
+
+  it('hides reading ruler and does not render eyeline guide when voiceSyncEnabled is true', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      showReadingRuler: true,
+      markdown: '# Introduction\n\nWelcome to Glance teleprompter voice sync.'
+    });
+
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<OverlayPrompter />);
+    });
+    const { container } = renderResult;
+
+    expect(container.querySelector('.reading-ruler')).toBeNull();
+    expect(container.querySelector('.voice-eyeline-guide')).toBeNull();
+    expect(container.querySelector('.overlay-lines.is-voice-synced')).not.toBeNull();
+
+    // Verify words are rendered with voice-word and data-word-global attributes
+    const words = container.querySelectorAll('.voice-word');
+    expect(words.length).toBeGreaterThan(0);
+    expect(words[0]?.getAttribute('data-word-global')).toBe('0');
+  });
+
+  it('renders reading ruler when voiceSyncEnabled is false and showReadingRuler is true', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: false,
+      showReadingRuler: true,
+      markdown: '# Introduction\n\nWelcome to Glance teleprompter.'
+    });
+
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<OverlayPrompter />);
+    });
+    const { container } = renderResult;
+
+    expect(container.querySelector('.reading-ruler')).not.toBeNull();
+    expect(container.querySelector('.voice-eyeline-guide')).toBeNull();
+  });
+
+  it('preserves cue chips and formatted inline elements when voiceSyncEnabled is true', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      showReadingRuler: true,
+      markdown: 'Welcome everyone [pause] to **Glance** and *teleprompter*.'
+    });
+
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<OverlayPrompter />);
+    });
+    const { container } = renderResult;
+
+    // Verify cue chip is rendered
+    const cueChip = container.querySelector('.overlay-cue-chip');
+    expect(cueChip).not.toBeNull();
+    expect(cueChip?.textContent).toBe('pause');
+
+    // Verify strong and emphasis are rendered
+    const strongEl = container.querySelector('strong');
+    expect(strongEl).not.toBeNull();
+    expect(strongEl?.textContent).toContain('Glance');
+
+    const emEl = container.querySelector('em');
+    expect(emEl).not.toBeNull();
+    expect(emEl?.textContent).toContain('teleprompter');
+
+    // Verify speakable words have data-word-global
+    const words = container.querySelectorAll('.voice-word');
+    expect(words.length).toBe(6); // Welcome, everyone, to, Glance, and, teleprompter
+  });
 });

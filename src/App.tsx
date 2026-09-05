@@ -180,7 +180,7 @@ export default function App() {
   const hasStartupContentReady = isOverlay || initialized;
 
   useEffect(() => {
-    if (isOverlay) {
+    if (isOverlay && isTauri()) {
       return;
     }
     void loadInitialState();
