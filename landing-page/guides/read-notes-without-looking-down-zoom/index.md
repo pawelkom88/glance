@@ -93,7 +93,7 @@ Sometimes you’re not using notes. You’re delivering exact lines.
 
 A practical option is a **teleprompter overlay**—text that sits near your webcam so you don’t keep looking down.
 
-A tool like **Glance** is designed for this specific problem: keeping your script close to the camera, with controls to adjust pace and jump between sections without switching windows mid-call.
+A tool like **Glance** is designed for this specific problem: keeping your script close to the camera, with built-in **Voice Sync** that tracks spoken words in real time and scrolls automatically as you speak. You never have to reach for your mouse or scroll wheel mid-sentence.
 
 ## Common mistakes (and what to do instead)
 
@@ -101,8 +101,8 @@ A tool like **Glance** is designed for this specific problem: keeping your scrip
   **Do instead:** Notes beside the webcam on-screen
 - **Mistake:** Long paragraphs
   **Do instead:** Cue bullets
-- **Mistake:** Scrolling notes
-  **Do instead:** One screenful only
+- **Mistake:** Scrolling notes manually while talking
+  **Do instead:** Use hands-free Voice Sync or keep notes to one screenful
 - **Mistake:** Two monitors with head-turning
   **Do instead:** Notes near the camera screen
 - **Mistake:** Trying to “hide” note use

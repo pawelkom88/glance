@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice-Synced Teleprompter Guide: Hands-Free Scrolling on Video Calls | Glance</title>
+    <meta name="description"
+        content="Learn how voice-synced teleprompter scrolling follows your natural speaking cadence on Zoom, Teams, and Google Meet with zero mouse or pedal interaction." />
+    <link rel="canonical" href="https://atglance.app/guides/voice-sync-teleprompter/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Voice-Synced Teleprompter Guide: Hands-Free Scrolling on Video Calls | Glance" />
+    <meta property="og:description"
+        content="Learn how voice-synced teleprompter scrolling follows your natural speaking cadence on Zoom, Teams, and Google Meet with zero mouse or pedal interaction." />
+    <meta property="og:url" content="https://atglance.app/guides/voice-sync-teleprompter/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://atglance.app/voice-sync-overlay.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Voice-Synced Teleprompter Guide: Hands-Free Scrolling on Video Calls | Glance" />
+    <meta name="twitter:description"
+        content="Learn how voice-synced teleprompter scrolling follows your natural speaking cadence on Zoom, Teams, and Google Meet." />
+    <meta name="twitter:image" content="https://atglance.app/voice-sync-overlay.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="icon" type="image/png" href="../../favicon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Article",
+          "headline": "Voice-Synced Teleprompter Guide: Hands-Free Scrolling on Video Calls",
+          "description": "Learn how voice-synced teleprompter scrolling follows your natural speaking cadence on Zoom, Teams, and Google Meet with zero mouse or pedal interaction.",
+          "image": "https://atglance.app/voice-sync-overlay.png",
+          "author": {
+            "@type": "Organization",
+            "name": "Glance"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Glance",
+            "url": "https://atglance.app/"
+          }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://atglance.app/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Guides",
+              "item": "https://atglance.app/guides/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Voice-Synced Teleprompter",
+              "item": "https://atglance.app/guides/voice-sync-teleprompter/"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #f5f5f7;
+            --text-1: #1d1d1f;
+            --text-2: #424245;
+            --accent: #007AFF;
+            --border: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-1);
+            font-family: "Inter", sans-serif;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 20px;
+            background: #1d1d1f;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            text-decoration: none;
+        }
+
+        .skip-link:focus {
+            top: 12px;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-inner {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--accent);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-1);
+        }
+
+        main {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 108px 32px 80px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            color: var(--text-1);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-2);
+            margin-bottom: 36px;
+            line-height: 1.5;
+        }
+
+        article h2 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 42px;
+            margin-bottom: 16px;
+            color: var(--text-1);
+        }
+
+        article h3 {
+            font-family: 'Commissioner', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            color: var(--text-1);
+        }
+
+        article p {
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.7;
+            color: var(--text-2);
+        }
+
+        article ul,
+        article ol {
+            margin-bottom: 24px;
+            padding-left: 24px;
+            color: var(--text-2);
+        }
+
+        article li {
+            font-size: 16px;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .guide-image-container {
+            margin: 32px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+            background: #111;
+        }
+
+        .guide-image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .image-caption {
+            font-size: 13px;
+            color: var(--text-2);
+            text-align: center;
+            margin-top: -20px;
+            margin-bottom: 28px;
+            font-style: italic;
+        }
+
+        .callout-box {
+            background: var(--surface);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin: 28px 0;
+        }
+
+        .callout-box p {
+            margin-bottom: 0;
+            font-size: 15px;
+            color: var(--text-1);
+        }
+
+        .callout-box strong {
+            color: var(--text-1);
+        }
+
+        .steps-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px 32px;
+            margin: 32px 0;
+        }
+
+        .steps-card h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        .steps-card ol {
+            margin-bottom: 0;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--border);
+            margin: 44px 0;
+        }
+
+        .disclaimer-box {
+            font-size: 13px;
+            color: var(--text-2);
+            opacity: 0.8;
+            line-height: 1.5;
+            margin-top: 24px;
+            border-top: 1px dashed var(--border);
+            padding-top: 16px;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, rgba(0, 122, 255, 0.08), rgba(0, 122, 255, 0.02));
+            border: 1px solid rgba(0, 122, 255, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            margin: 44px 0;
+        }
+
+        .cta-box h3 {
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 980px;
+            font-weight: 500;
+            font-size: 15px;
+            text-decoration: none;
+            margin-top: 16px;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-1px);
+            background: #0066d6;
+        }
+
+        footer {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        footer p {
+            font-size: 14px;
+            color: var(--text-2);
+            margin-bottom: 16px;
+        }
+
+        footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        footer a {
+            color: var(--text-2);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 52px;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                flex-direction: column;
+                padding: 20px 40px;
+                gap: 20px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            main {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .steps-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <nav>
+        <div class="nav-inner">
+            <a href="/index.html" class="logo">
+                <img width="32" height="32" src="../../icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false"
+                aria-controls="primary-navigation">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links" id="primary-navigation">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Scripts</a>
+                <a href="/guides/" class="active">Guides</a>
+                <a href="/privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <span class="eyebrow">Interactive Presentation Guide</span>
+        <h1>Voice-Synced Teleprompters: Hands-Free Scrolling for Video Calls</h1>
+        <p class="subtitle">Why traditional teleprompter speed sliders fail on live calls, how speech-following technology works, and how to present naturally without touching your mouse.</p>
+
+        <article>
+            <h2>The Problem with Fixed-Speed Teleprompters</h2>
+            <p>Every remote presenter knows the feeling: you set your teleprompter to 130 words per minute, launch your meeting, and begin presenting. Within thirty seconds, something breaks your rhythm.</p>
+            <p>You pause to take a breath. A prospect asks a question. You take five seconds to emphasize a critical statistic. Meanwhile, your teleprompter’s timer doesn’t care—it continues relentlessly scrolling down your screen.</p>
+            <p>Suddenly, you’re forced to reach for your mouse, click frantically to pause, rewind your notes, and re-find your place. In that split second, your eye contact drops, your posture stiffens, and your audience sees you “operating software” rather than leading a conversation.</p>
+
+            <div class="callout-box">
+                <p><strong>The Golden Rule of Live Presenting:</strong> You should never have to adjust your speaking speed to match your software. Your software must adjust to match your voice.</p>
+            </div>
+
+            <h2>What is Voice-Synced Scrolling?</h2>
+            <p><strong>Voice Sync</strong> is real-time, speech-directed script tracking. Rather than advancing text on a mechanical timer, a voice-synced prompter listens to your microphone, transcribes your spoken words using low-latency speech recognition, and matches them against your script in real time.</p>
+            <p>As you speak each word, the teleprompter marks your exact place with an active highlight and advances the script line-by-line with fluid spring physics.</p>
+
+            <div class="guide-image-container">
+                <picture>
+                    <source srcset="voice-sync-overlay.webp" type="image/webp">
+                    <img src="voice-sync-overlay.png" alt="Glance Voice Sync Overlay with word pill highlight" loading="lazy" decoding="async">
+                </picture>
+            </div>
+            <p class="image-caption">Glance Voice Sync: The active spoken word is cleanly highlighted with a subtle pill accent, while past words fade gently and upcoming text stays crisp.</p>
+
+            <h2>Key Advantages of Voice Sync on Live Calls</h2>
+
+            <h3>1. Complete Freedom of Pace</h3>
+            <p>Speak as fast or as slowly as you wish. If you speed up through an introductory slide, the script accelerates with you. If you pause for three seconds to let an important point sink in, the script halts instantly right where you stopped.</p>
+
+            <h3>2. Instant Auto-Arming on Launch</h3>
+            <p>Because Voice Sync is strictly speech-driven, Glance automatically arms the speech listener the moment you open the overlay. Unlike standard teleprompter mode (which starts paused so text doesn't scroll away), Voice Sync doesn't move a single pixel until you actually speak. You simply launch Glance, look at your camera lens, and begin your presentation.</p>
+
+            <h3>3. Resilient to Stumbles &amp; Improvisation</h3>
+            <p>Live human speech is never 100% linear. Real-time voice synchronization uses an adaptive lookahead matching window with phonetic tolerance. If you accidentally repeat a phrase, stumble on a word, or insert filler words like <em>“um”</em> or <em>“you know”</em>, the engine ignores the noise and stays firmly anchored to your script.</p>
+
+            <h3>4. Zero Mouse, Trackpad, or Foot Pedal Interaction</h3>
+            <p>In high-stakes video calls (especially when sharing slides or demoing software), your hands are busy clicking through screens. Voice Sync ensures your eyes and hands remain completely free from prompter management.</p>
+
+            <hr />
+
+            <h2>How to Set Up Voice Sync in Glance</h2>
+            <p>Glance connects directly from your machine to Speechmatics—one of the world's most accurate real-time speech recognition engines—using your own private API key.</p>
+
+            <div class="guide-image-container">
+                <picture>
+                    <source srcset="voice-sync-settings.webp" type="image/webp">
+                    <img src="voice-sync-settings.png" alt="Glance Settings showing Voice-Synced Scrolling toggle and API Key" loading="lazy" decoding="async">
+                </picture>
+            </div>
+            <p class="image-caption">Settings view in Glance: One toggle activates Voice-Synced Scrolling, with direct link to claim free trial credits.</p>
+
+            <div class="steps-card">
+                <h3>Quick 3-Minute Setup</h3>
+                <ol>
+                    <li><strong>Claim Free Trial Credits:</strong> Sign up at <a href="https://portal.speechmatics.com" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 500;">portal.speechmatics.com</a>. Speechmatics provides up to $100 in free initial usage credits with no credit card required upfront.</li>
+                    <li><strong>Copy Your API Key:</strong> From the Speechmatics portal dashboard, generate an API key and copy it to your clipboard.</li>
+                    <li><strong>Save in Glance:</strong> Open Glance, navigate to <strong>Settings</strong> (gear icon), paste your key into the <strong>Speechmatics API Key</strong> field, and toggle <strong>Voice-Synced Scrolling</strong> ON.</li>
+                    <li><strong>Launch &amp; Present:</strong> Click <strong>Launch Prompter</strong>. The listener will arm automatically—just start reading!</li>
+                </ol>
+            </div>
+
+            <h2>Privacy &amp; Local-First Architecture</h2>
+            <p>Confidential sales demos, internal team updates, and executive briefings require strict confidentiality. Glance was designed with a privacy-first, zero-knowledge philosophy:</p>
+            <ul>
+                <li><strong>Local-First Notes:</strong> Your scripts and markdown notes never touch Glance servers. They are stored 100% locally on your machine.</li>
+                <li><strong>Direct Encrypted Stream:</strong> When Voice Sync is active, audio streams over an encrypted WebSocket directly from your computer to Speechmatics using your own private credentials.</li>
+                <li><strong>Zero Middleman Relay:</strong> Glance servers never receive, relay, intercept, or record your voice or script data.</li>
+            </ul>
+
+            <div class="cta-box">
+                <h3>Ready to Present Hands-Free?</h3>
+                <p>Download Glance for macOS and Windows. Keep your eyes on the camera, speak naturally, and let the prompter follow you.</p>
+                <a href="/index.html" class="cta-button">Download Glance</a>
+            </div>
+
+            <div class="disclaimer-box">
+                <p><strong>Legal Disclaimer:</strong> Glance is an independent local-first application and is not affiliated with, sponsored by, or endorsed by Speechmatics in any way. Speechmatics is a registered trademark of Speechmatics Ltd.</p>
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Script Templates</a>
+                <a href="/guides/">Guides</a>
+                <a href="/privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../../assets/js/navigation.js"></script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => { el.textContent = year; });
+    </script>
+</body>
+
+</html>

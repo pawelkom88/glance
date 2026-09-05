@@ -438,6 +438,7 @@ export function OverlayPrompter() {
   const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const showToast = useAppStore((state) => state.showToast);
   const voiceSyncEnabled = useAppStore((state) => state.voiceSyncEnabled);
+  const speechmaticsApiKey = useAppStore((state) => state.speechmaticsApiKey);
 
   // Voice Activity Detection
   const vadPausedByVadRef = useRef(false);
@@ -577,12 +578,14 @@ export function OverlayPrompter() {
   });
 
   useEffect(() => {
-    // We keep it paused on mount (reopen), but we DO NOT reset scroll position
-    // to allow resuming exactly where the user left off.
-    setPlaybackState('paused');
+    // When Voice Sync is enabled and configured, auto-start listening immediately
+    // because scrolling is speech-driven and waits for voice without moving text prematurely.
+    // In non-voice mode, stay paused so text doesn't scroll away before user is ready.
+    const shouldAutoPlay = voiceSyncEnabled && Boolean(speechmaticsApiKey?.trim());
+    setPlaybackState(shouldAutoPlay ? 'running' : 'paused');
     setTimerElapsedMs(0);
     timerTickStartRef.current = null;
-  }, [setPlaybackState]);
+  }, [setPlaybackState, voiceSyncEnabled, speechmaticsApiKey]);
 
   const scaledLineHeight = Math.max(60, Math.round(baseLineHeight * overlayFontScale));
   const lineStride = scaledLineHeight + overlayLineGapPx;
@@ -2096,7 +2099,14 @@ export function OverlayPrompter() {
         return;
       }
 
-      setPlaybackState('paused');
+      // If Voice Sync is actively enabled and configured with an API key,
+      // keep it listening so the presenter can speak while interacting with Zoom or slides.
+      // In standard mode, pause on blur to prevent runaway timer scrolling.
+      const state = useAppStore.getState();
+      const isVoiceSyncActive = state.voiceSyncEnabled && Boolean(state.speechmaticsApiKey?.trim());
+      if (!isVoiceSyncActive) {
+        setPlaybackState('paused');
+      }
     }).then((fn) => {
       unlistenFocus = fn;
     });

@@ -17,12 +17,24 @@ Glance is a minimalist, local-only transparent teleprompter designed for macOS a
 
 ## Key Features
 
+- 🎙️ **Real-Time Voice Sync:** Uses speech recognition to follow your voice and smoothly scroll your script word-by-word with fluid spring physics.
 - 🫥 **Transparent Overlay:** Fluidly adjust the opacity of the prompter so you can read your script while still seeing your video feed or audience behind it.
-- 🎯 **Reading Ruler:** A built-in focus guide helps you keep your place without losing your train of thought.
+- 🎯 **Reading Ruler & Eyeline Guides:** Built-in focus guides help you keep your place without losing your train of thought.
 - ⏱️ **Adjustable Speed & Formatting:** Complete control over scroll speed, font size, and text alignment.
 - 📝 **Markdown Support:** Load your scripts directly from `.md` files or paste text on the fly.
 - 🔒 **Local-First:** No cloud sync. Scripts and settings stay on your device, and the app can launch offline after its first license activation on that machine.
 - 🚀 **Auto-Updater:** Seamless over-the-air updates ensure you always have the latest improvements.
+
+## Real-Time Voice Sync Setup
+
+Glance features real-time voice-tracked scrolling powered by speech recognition via Speechmatics.
+
+1. **Get an API Key:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides free trial credits upon account creation with no credit card required upfront.
+2. **Add to Glance:** Open Glance **Settings** (gear icon) and paste your key into the **Speechmatics API Key** field.
+3. **Turn on Voice Sync:** In the overlay controls, toggle **Voice Sync** on. Read naturally—Glance follows your pacing, handling stumbles and pauses seamlessly.
+
+> **Privacy & Non-Affiliation:** Glance connects directly from your local machine to Speechmatics over encrypted WebSockets using your own API key. No voice, audio, or script data ever passes through or is stored on Glance servers.  
+> *Glance is an independent local-first application and is not affiliated with, sponsored by, or endorsed by Speechmatics in any way. Speechmatics is a registered trademark of Speechmatics Ltd.*
 
 ## Technology Stack
 

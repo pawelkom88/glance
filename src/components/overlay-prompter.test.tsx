@@ -93,6 +93,19 @@ vi.mock('../lib/tauri', () => ({
   startOverlayDrag: tauriMocks.startOverlayDrag
 }));
 
+vi.mock('../lib/speechmatics', () => ({
+  createSpeechmaticsRealtimeClient: vi.fn().mockImplementation((options) => ({
+    start: vi.fn().mockImplementation(async () => {
+      options.onStatusChange?.('listening');
+    }),
+    stop: vi.fn().mockImplementation(() => {
+      options.onStatusChange?.('stopped');
+    }),
+    getStatus: () => 'listening'
+  }))
+}));
+
+
 function setViewport(width: number, height: number): void {
   Object.defineProperty(window, 'innerWidth', { value: width, configurable: true });
   Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
@@ -844,5 +857,50 @@ describe('OverlayPrompter behavior', () => {
     // Verify speakable words have data-word-global
     const words = container.querySelectorAll('.voice-word');
     expect(words.length).toBe(6); // Welcome, everyone, to, Glance, and, teleprompter
+  });
+
+  it('auto-plays on mount when voiceSyncEnabled is true and speechmaticsApiKey is configured', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-test-key',
+      playbackState: 'paused',
+      markdown: '# Test\n\nScript content'
+    });
+
+    await act(async () => {
+      render(<OverlayPrompter />);
+    });
+
+    expect(useAppStore.getState().playbackState).toBe('running');
+  });
+
+  it('stays paused on mount when voiceSyncEnabled is false (standard teleprompter mode)', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: false,
+      speechmaticsApiKey: 'valid-test-key',
+      playbackState: 'running',
+      markdown: '# Test\n\nScript content'
+    });
+
+    await act(async () => {
+      render(<OverlayPrompter />);
+    });
+
+    expect(useAppStore.getState().playbackState).toBe('paused');
+  });
+
+  it('stays paused on mount when voiceSyncEnabled is true but apiKey is missing', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: '',
+      playbackState: 'running',
+      markdown: '# Test\n\nScript content'
+    });
+
+    await act(async () => {
+      render(<OverlayPrompter />);
+    });
+
+    expect(useAppStore.getState().playbackState).toBe('paused');
   });
 });

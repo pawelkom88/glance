@@ -5,13 +5,13 @@ meta_title: "Glance — Teleprompter Overlay for Zoom, Teams & Google Meet"
 meta_description: "Glance is a discreet teleprompter overlay for video calls. Keep your script beside the camera to maintain eye contact on Zoom, Teams, and Google Meet. Private. Local-first. No account."
 ---
 
-# Glance — Teleprompter Overlay for Zoom, Teams & Google Meet
+# Glance — Teleprompter for Zoom, Teams and Google Meet
 
-Keep your script beside the camera so you maintain eye contact in live calls.
+The transparent desktop teleprompter that sits beside your webcam. Maintain natural eye contact and read your notes without looking down.
 
-A discreet on-screen teleprompter overlay built for sales demos, interviews, team updates, and creator videos — without showing up in your camera feed.
+A discreet on-screen teleprompter overlay built for sales demos, interviews, team updates, and video presentations — completely invisible to other call participants.
 
-**macOS + Windows.** Local-first privacy. No account.
+**macOS + Windows.** Lightweight & local-first. Smooth auto-scrolling with optional real-time Voice Sync. No account.
 
 > **Download Glance** (macOS)  
 > **Download Glance** (Windows)
@@ -59,9 +59,28 @@ Live calls aren’t linear. Someone interrupts. A question changes the order. Yo
 - **Font size** that stays readable  
 - **Opacity range** from subtle to solid  
 - **Auto-pause with voice** when you stop speaking  
+- **Voice Sync** that tracks spoken words in real time  
 - **Snap to center** under your camera  
 - **Quick hide** when you’re done  
 - **Elapsed timer** for pacing
+
+---
+
+## Real-Time Voice Sync: The prompter that moves when you speak
+
+Never fiddle with a scroll wheel or pedal again. Glance listens to your voice via Speechmatics realtime speech recognition and automatically scrolls your script as you speak.
+
+- **Exact & Fuzzy Matching:** Speak naturally without breaking. If you stumble, repeat a word, or paraphrase slightly, Glance stays locked on your position.
+- **Fluid Spring Physics:** The script glides smoothly line-by-line, keeping the active word right in your natural reading eyeline.
+- **Zero Glance Cloud Relay:** Audio streams directly from your local browser/app to Speechmatics using your own API key over an encrypted connection. Glance servers never see, relay, or store your voice.
+
+### How to Enable Voice Sync
+
+1. Get an API key at [portal.speechmatics.com](https://portal.speechmatics.com) (Speechmatics provides free trial credits with no credit card required upfront).
+2. Open Glance **Settings** (gear icon) → paste your API key into the Speechmatics Key field.
+3. Turn on **Voice Sync** in the overlay controls and read naturally!
+
+> *Legal Disclaimer: Glance is an independent local-first application and is not affiliated with, sponsored by, or endorsed by Speechmatics in any way. Speechmatics is a registered trademark of Speechmatics Ltd.*
 
 ---
 
@@ -102,6 +121,9 @@ Yes. You can adjust speed and font size on the fly.
 
 ### Can Glance auto-pause when I stop speaking?
 Yes. Turn on **Auto-Pause with Voice** and Glance will pause after a short silence delay, then resume when you start speaking again. Audio is analysed locally on your device and never recorded.
+
+### How does Voice Sync work, and do I need an API key?
+Voice Sync uses speech recognition to match spoken words to your script in real time, automatically scrolling line-by-line as you talk. It connects directly from your device to Speechmatics using your own API key. You can get an API key with free trial credits (no credit card required upfront) at [portal.speechmatics.com](https://portal.speechmatics.com). Audio streams directly from your device over encrypted WebSockets—Glance servers never see or store your voice. *(Note: Glance is independent and not affiliated with or endorsed by Speechmatics Ltd.)*
 
 ### Do I need an account?
 No account required.
