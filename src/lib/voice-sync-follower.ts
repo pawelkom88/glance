@@ -174,11 +174,64 @@ export function damerauLevenshteinDistance(a: string, b: string): number {
   return d[m]![n]!;
 }
 
-const SHORT_STOPWORDS = new Set([
+export const SHORT_STOPWORDS = new Set([
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
   'in', 'is', 'it', 'its', 'no', 'not', 'of', 'on', 'or', 'so',
-  'that', 'the', 'to', 'too', 'up', 'we', 'with', 'you', 'your'
+  'that', 'the', 'to', 'too', 'up', 'we', 'with', 'you', 'your',
+  'he', 'him', 'his', 'she', 'her', 'they', 'them', 'their', 'my', 'me', 'our', 'us',
+  'who', 'whom', 'which', 'what', 'where', 'when', 'why', 'how',
+  'this', 'these', 'those', 'can', 'could', 'will', 'would', 'shall', 'should',
+  'may', 'might', 'must', 'do', 'does', 'did', 'have', 'has', 'had',
+  'if', 'then', 'else', 'but', 'all', 'any', 'both', 'each', 'few', 'more', 'most',
+  'other', 'some', 'such', 'than', 'into', 'over', 'after', 'before', 'there', 'here',
+  'now', 'was', 'were', 'been', 'being', 'also', 'just',
+  'go', 'get', 'got', 'see', 'saw', 'make', 'made', 'take', 'took', 'come', 'came',
+  'like', 'good', 'new', 'well', 'out', 'back', 'very', 'only', 'much', 'about',
+  'down', 'way', 'first', 'even', 'one', 'two', 'part', 'time'
 ]);
+
+/**
+ * Determines whether a candidate script word is a repeated or high-risk skip token:
+ * 1. Is a common stopword or function word
+ * 2. Short token (<= 3 chars) with high acoustic collision rate
+ * 3. Appeared recently in script history (within last 20 words)
+ * 4. Appears multiple times in the upcoming context window (next 40 words)
+ */
+export function isRepeatedOrHighRiskToken(
+  candidate: ScriptWord,
+  cursorIndex: number,
+  scriptWords: readonly ScriptWord[]
+): boolean {
+  const norm = candidate.normalized;
+
+  if (SHORT_STOPWORDS.has(norm)) {
+    return true;
+  }
+
+  if (norm.length <= 3) {
+    return true;
+  }
+
+  const historyStart = Math.max(0, cursorIndex - 20);
+  for (let h = historyStart; h < cursorIndex; h += 1) {
+    if (scriptWords[h]?.normalized === norm) {
+      return true;
+    }
+  }
+
+  const lookaheadBoundary = Math.min(scriptWords.length, cursorIndex + 40);
+  let upcomingCount = 0;
+  for (let f = cursorIndex; f < lookaheadBoundary; f += 1) {
+    if (scriptWords[f]?.normalized === norm) {
+      upcomingCount += 1;
+      if (upcomingCount > 1) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 /**
  * Calculates string similarity / match confidence:
@@ -233,28 +286,50 @@ export function areWordsMatching(spoken: string, expected: string): boolean {
   return false;
 }
 
-export function createVoiceSyncFollower(options: VoiceSyncFollowerOptions): VoiceSyncFollower {
+interface PendingSkip {
+  readonly targetIndex: number;
+  readonly spokenWord: string;
+  readonly isPartial: boolean;
+}
+
+export function createVoiceSyncFollower(options: VoiceSyncFollowerOptions): VoiceSyncFollower & { readonly getPendingSkip?: () => PendingSkip | null } {
   const { lines, onMatch, lookaheadWindowSize = 6 } = options;
   const scriptWords = extractScriptWords(lines);
   let cursorIndex = 0;
+  let lastMatchedIsPartial: boolean = false;
+  let pendingSkip: PendingSkip | null = null;
+  let matchedInClause: number[] = [];
+  let clauseReplayIndex = 0;
 
   const setCursorToLine = (lineIndex: number) => {
     const foundIndex = scriptWords.findIndex((w) => w.lineIndex >= lineIndex);
     const prev = cursorIndex;
-    cursorIndex = foundIndex >= 0 ? foundIndex : scriptWords.length - 1;
+    cursorIndex = foundIndex >= 0 ? foundIndex : Math.max(0, scriptWords.length - 1);
     cursorIndex = Math.max(0, cursorIndex);
+    lastMatchedIsPartial = false;
+    pendingSkip = null;
+    matchedInClause = [];
+    clauseReplayIndex = 0;
     // eslint-disable-next-line no-console
     console.log(`[VoiceSync:Cursor] 📍 Repositioned cursor to line ${lineIndex} (word index ${prev} -> ${cursorIndex}: "${scriptWords[cursorIndex]?.text ?? 'EOF'}")`);
   };
 
   const setCursorToWord = (globalWordIndex: number) => {
     cursorIndex = Math.max(0, Math.min(scriptWords.length - 1, globalWordIndex));
+    lastMatchedIsPartial = false;
+    pendingSkip = null;
+    matchedInClause = [];
+    clauseReplayIndex = 0;
     // eslint-disable-next-line no-console
     console.log(`[VoiceSync:Cursor] 📍 Set cursor to word ${cursorIndex}: "${scriptWords[cursorIndex]?.text ?? 'EOF'}"`);
   };
 
   const reset = () => {
     cursorIndex = 0;
+    lastMatchedIsPartial = false;
+    pendingSkip = null;
+    matchedInClause = [];
+    clauseReplayIndex = 0;
     // eslint-disable-next-line no-console
     console.log('[VoiceSync:Cursor] 🔄 Reset cursor to start (word 0).');
   };
@@ -265,19 +340,173 @@ export function createVoiceSyncFollower(options: VoiceSyncFollowerOptions): Voic
       return false;
     }
 
-    const isStopword = SHORT_STOPWORDS.has(spokenNormalized);
-    // If it's a stopword, only allow matching within the next 2 words to prevent section leaping
-    const effectiveWindow = isStopword ? 2 : Math.min(lookaheadWindowSize, 6);
-    const windowEnd = Math.min(scriptWords.length, cursorIndex + effectiveWindow + 1);
+    if (cursorIndex >= scriptWords.length) {
+      return false;
+    }
 
-    // 1. Check exact match at current cursor first
+    // 1. CLAUSE REPLAY ABSORPTION (Speechmatics streaming re-emits partials or finalizes ongoing partial clause from start):
+    const isClauseStream = (isPartial || lastMatchedIsPartial) && matchedInClause.length > 0;
+    if (isClauseStream) {
+      if (clauseReplayIndex === 0) {
+        const firstIdx = matchedInClause[0]!;
+        const firstWord = scriptWords[firstIdx];
+        if (
+          firstWord &&
+          (firstWord.normalized === spokenNormalized ||
+            firstWord.text.toLowerCase() === rawSpokenWord.toLowerCase() ||
+            areWordsMatching(spokenNormalized, firstWord.normalized))
+        ) {
+          clauseReplayIndex = 1;
+          pendingSkip = null;
+          if (clauseReplayIndex >= matchedInClause.length && !isPartial) {
+            matchedInClause = [];
+            clauseReplayIndex = 0;
+            lastMatchedIsPartial = false;
+          }
+          // eslint-disable-next-line no-console
+          console.log(
+            `[VoiceSync:Repeat] 🔄 Replaying clause start at word [${firstIdx}] "${firstWord.text}" (cursor remains at ${cursorIndex})`
+          );
+          return true;
+        }
+      } else if (clauseReplayIndex < matchedInClause.length) {
+        const expectedIdx = matchedInClause[clauseReplayIndex]!;
+        const expectedWord = scriptWords[expectedIdx];
+        if (
+          expectedWord &&
+          (expectedWord.normalized === spokenNormalized ||
+            expectedWord.text.toLowerCase() === rawSpokenWord.toLowerCase() ||
+            areWordsMatching(spokenNormalized, expectedWord.normalized))
+        ) {
+          clauseReplayIndex += 1;
+          pendingSkip = null;
+          if (clauseReplayIndex >= matchedInClause.length && !isPartial) {
+            matchedInClause = [];
+            clauseReplayIndex = 0;
+            lastMatchedIsPartial = false;
+          }
+          // eslint-disable-next-line no-console
+          console.log(
+            `[VoiceSync:Repeat] 🔄 Replaying clause word [${expectedIdx}] "${expectedWord.text}" (${clauseReplayIndex}/${matchedInClause.length}, cursor remains at ${cursorIndex})`
+          );
+          return true;
+        }
+        // Replay diverged
+        clauseReplayIndex = 0;
+        if (!isPartial) {
+          matchedInClause = [];
+          lastMatchedIsPartial = false;
+        }
+      }
+    }
+
+    // 2. CHECK PENDING SKIP CONFIRMATION:
+    if (pendingSkip) {
+      const confirmedIndex = pendingSkip.targetIndex + 1;
+      if (confirmedIndex < scriptWords.length) {
+        const nextCandidate = scriptWords[confirmedIndex];
+        if (
+          nextCandidate &&
+          (nextCandidate.normalized === spokenNormalized ||
+            nextCandidate.text.toLowerCase() === rawSpokenWord.toLowerCase() ||
+            areWordsMatching(spokenNormalized, nextCandidate.normalized))
+        ) {
+          const firstWord = scriptWords[pendingSkip.targetIndex]!;
+          const secondWord = nextCandidate;
+          const savedSkip = pendingSkip;
+          pendingSkip = null;
+
+          cursorIndex = secondWord.globalIndex + 1;
+          lastMatchedIsPartial = isPartial;
+          clauseReplayIndex = 0;
+          matchedInClause = isPartial ? [firstWord.globalIndex, secondWord.globalIndex] : [];
+
+          // eslint-disable-next-line no-console
+          console.log(
+            `[VoiceSync:Match] ⏩ CONFIRMED multi-word skip to [${savedSkip.targetIndex}..${confirmedIndex}]: "${savedSkip.spokenWord} ${rawSpokenWord}" -> script="${firstWord.text} ${secondWord.text}" (cursor -> ${cursorIndex})`
+          );
+
+          onMatch({
+            scriptWord: firstWord,
+            globalIndex: firstWord.globalIndex,
+            lineIndex: firstWord.lineIndex,
+            spokenWord: savedSkip.spokenWord,
+            isPartial: savedSkip.isPartial
+          });
+
+          onMatch({
+            scriptWord: secondWord,
+            globalIndex: secondWord.globalIndex,
+            lineIndex: secondWord.lineIndex,
+            spokenWord: rawSpokenWord,
+            isPartial
+          });
+
+          return true;
+        }
+      }
+
+      const pendingTargetWord = scriptWords[pendingSkip.targetIndex];
+      if (
+        pendingTargetWord &&
+        (pendingTargetWord.normalized === spokenNormalized ||
+          pendingTargetWord.text.toLowerCase() === rawSpokenWord.toLowerCase() ||
+          areWordsMatching(spokenNormalized, pendingTargetWord.normalized))
+      ) {
+        pendingSkip = {
+          targetIndex: pendingSkip.targetIndex,
+          spokenWord: rawSpokenWord,
+          isPartial
+        };
+        return false;
+      }
+
+      pendingSkip = null;
+    }
+
+    // 3. IMMEDIATE PREVIOUS WORD REPETITION (stutter/hesitation):
+    if (cursorIndex > 0) {
+      const prevWord = scriptWords[cursorIndex - 1];
+      if (
+        prevWord &&
+        (prevWord.normalized === spokenNormalized ||
+          prevWord.text.toLowerCase() === rawSpokenWord.toLowerCase() ||
+          areWordsMatching(spokenNormalized, prevWord.normalized))
+      ) {
+        pendingSkip = null;
+        // eslint-disable-next-line no-console
+        console.log(
+          `[VoiceSync:Repeat] 🔄 Absorbed immediate repetition of word [${cursorIndex - 1}] "${prevWord.text}" (cursor remains at ${cursorIndex})`
+        );
+        return true;
+      }
+    }
+
+    // 4. HIGHEST PRIORITY (distance = 0): Immediate match at current cursor
     const currentCandidate = scriptWords[cursorIndex];
-    if (currentCandidate && (currentCandidate.normalized === spokenNormalized || currentCandidate.text.toLowerCase() === rawSpokenWord.toLowerCase())) {
+    if (
+      currentCandidate &&
+      (currentCandidate.normalized === spokenNormalized ||
+        currentCandidate.text.toLowerCase() === rawSpokenWord.toLowerCase() ||
+        areWordsMatching(spokenNormalized, currentCandidate.normalized))
+    ) {
+      pendingSkip = null;
+      lastMatchedIsPartial = isPartial;
+      const matchedIdx = cursorIndex;
+      cursorIndex += 1;
+      clauseReplayIndex = 0;
+      if (isPartial) {
+        matchedInClause.push(matchedIdx);
+        if (matchedInClause.length > 20) {
+          matchedInClause.shift();
+        }
+      } else {
+        matchedInClause = [];
+      }
       // eslint-disable-next-line no-console
       console.log(
-        `[VoiceSync:Match] 🎯 EXACT match at cursor [${cursorIndex}]: spoken="${rawSpokenWord}" == script="${currentCandidate.text}" (line ${currentCandidate.lineIndex}, word ${currentCandidate.wordIndexInLine + 1}/${currentCandidate.totalWordsInLine})`
+        `[VoiceSync:Match] 🎯 EXACT/IMMEDIATE match at cursor [${cursorIndex - 1}]: spoken="${rawSpokenWord}" == script="${currentCandidate.text}" (line ${currentCandidate.lineIndex}, word ${currentCandidate.wordIndexInLine + 1}/${currentCandidate.totalWordsInLine})`
       );
-      cursorIndex += 1;
       onMatch({
         scriptWord: currentCandidate,
         globalIndex: currentCandidate.globalIndex,
@@ -288,34 +517,75 @@ export function createVoiceSyncFollower(options: VoiceSyncFollowerOptions): Voic
       return true;
     }
 
-    // 2. Search within the constrained window
-    for (let i = cursorIndex; i < windowEnd; i += 1) {
+    // 5. LOOKAHEAD SEARCH WITHIN CONSTRAINED WINDOW:
+    // Partial transcripts must NEVER initiate speculative lookahead skips across unread text.
+    if (isPartial) {
+      return false;
+    }
+
+    const windowEnd = Math.min(scriptWords.length, cursorIndex + lookaheadWindowSize + 1);
+
+    let matchedIndex = -1;
+    let bestScore = -Infinity;
+
+    for (let i = cursorIndex + 1; i < windowEnd; i += 1) {
       const candidate = scriptWords[i];
       if (!candidate) continue;
 
-      if (areWordsMatching(spokenNormalized, candidate.normalized)) {
-        const skip = i - cursorIndex;
-        if (skip > 0) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[VoiceSync:Match] ⏩ Advanced +${skip} words: [${cursorIndex} -> ${i}]: spoken="${rawSpokenWord}" ~ script="${candidate.text}" (line ${candidate.lineIndex}, word ${candidate.wordIndexInLine + 1}/${candidate.totalWordsInLine})`
-          );
-        } else {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[VoiceSync:Match] 🎯 Matched: spoken="${rawSpokenWord}" ~ script="${candidate.text}" (line ${candidate.lineIndex}, word ${candidate.wordIndexInLine + 1}/${candidate.totalWordsInLine})`
-          );
+      const isExact =
+        candidate.normalized === spokenNormalized ||
+        candidate.text.toLowerCase() === rawSpokenWord.toLowerCase();
+      const isFuzzy = !isExact && areWordsMatching(spokenNormalized, candidate.normalized);
+
+      if (isExact || isFuzzy) {
+        const quality = isExact ? 1.0 : 0.7;
+        const dist = i - cursorIndex;
+        const score = quality - dist * 0.05;
+
+        if (score > bestScore) {
+          bestScore = score;
+          matchedIndex = i;
         }
-        cursorIndex = i + 1;
-        onMatch({
-          scriptWord: candidate,
-          globalIndex: candidate.globalIndex,
-          lineIndex: candidate.lineIndex,
+      }
+    }
+
+    if (matchedIndex >= 0) {
+      const candidate = scriptWords[matchedIndex]!;
+      const distance = matchedIndex - cursorIndex;
+      const isHighRisk = isRepeatedOrHighRiskToken(candidate, cursorIndex, scriptWords);
+
+      if (isHighRisk || distance >= 4) {
+        // High-risk skip (repeated token, stopword, or large distance >= 4):
+        // Hold as tentative skip awaiting consecutive sequence confirmation!
+        pendingSkip = {
+          targetIndex: matchedIndex,
           spokenWord: rawSpokenWord,
           isPartial
-        });
-        return true;
+        };
+        // eslint-disable-next-line no-console
+        console.log(
+          `[VoiceSync:SkipHold] ⏳ Tentative skip to repeated/high-risk word at [${matchedIndex}] ("${candidate.text}", dist +${distance}). Awaiting consecutive confirmation.`
+        );
+        return false;
       }
+
+      // Safe, unique, non-repeated keyword skip at distance 1:
+      cursorIndex = matchedIndex + 1;
+      lastMatchedIsPartial = isPartial;
+      clauseReplayIndex = 0;
+      matchedInClause = isPartial ? [candidate.globalIndex] : [];
+      // eslint-disable-next-line no-console
+      console.log(
+        `[VoiceSync:Match] ⏩ Advanced +${distance} words: [${cursorIndex - 1 - distance} -> ${matchedIndex}]: spoken="${rawSpokenWord}" ~ script="${candidate.text}" (line ${candidate.lineIndex}, word ${candidate.wordIndexInLine + 1}/${candidate.totalWordsInLine})`
+      );
+      onMatch({
+        scriptWord: candidate,
+        globalIndex: candidate.globalIndex,
+        lineIndex: candidate.lineIndex,
+        spokenWord: rawSpokenWord,
+        isPartial
+      });
+      return true;
     }
 
     // eslint-disable-next-line no-console
@@ -331,6 +601,7 @@ export function createVoiceSyncFollower(options: VoiceSyncFollowerOptions): Voic
     setCursorToWord,
     getCursorIndex: () => cursorIndex,
     getScriptWords: () => scriptWords,
+    getPendingSkip: () => pendingSkip,
     reset
   };
 }

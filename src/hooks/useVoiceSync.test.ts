@@ -242,4 +242,133 @@ describe('useVoiceSync', () => {
     expect(result.current.activeMatchedWordIndex).toBe(2);
     expect(result.current.activeSpokenWord).toBe('gamma');
   });
+
+  it('handles repeated words in adjacent lines without jumping ahead prematurely', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-api-key'
+    });
+
+    const lines: DisplayLine[] = [
+      { id: '1', kind: 'text', text: 'Welcome to the studio today', sectionIndex: 0 },
+      { id: '2', kind: 'text', text: 'We hope to see you again', sectionIndex: 1 }
+    ];
+
+    let onWordCallback: ((word: { word: string; isPartial?: boolean }) => void) | null = null;
+    const { createSpeechmaticsRealtimeClient } = await import('../lib/speechmatics');
+    vi.mocked(createSpeechmaticsRealtimeClient).mockImplementationOnce((opts: any) => {
+      onWordCallback = opts.onWord;
+      return {
+        start: vi.fn().mockImplementation(async () => {
+          opts.onStatusChange('listening');
+        }),
+        stop: vi.fn(),
+        getStatus: () => 'listening'
+      };
+    });
+
+    const onTargetScrollChange = vi.fn();
+    const { result } = renderHook(() =>
+      useVoiceSync({
+        lines,
+        linePositions: { positions: [0, 60], totalHeight: 120 },
+        lineRefs: { current: [] },
+        lanePadding: 40,
+        firstLineLaneNudge: 0,
+        playbackState: 'running',
+        onTargetScrollChange
+      })
+    );
+
+    // Speak "Welcome" (word 0) and "to" (word 1)
+    act(() => {
+      onWordCallback?.({ word: 'Welcome', isPartial: false });
+    });
+    expect(result.current.activeMatchedWordIndex).toBe(0);
+
+    act(() => {
+      onWordCallback?.({ word: 'to', isPartial: false });
+    });
+    expect(result.current.activeMatchedWordIndex).toBe(1);
+    expect(result.current.followerCursorIndex).toBe(2);
+
+    // Speaker repeats "to"
+    act(() => {
+      onWordCallback?.({ word: 'to', isPartial: false });
+    });
+    // Must NOT leap forward to line 2 word "to" (globalIndex 7)
+    expect(result.current.activeMatchedWordIndex).toBe(1);
+    expect(result.current.followerCursorIndex).toBe(2);
+
+    // Speaker continues with "the" (word 2)
+    act(() => {
+      onWordCallback?.({ word: 'the', isPartial: false });
+    });
+    expect(result.current.activeMatchedWordIndex).toBe(2);
+    expect(result.current.followerCursorIndex).toBe(3);
+  });
+
+  it('keeps scroll target on current line when Speechmatics re-emits partial clauses across lines with shared words', async () => {
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-api-key'
+    });
+
+    const lines: DisplayLine[] = [
+      { id: '1', kind: 'text', text: 'We will review the first draft today', sectionIndex: 0 },
+      { id: '2', kind: 'text', text: 'We will discuss the next steps tomorrow', sectionIndex: 1 }
+    ];
+
+    let onWordCallback: ((word: { word: string; isPartial?: boolean }) => void) | null = null;
+    const { createSpeechmaticsRealtimeClient } = await import('../lib/speechmatics');
+    vi.mocked(createSpeechmaticsRealtimeClient).mockImplementationOnce((opts: any) => {
+      onWordCallback = opts.onWord;
+      return {
+        start: vi.fn().mockImplementation(async () => {
+          opts.onStatusChange('listening');
+        }),
+        stop: vi.fn(),
+        getStatus: () => 'listening'
+      };
+    });
+
+    const onTargetScrollChange = vi.fn();
+    const { result } = renderHook(() =>
+      useVoiceSync({
+        lines,
+        linePositions: { positions: [0, 60], totalHeight: 120 },
+        lineRefs: { current: [] },
+        lanePadding: 40,
+        firstLineLaneNudge: 0,
+        playbackState: 'running',
+        onTargetScrollChange
+      })
+    );
+
+    // Partial 1: ["We"]
+    act(() => {
+      onWordCallback?.({ word: 'We', isPartial: true });
+    });
+    expect(result.current.activeMatchedWordIndex).toBe(0);
+    expect(result.current.activeMatchedLineIndex).toBe(0);
+
+    // Partial 2: ["We", "will"]
+    act(() => {
+      onWordCallback?.({ word: 'We', isPartial: true });
+      onWordCallback?.({ word: 'will', isPartial: true });
+    });
+    expect(result.current.activeMatchedWordIndex).toBe(1);
+    expect(result.current.activeMatchedLineIndex).toBe(0);
+
+    // Partial 3: ["We", "will", "review"]
+    act(() => {
+      onWordCallback?.({ word: 'We', isPartial: true });
+      onWordCallback?.({ word: 'will', isPartial: true });
+      onWordCallback?.({ word: 'review', isPartial: true });
+    });
+    // Active word MUST remain on line 0 (word 2: "review"), NOT leaped to line 1 (word 8: "will")
+    expect(result.current.activeMatchedWordIndex).toBe(2);
+    expect(result.current.activeMatchedLineIndex).toBe(0);
+    expect(result.current.followerCursorIndex).toBe(3);
+  });
 });
