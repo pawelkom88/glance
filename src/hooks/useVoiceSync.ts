@@ -125,9 +125,9 @@ export function useVoiceSync(options: UseVoiceSyncOptions): UseVoiceSyncResult {
         const target = targetScrollYRef.current;
         const diff = target - current;
 
-        if (Math.abs(diff) > 0.1) {
-          // Responsive exponential spring damping (decay factor 7.5 for low-latency fluid tracking)
-          const next = current + diff * (1 - Math.exp(-dt * 7.5));
+        if (Math.abs(diff) > 0.05) {
+          // Buttery smooth exponential spring damping (decay factor 5.5 for fluid continuous tracking)
+          const next = current + diff * (1 - Math.exp(-dt * 5.5));
           currentScrollYRef.current = next;
           onTargetScrollChangeRef.current(next);
         } else if (Math.abs(diff) > 0) {
@@ -159,6 +159,7 @@ export function useVoiceSync(options: UseVoiceSyncOptions): UseVoiceSyncResult {
       // Derive target scroll Y directly from the active word's DOM element position
       const linesEl = document.querySelector<HTMLElement>('.overlay-lines');
       let wordTopRelativeToLines: number | null = null;
+      let wordHeight = 0;
 
       if (linesEl) {
         const wordEl = linesEl.querySelector<HTMLElement>(`[data-word-global="${event.globalIndex}"]`);
@@ -167,13 +168,19 @@ export function useVoiceSync(options: UseVoiceSyncOptions): UseVoiceSyncResult {
           const linesRect = linesEl.getBoundingClientRect();
           if (wordRect.height > 0) {
             wordTopRelativeToLines = wordRect.top - linesRect.top;
+            wordHeight = wordRect.height;
           }
         }
       }
 
       let targetY: number;
       if (wordTopRelativeToLines !== null) {
-        targetY = Math.max(0, Math.round(wordTopRelativeToLines - lanePadding));
+        const baseTarget = wordTopRelativeToLines - lanePadding;
+        const intraLineRatio = event.scriptWord.totalWordsInLine > 1
+          ? event.scriptWord.wordIndexInLine / event.scriptWord.totalWordsInLine
+          : 0;
+        const lineNudge = intraLineRatio * Math.min(24, (wordHeight || 30) * 0.45);
+        targetY = Math.max(0, Math.round(baseTarget + lineNudge));
       } else {
         // Fallback if DOM measurements are unavailable (e.g., initial mount or test environment)
         const node = lineRefs.current[event.lineIndex];
