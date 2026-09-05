@@ -54,3 +54,47 @@
   to = "https://atglance.app/:splat"
   status = 301
   force = true
+
+# Legacy Domain Entity Purge (Historical News/Studio URLs)
+[[redirects]]
+  from = "/articles/*"
+  to = "/410.html"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/studio"
+  to = "/410.html"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/submit-article"
+  to = "/410.html"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/leaderboard"
+  to = "/410.html"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/trending"
+  to = "/410.html"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/sources"
+  to = "/410.html"
+  status = 410
+  force = true
+
+[[redirects]]
+  from = "/change-logs"
+  to = "/410.html"
+  status = 410
+  force = true
+

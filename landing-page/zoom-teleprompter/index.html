@@ -47,7 +47,7 @@
                     "url": "https://atglance.app/",
                     "logo": {
                         "@type": "ImageObject",
-                        "url": "https://atglance.app/logo.png"
+                        "url": "https://atglance.app/icon-300.png"
                     }
                 },
                 {
@@ -57,7 +57,13 @@
                     "operatingSystem": ["macOS", "Windows"],
                     "description": "Glance is a discreet Zoom teleprompter overlay that keeps your script near the camera so you maintain eye contact in live calls.",
                     "url": "https://atglance.app/zoom-teleprompter/",
-                    "publisher": { "@id": "https://atglance.app/#organization" }
+                    "publisher": { "@id": "https://atglance.app/#organization" },
+                    "offers": {
+                        "@type": "Offer",
+                        "url": "https://atglance.app/zoom-teleprompter/",
+                        "priceCurrency": "USD",
+                        "availability": "https://schema.org/InStock"
+                    }
                 },
                 {
                     "@type": "BreadcrumbList",
@@ -73,6 +79,91 @@
                             "position": 2,
                             "name": "Zoom Teleprompter",
                             "item": "https://atglance.app/zoom-teleprompter/"
+                        }
+                    ]
+                },
+                {
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@type": "Question",
+                            "name": "Is Glance visible to other people on the call?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "No. Glance is an overlay on your device. It does not appear in your camera feed."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Does Glance work with Zoom, Teams, and Google Meet?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes. Glance sits above any app, so it works with Zoom, Microsoft Teams, Google Meet, and more."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Does Glance show up in screen recordings or screen sharing?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Glance does not insert itself into your camera feed. If you record or share your screen, what appears depends on what you choose to share and your system settings."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Does Glance record my script, camera, or audio?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Never. Glance has no recording capabilities."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Can I change scroll speed and font size while I’m speaking?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes. You can adjust speed and font size on the fly."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Can Glance auto-pause when I stop speaking?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes. Turn on Auto-Pause with Voice and Glance will pause after a short silence delay, then resume when you start speaking again. Audio is analysed locally on your device and never recorded."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Do I need an account?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "No account required."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Is my script stored in the cloud?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "No. Your scripts stay on your device."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Does it work offline?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes. After a one-time internet connection to activate your license on this device, Glance can keep working offline."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Is there a Windows version?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes — macOS and Windows are both supported."
+                            }
                         }
                     ]
                 }

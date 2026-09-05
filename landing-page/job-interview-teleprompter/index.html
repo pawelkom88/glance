@@ -4,26 +4,131 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Teleprompter for Job Interviews — Glance</title>
-    <meta name="description" content="Keep your resume bullets, STAR method stories, and interview questions right beside your camera without getting caught looking down." />
+    <!-- Primary SEO -->
+    <title>Teleprompter Overlay for Video Job Interviews — Glance</title>
+    <meta name="description" content="Keep resume bullets, key metrics, and STAR method stories right beside your camera during Zoom, Teams, and Google Meet video interviews. Local-first & private." />
     <link rel="canonical" href="https://atglance.app/job-interview-teleprompter/" />
 
-    <meta property="og:title" content="Teleprompter for Job Interviews — Glance" />
-    <meta property="og:description" content="Keep your resume bullets, STAR method stories, and interview questions right beside your camera without getting caught looking down." />
+    <!-- Open Graph -->
+    <meta property="og:title" content="Teleprompter Overlay for Video Job Interviews — Glance" />
+    <meta property="og:description" content="Keep resume bullets, key metrics, and STAR method stories right beside your camera during Zoom, Teams, and Google Meet video interviews. Local-first & private." />
     <meta property="og:url" content="https://atglance.app/job-interview-teleprompter/" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://atglance.app/OG.webp" />
 
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Teleprompter Overlay for Video Job Interviews — Glance" />
+    <meta name="twitter:description" content="Keep resume bullets, key metrics, and STAR method stories right beside your camera during Zoom, Teams, and Google Meet video interviews." />
+    <meta name="twitter:image" content="https://atglance.app/OG.webp" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@id": "https://atglance.app/#organization",
+                "@type": "Organization",
+                "name": "Glance",
+                "url": "https://atglance.app/",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://atglance.app/icon-300.png"
+                }
+            },
+            {
+                "@type": "SoftwareApplication",
+                "name": "Glance — Job Interview Teleprompter Overlay",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": ["macOS", "Windows"],
+                "description": "Discreet desktop teleprompter overlay for job seekers to keep STAR stories and resume metrics anchored by the camera during video interviews.",
+                "url": "https://atglance.app/job-interview-teleprompter/",
+                "publisher": { "@id": "https://atglance.app/#organization" },
+                "offers": {
+                    "@type": "Offer",
+                    "url": "https://atglance.app/job-interview-teleprompter/",
+                    "priceCurrency": "USD",
+                    "availability": "https://schema.org/InStock"
+                }
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Home",
+                        "item": "https://atglance.app/"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Job Interview Teleprompter",
+                        "item": "https://atglance.app/job-interview-teleprompter/"
+                    }
+                ]
+            },
+            {
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Can interviewers tell that I am using a teleprompter?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Not if you use bullet cues instead of verbatim scripts. Glance sits directly beside your camera lens, so your gaze remains anchored forward. By organizing short STAR memory bullets, you deliver conversational, natural answers without ever glancing down at a desk or off to a second monitor."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is Glance safe if I am asked to share my screen during a technical interview?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes. When you share a specific browser window, coding sandbox, or application tab, Glance is completely invisible to interviewers because it is an independent desktop overlay."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Does Glance record or send my interview questions anywhere?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Never. Glance has zero recording functionality and zero cloud communication. All your notes, resume details, and interview prompts stay 100% offline on your device."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "How does voice auto-pause help during interviews?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "When the hiring manager speaks or asks follow-up questions, Glance automatically pauses scrolling. As soon as you begin answering, it smoothly resumes, keeping your place without you needing to press any buttons."
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+    </script>
 
     <style>
-        :root { --bg: #ffffff; --surface: #f5f5f7; --text-1: #1d1d1f; --text-2: #424245; --accent: #007AFF; --border: rgba(0, 0, 0, 0.08); }
+        :root {
+            --bg: #ffffff;
+            --surface: #f5f5f7;
+            --text-1: #1d1d1f;
+            --text-2: #424245;
+            --text-3: #86868b;
+            --accent: #007AFF;
+            --border: rgba(0, 0, 0, 0.08);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-        body { background: var(--bg); color: var(--text-1); font-family: "Inter", sans-serif; line-height: 1.6; font-weight: 300; }
+        body { background: var(--bg); color: var(--text-1); font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; font-weight: 300; }
         .skip-link { position: absolute; top: -100px; left: 20px; background: #1d1d1f; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 2000; text-decoration: none; }
         .skip-link:focus { top: 12px; }
         nav { position: fixed; top: 0; width: 100%; height: 52px; background: rgba(255, 255, 255, 0.75); backdrop-filter: saturate(180%) blur(20px); z-index: 1000; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
@@ -31,30 +136,53 @@
         .logo { font-weight: 600; font-size: 17px; color: var(--text-1); text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .logo img { width: 32px; height: 32px; border-radius: 6px; }
         .nav-links { display: flex; gap: 24px; }
-        .nav-links a { color: var(--text-2); font-size: 14px; font-weight: 500; text-decoration: none; }
+        .nav-links a { color: var(--text-2); font-size: 14px; font-weight: 500; text-decoration: none; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--text-1); }
         .mobile-menu-toggle { display: none; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-1); }
+        
         main { max-width: 760px; margin: 0 auto; padding: 108px 32px 80px; }
-        h1 { font-family: 'Commissioner', sans-serif; font-size: clamp(30px, 5vw, 42px); font-weight: 700; line-height: 1.15; margin-bottom: 16px; }
-        .subtitle { font-size: 18px; color: var(--text-2); margin-bottom: 40px; }
+        .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600; margin-bottom: 12px; }
+        h1 { font-family: 'Commissioner', sans-serif; font-size: clamp(30px, 5vw, 44px); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 16px; }
+        .subtitle { font-size: 18px; color: var(--text-2); margin-bottom: 40px; line-height: 1.6; }
         .hero-img { width: 100%; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 48px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
-        article h2 { font-family: 'Commissioner', sans-serif; font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px; }
-        article p { font-size: 16px; margin-bottom: 20px; line-height: 1.7; }
-        article ul, article ol { margin-bottom: 24px; padding-left: 20px; }
-        article li { font-size: 16px; margin-bottom: 10px; }
-        hr { border: 0; height: 1px; background: var(--border); margin: 40px 0; }
-        .cta-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 36px; text-align: center; margin-top: 48px; }
-        .cta-box h3 { font-family: 'Commissioner', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 12px; }
-        .cta-btn { display: inline-block; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; padding: 12px 28px; border-radius: 999px; text-decoration: none; margin-top: 16px; }
-        footer { padding: 60px 0; border-top: 1px solid var(--border); text-align: center; }
-        footer .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
-        footer p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; }
-        footer .footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
-        footer a { color: var(--text-2); text-decoration: none; font-size: 14px; }
+        
+        article h2 { font-family: 'Commissioner', sans-serif; font-size: 24px; font-weight: 700; margin-top: 48px; margin-bottom: 16px; letter-spacing: -0.01em; }
+        article h3 { font-family: 'Commissioner', sans-serif; font-size: 19px; font-weight: 600; margin-top: 28px; margin-bottom: 12px; }
+        article p { font-size: 16px; margin-bottom: 20px; line-height: 1.7; color: var(--text-1); font-weight: 400; }
+        article ul, article ol { margin-bottom: 28px; padding-left: 20px; }
+        article li { font-size: 16px; margin-bottom: 12px; line-height: 1.6; color: var(--text-2); }
+        article strong { color: var(--text-1); font-weight: 600; }
+        hr { border: 0; height: 1px; background: var(--border); margin: 48px 0; }
+        
+        .script-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin: 28px 0; font-family: monospace; font-size: 14px; line-height: 1.7; color: #2c2c2e; overflow-x: auto; }
+        .script-box .heading { color: var(--accent); font-weight: bold; }
+        
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+        .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+        .feature-card h4 { font-family: 'Commissioner', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: var(--text-2); margin-bottom: 0; line-height: 1.6; }
+        
+        .cta-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px 32px; text-align: center; margin-top: 56px; }
+        .cta-box h3 { font-family: 'Commissioner', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 12px; }
+        .cta-box p { color: var(--text-2); font-size: 16px; max-width: 500px; margin: 0 auto 24px; }
+        .cta-btn { display: inline-block; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; padding: 13px 32px; border-radius: 999px; text-decoration: none; transition: opacity 0.2s; }
+        .cta-btn:hover { opacity: 0.9; }
+
+        footer { padding: 60px 0 24px; border-top: 1px solid var(--border); }
+        .footer-container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 36px; text-align: left; margin-bottom: 48px; }
+        .footer-col h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-1); margin-bottom: 16px; }
+        .footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .footer-col a { color: var(--text-2); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--text-1); }
+
         @media (max-width: 768px) {
             .mobile-menu-toggle { display: block; }
             .nav-links { display: none; position: absolute; top: 52px; left: 0; width: 100%; background: var(--bg); flex-direction: column; padding: 20px 40px; gap: 20px; border-bottom: 1px solid var(--border); }
             .nav-links.active { display: flex; }
             main { padding-left: 20px; padding-right: 20px; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .footer-container { padding: 0 20px; }
         }
     </style>
 </head>
@@ -68,14 +196,14 @@
                 <img width="32" height="32" src="../icon.png" alt="Glance Logo">
                 Glance
             </a>
-            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
+            <button class="mobile-menu-toggle" aria-label="Open navigation">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="12" x2="21" y2="12"></line>
                     <line x1="3" y1="6" x2="21" y2="6"></line>
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
-            <div class="nav-links" id="primary-navigation">
+            <div class="nav-links">
                 <a href="/index.html">Product</a>
                 <a href="/docs.html">Docs</a>
                 <a href="/script-template/">Scripts</a>
@@ -86,41 +214,135 @@
     </nav>
 
     <main id="main-content">
+        <p class="eyebrow">Job Interviews</p>
         <h1>Teleprompter Overlay for Video Job Interviews</h1>
-        <p class="subtitle">Keep your resume bullets, key metrics, and STAR method stories right next to your camera lens.</p>
+        <p class="subtitle">Keep your resume metrics, STAR method stories, and interview questions anchored right beside your camera without getting caught looking away.</p>
 
         <img src="../docs-zoom-call.webp" width="760" height="428" loading="lazy" decoding="async" alt="Glance teleprompter overlay used during a video job interview" class="hero-img" />
 
         <article>
             <h2>Ace remote interviews with natural eye contact</h2>
-            <p>During remote job interviews on Zoom, Teams, or Google Meet, eye contact conveys confidence, authenticity, and engagement. Looking down at physical notes or checking a second monitor makes you look unprepared or distracted.</p>
+            <p>During remote job interviews on Zoom, Microsoft Teams, or Google Meet, eye contact conveys confidence, authenticity, and leadership. When you break eye contact to look down at physical notes or glance sideways at a second monitor, interviewers perceive hesitation or lack of preparation.</p>
+            <p>However, memorizing dozens of exact numbers (revenue percentages, team sizes, project deadlines, and architectural decisions) is stressful. Glance solves this by placing a subtle, transparent overlay directly beside your camera lens, keeping your key memory anchors in your natural line of sight.</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>STAR Framework Anchors</h4>
+                    <p>Organize Situation, Task, Action, and Result bullets with Markdown headings for instantaneous access during behavioral questions.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Voice-Aware Auto-Pause</h4>
+                    <p>Scrolling pauses automatically while the hiring manager asks questions, resuming the moment you begin your response.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Stealth & Screen Share Safe</h4>
+                    <p>Glance is an overlay that sits on top of your local screen. When asked to share a browser tab or code IDE, Glance is completely invisible to interviewers.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>100% Local-First Privacy</h4>
+                    <p>Your resume, confidential past company details, and interview questions remain strictly on your machine. No accounts, no cloud sync.</p>
+                </div>
+            </div>
 
             <hr />
 
-            <h2>Why candidates use Glance for interviews</h2>
-            <ul>
-                <li><strong>STAR Story Cues:</strong> Organize Situation, Task, Action, and Result bullets by Markdown headings for instant access when asked behavioral questions.</li>
-                <li><strong>Key Metric Anchors:</strong> Keep exact numbers (revenue percentages, team sizes, project timelines) right beside the camera.</li>
-                <li><strong>Discreet & Private:</strong> Runs locally on your device. Glance is never visible to interviewers on camera or tab shares.</li>
-            </ul>
+            <h2>How candidates structure STAR responses in Glance</h2>
+            <p>The golden rule for interview prompting is simple: <strong>do not write full paragraphs</strong>. Write concise cue bullets that trigger your memory while allowing you to speak authentically:</p>
+
+            <div class="script-box">
+<span class="heading"># 1. "Tell Me About Yourself" (90s Elevator Pitch)</span>
+- Background: 6 yrs leading distributed engineering teams
+- Core superpower: Bridge high-scale architecture with product velocity
+- Why this role: Excited about Glance's local-first privacy architecture
+
+<span class="heading"># 2. Behavioral: Conflict with Product Manager</span>
+- Situation: PM wanted feature X in Q2, but database migration was critical
+- Task: Align priorities without sacrificing Q3 roadmap delivery
+- Action: Built quantified risk matrix & proposed 2-week staged migration
+- Result: Delivered on time with zero downtime; adopted as team standard
+
+<span class="heading"># 3. Behavioral: High-Stakes Deadline</span>
+- Situation: Enterprise client launch at risk due to API rate limit bottlenecks
+- Action: Implemented Redis caching layer & refactored batch webhook handling
+- Result: Cut API latency by 68%; closed $420k ARR renewal
+
+<span class="heading"># 4. Questions for the Interviewer</span>
+- What does success look like in the first 90 days for this role?
+- How does the team balance technical debt against fast feature delivery?
+            </div>
+
+            <p>Need ready-to-use interview cheat sheets? Check out our free <a href="/script-template/job-interview-notes/" style="color: var(--accent); font-weight: 500;">Job Interview Script Template</a> formatted for Markdown teleprompters.</p>
+
+            <hr />
+
+            <h2>Frequently Asked Questions</h2>
+            <h3>Will my interviewer know I am using Glance?</h3>
+            <p>No. Glance positions your notes within centimeters of your webcam lens. Because you are glancing at bullet cues rather than reading full paragraphs, your eyes stay focused on the camera with natural conversational cadence.</p>
+
+            <h3>Does Glance work with Google Meet, Zoom, and Teams?</h3>
+            <p>Yes. Glance is an always-on-top desktop application that floats independently above Zoom, Microsoft Teams, Google Meet, or browser-based interview platforms.</p>
+
+            <h3>What if I am asked to live code or share my screen?</h3>
+            <p>Glance only appears on your physical screen. When you share an application window (such as VS Code or Chrome), Glance is invisible to anyone viewing the shared screen.</p>
+
+            <h3>Do I need an active internet connection?</h3>
+            <p>No. After a one-time license verification on your device, Glance runs entirely offline without any internet connection.</p>
 
             <div class="cta-box">
                 <h3>Prepare for your next interview</h3>
-                <p>Download Glance and practice your answers in private.</p>
-                <a href="/index.html" class="cta-btn">Get Glance for Interviews</a>
+                <p>Download Glance for macOS or Windows and practice your answers in complete privacy.</p>
+                <a href="/index.html" class="cta-btn">Get Glance for Job Interviews</a>
             </div>
         </article>
     </main>
 
     <footer>
-        <div class="container">
-            <p>&copy; <span class="current-year"></span> Glance. All rights reserved.</p>
-            <div class="footer-links">
-                <a href="/index.html">Product</a>
-                <a href="/docs.html">Docs</a>
-                <a href="/script-template/">Script Templates</a>
-                <a href="/guides/">Guides</a>
-                <a href="/privacy.html">Privacy Policy</a>
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>Platforms</h4>
+                    <ul>
+                        <li><a href="/zoom-teleprompter/">Zoom Teleprompter</a></li>
+                        <li><a href="/microsoft-teams-teleprompter/">Microsoft Teams</a></li>
+                        <li><a href="/google-meet-teleprompter/">Google Meet</a></li>
+                        <li><a href="/teleprompter-for-mac/">Teleprompter for Mac</a></li>
+                        <li><a href="/teleprompter-for-windows/">Teleprompter for Windows</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Use Cases</h4>
+                    <ul>
+                        <li><a href="/sales-call-teleprompter/">Sales & Discovery Calls</a></li>
+                        <li><a href="/job-interview-teleprompter/">Video Job Interviews</a></li>
+                        <li><a href="/product-demo-teleprompter/">Product Demos</a></li>
+                        <li><a href="/presentation-teleprompter/">Virtual Presentations</a></li>
+                        <li><a href="/webinar-teleprompter/">Webinars & Keynotes</a></li>
+                        <li><a href="/team-update-teleprompter/">Team Updates & All-Hands</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="/guides/">Guides Hub</a></li>
+                        <li><a href="/guides/read-notes-without-looking-down-zoom/">Read Notes on Zoom</a></li>
+                        <li><a href="/guides/how-to-maintain-eye-contact-on-video-calls/">Eye Contact Guide</a></li>
+                        <li><a href="/guides/teleprompter-vs-notes-app/">Teleprompter vs Notes App</a></li>
+                        <li><a href="/script-template/">Script Templates</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Product & Legal</h4>
+                    <ul>
+                        <li><a href="/index.html">Product Overview</a></li>
+                        <li><a href="/docs.html">Documentation</a></li>
+                        <li><a href="/privacy.html">Privacy Policy</a></li>
+                        <li><a href="/terms.html">Terms of Service</a></li>
+                        <li><a href="/refund.html">Refund Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 24px; text-align: center;">
+                <p style="font-size: 13px; color: var(--text-3); margin: 0;">&copy; <span class="current-year"></span> Glance. Operated by Glance team, United Kingdom. Not affiliated with Zoom, Microsoft, or Google.</p>
             </div>
         </div>
     </footer>
@@ -129,6 +351,12 @@
     <script>
         const year = new Date().getFullYear();
         document.querySelectorAll(".current-year").forEach((el) => { el.textContent = year; });
+        const toggle = document.querySelector(".mobile-menu-toggle");
+        if (toggle) {
+            toggle.addEventListener("click", () => {
+                document.querySelector(".nav-links").classList.toggle("active");
+            });
+        }
     </script>
 </body>
 
