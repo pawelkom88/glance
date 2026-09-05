@@ -312,7 +312,10 @@ export const deCatalog: TranslationCatalog = {
             readingRulerSubtitle: 'Einen Fokus-Streifen im Prompter-Overlay anzeigen.',
             readingRulerAria: 'Leselineal anzeigen',
             readingRulerEnabledToast: 'Leselineal aktiviert',
-            readingRulerDisabledToast: 'Leselineal deaktiviert'
+            readingRulerDisabledToast: 'Leselineal deaktiviert',
+            fontTitle: 'Prompter-Schriftart',
+            fontSubtitle: 'Wählen Sie die Schriftart für den Teleprompter.',
+            fontToast: ({ font }) => `Schriftart auf ${font} gesetzt`
         },
         overlay: {
             title: 'Overlay',

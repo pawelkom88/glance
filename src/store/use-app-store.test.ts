@@ -499,6 +499,21 @@ describe('useAppStore session lifecycle behavior', () => {
     });
   });
 
+  it('updates fontChoice and persists to localStorage, and hydrates from storage', () => {
+    useAppStore.getState().setFontChoice('lexend');
+    expect(useAppStore.getState().fontChoice).toBe('lexend');
+    expect(window.localStorage.getItem('glance-font-choice-v1')).toBe('lexend');
+
+    window.localStorage.setItem('glance-font-choice-v1', 'atkinson');
+    useAppStore.setState({ fontChoice: 'inter' });
+    useAppStore.getState().hydrateFontChoiceFromStorage();
+    expect(useAppStore.getState().fontChoice).toBe('atkinson');
+
+    window.localStorage.setItem('glance-font-choice-v1', 'unknown-font');
+    useAppStore.getState().hydrateFontChoiceFromStorage();
+    expect(useAppStore.getState().fontChoice).toBe('inter');
+  });
+
   it('hydrates language from storage and falls back to system locale on first launch', () => {
     window.localStorage.setItem('glance-language-v1', 'fr');
     useAppStore.setState({ language: 'en', resolvedLanguage: 'en' });

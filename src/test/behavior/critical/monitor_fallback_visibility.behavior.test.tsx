@@ -18,12 +18,14 @@ const tauriMocks = vi.hoisted(() => ({
   emitThemeChanged: vi.fn(),
   emitVadChanged: vi.fn(),
   emitVoiceSyncChanged: vi.fn(),
+  emitFontChanged: vi.fn(),
   exportDiagnostics: vi.fn(),
   getLastMainMonitorName: vi.fn(),
   getMonitors: vi.fn(),
   getRuntimeMonitorCount: vi.fn(),
   hideMainWindow: vi.fn(),
   listenForLanguageChanged: vi.fn(),
+  listenForFontChanged: vi.fn(),
   listenForMainWindowShown: vi.fn(),
   listenForMonitorChanged: vi.fn(),
   listenForThemeChanged: vi.fn(),
@@ -43,6 +45,7 @@ vi.mock('../../../lib/tauri', async (importOriginal) => {
     closeOverlayWindow: tauriMocks.closeOverlayWindow,
     emitLanguageChanged: tauriMocks.emitLanguageChanged,
     emitThemeChanged: tauriMocks.emitThemeChanged,
+    emitFontChanged: tauriMocks.emitFontChanged,
     emitVadChanged: tauriMocks.emitVadChanged,
     emitVoiceSyncChanged: tauriMocks.emitVoiceSyncChanged,
     exportDiagnostics: tauriMocks.exportDiagnostics,
@@ -52,6 +55,7 @@ vi.mock('../../../lib/tauri', async (importOriginal) => {
     getOverlayAlwaysOnTopPreference: tauriMocks.getOverlayAlwaysOnTopPreference,
     hideMainWindow: tauriMocks.hideMainWindow,
     listenForLanguageChanged: tauriMocks.listenForLanguageChanged,
+    listenForFontChanged: tauriMocks.listenForFontChanged,
     listenForMainWindowShown: tauriMocks.listenForMainWindowShown,
     listenForMonitorChanged: tauriMocks.listenForMonitorChanged,
     listenForThemeChanged: tauriMocks.listenForThemeChanged,
@@ -79,10 +83,12 @@ describe('Critical behavior: monitor fallback visibility', () => {
     });
 
     tauriMocks.listenForLanguageChanged.mockResolvedValue(() => undefined);
+    tauriMocks.listenForFontChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForThemeChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForMainWindowShown.mockResolvedValue(() => undefined);
     tauriMocks.listenForMonitorChanged.mockResolvedValue(() => undefined);
     tauriMocks.emitThemeChanged.mockResolvedValue(undefined);
+    tauriMocks.emitFontChanged.mockResolvedValue(undefined);
     tauriMocks.emitVadChanged.mockResolvedValue(undefined);
     tauriMocks.emitVoiceSyncChanged.mockResolvedValue(undefined);
     tauriMocks.getOverlayAlwaysOnTopPreference.mockReturnValue(true);

@@ -367,7 +367,10 @@ export const plCatalog: TranslationCatalog = {
             readingRulerSubtitle: 'Pokaż pasek skupienia na nakładce promptera.',
             readingRulerAria: 'Pokaż linijkę czytania',
             readingRulerEnabledToast: 'Włączono linijkę czytania',
-            readingRulerDisabledToast: 'Wyłączono linijkę czytania'
+            readingRulerDisabledToast: 'Wyłączono linijkę czytania',
+            fontTitle: 'Czcionka promptera',
+            fontSubtitle: 'Wybierz krój pisma dla telepromptera.',
+            fontToast: ({ font }) => `Ustawiono czcionkę: ${font}`
         },
         overlay: {
             title: 'Nakładka',

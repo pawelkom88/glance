@@ -312,7 +312,10 @@ export const frCatalog: TranslationCatalog = {
       readingRulerSubtitle: 'Afficher une bande de mise au point sur le prompteur.',
       readingRulerAria: 'Afficher la règle de lecture',
       readingRulerEnabledToast: 'Règle de lecture activée',
-      readingRulerDisabledToast: 'Règle de lecture désactivée'
+      readingRulerDisabledToast: 'Règle de lecture désactivée',
+      fontTitle: 'Police du prompteur',
+      fontSubtitle: 'Choisissez la typographie pour le prompteur.',
+      fontToast: ({ font }) => `Police réglée sur ${font}`
     },
     overlay: {
       title: 'Superposition',

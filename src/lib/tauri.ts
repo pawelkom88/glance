@@ -22,7 +22,8 @@ import type {
   SessionSummary,
   ShortcutEventPayload,
   ShowOverlayResult,
-  ThemeMode
+  ThemeMode,
+  FontChoice
 } from '../types';
 
 interface OverlayLayoutEntry extends OverlayBounds {
@@ -989,6 +990,18 @@ export async function emitLanguageChanged(language: AppLanguage): Promise<void> 
   await emit<LanguageChangedPayload>('glance-language-changed', { language });
 }
 
+interface FontChangedPayload {
+  readonly font: FontChoice;
+}
+
+export async function emitFontChanged(font: FontChoice): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await emit<FontChangedPayload>('glance-font-changed', { font });
+}
+
 export async function emitAppReady(): Promise<void> {
   if (!inTauri()) {
     return;
@@ -1022,6 +1035,22 @@ export async function listenForLanguageChanged(
 
   const unlisten = await listen<LanguageChangedPayload>('glance-language-changed', (event) => {
     onLanguageChanged(event.payload);
+  });
+
+  return () => {
+    unlisten();
+  };
+}
+
+export async function listenForFontChanged(
+  onFontChanged: (payload: FontChangedPayload) => void
+): Promise<() => void> {
+  if (!inTauri()) {
+    return () => undefined;
+  }
+
+  const unlisten = await listen<FontChangedPayload>('glance-font-changed', (event) => {
+    onFontChanged(event.payload);
   });
 
   return () => {

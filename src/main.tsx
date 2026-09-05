@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/commissioner';
 import '@fontsource-variable/commissioner/slnt.css';
+import '@fontsource-variable/lexend';
+import '@fontsource-variable/atkinson-hyperlegible-next';
 import App from './App';
 import { LicenseGate } from './components/license-gate';
 import { SplashScreen } from './components/SplashScreen';

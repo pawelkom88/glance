@@ -28,7 +28,8 @@ import {
 import { useAppStore } from '../store/use-app-store';
 import { useAppLicense } from '../hooks/useAppLicense';
 import type { AppLanguage } from '../i18n/types';
-import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
+import type { DetectedMonitor, MonitorChangedPayload, ThemeMode, FontChoice } from '../types';
+import { FONT_OPTIONS } from '../lib/fonts';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 import { SettingsLicenseCard } from './settings-license-card';
 import { fetchSpeechmaticsJwt } from '../lib/speechmatics';
@@ -190,6 +191,8 @@ export function SettingsView() {
   const showToast = useAppStore((state) => state.showToast);
   const themeMode = useAppStore((state) => state.themeMode);
   const setThemeMode = useAppStore((state) => state.setThemeMode);
+  const fontChoice = useAppStore((state) => state.fontChoice);
+  const setFontChoice = useAppStore((state) => state.setFontChoice);
   const language = useAppStore((state) => state.language);
   const setLanguage = useAppStore((state) => state.setLanguage);
   const showReadingRuler = useAppStore((state) => state.showReadingRuler);
@@ -258,6 +261,9 @@ export function SettingsView() {
     const selectedOption = languageOptions.find((option) => option.code === language) ?? languageOptions[0];
     return toLanguageOptionLabel(selectedOption);
   }, [language]);
+  const selectedFontOption = useMemo(() => {
+    return FONT_OPTIONS.find((option) => option.id === fontChoice) ?? FONT_OPTIONS[0];
+  }, [fontChoice]);
   const hasUnsavedShortcutChanges = useMemo(
     () => shortcutDefinitions.some((definition) => {
       return shortcutConfig[definition.action] !== savedShortcutConfig[definition.action];
@@ -758,6 +764,50 @@ export function SettingsView() {
                     {languageOptions.map((option) => (
                       <option key={option.code} value={option.code}>
                         {toLanguageOptionLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">{t('settingsView.appearance.fontTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.appearance.fontSubtitle')}</span>
+              </div>
+              <div className="setting-select-wrap">
+                <div className="setting-select-display">
+                  <span
+                    className="setting-select-value"
+                    style={{ fontFamily: selectedFontOption.fontFamily }}
+                  >
+                    {selectedFontOption.label}
+                  </span>
+                  <span className="setting-select-chevron" aria-hidden="true" />
+                  <select
+                    className="setting-select-native"
+                    value={fontChoice}
+                    aria-label={t('settingsView.appearance.fontTitle')}
+                    onChange={(event) => {
+                      const nextFont = event.target.value as FontChoice;
+                      if (nextFont === fontChoice) {
+                        return;
+                      }
+
+                      setFontChoice(nextFont);
+                      const targetOption = FONT_OPTIONS.find((option) => option.id === nextFont);
+                      showToast(
+                        t('settingsView.appearance.fontToast', {
+                          font: targetOption ? targetOption.label : nextFont
+                        }),
+                        'success'
+                      );
+                    }}
+                  >
+                    {FONT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id} style={{ fontFamily: option.fontFamily }}>
+                        {option.label}
                       </option>
                     ))}
                   </select>

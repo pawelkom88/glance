@@ -5644,7 +5644,7 @@ body.is-session-dragging * {
 }
 
 .script-heading {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   color: var(--overlay-lane-text);
   margin-top: 0;
   letter-spacing: -0.02em;
@@ -5679,7 +5679,7 @@ body.is-session-dragging * {
 }
 
 .script-section-title {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: calc(26px * var(--overlay-font-scale, 1));
   font-weight: 600;
   color: var(--overlay-lane-text);
@@ -5691,7 +5691,7 @@ body.is-session-dragging * {
 }
 
 .script-p {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: calc(24px * var(--overlay-font-scale, 1));
   font-weight: 400;
   line-height: 1.62;
@@ -5729,7 +5729,7 @@ body.is-session-dragging * {
 }
 
 .script-blockquote {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: calc(23px * var(--overlay-font-scale, 1));
   font-weight: 400;
   line-height: 1.60;

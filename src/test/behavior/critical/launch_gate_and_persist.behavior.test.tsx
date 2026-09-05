@@ -15,11 +15,13 @@ const tauriMocks = vi.hoisted(() => ({
   closeOverlayWindow: vi.fn(),
   emitThemeChanged: vi.fn(),
   emitLanguageChanged: vi.fn(),
+  emitFontChanged: vi.fn(),
   emitVadChanged: vi.fn(),
   emitVoiceSyncChanged: vi.fn(),
   getLastMainMonitorName: vi.fn(),
   hideMainWindow: vi.fn(),
   listenForLanguageChanged: vi.fn(),
+  listenForFontChanged: vi.fn(),
   listenForMainWindowShown: vi.fn(),
   listenForMonitorChanged: vi.fn(),
   listenForThemeChanged: vi.fn(),
@@ -36,11 +38,13 @@ vi.mock('../../../lib/tauri', async (importOriginal) => {
     closeOverlayWindow: tauriMocks.closeOverlayWindow,
     emitLanguageChanged: tauriMocks.emitLanguageChanged,
     emitThemeChanged: tauriMocks.emitThemeChanged,
+    emitFontChanged: tauriMocks.emitFontChanged,
     emitVadChanged: tauriMocks.emitVadChanged,
     emitVoiceSyncChanged: tauriMocks.emitVoiceSyncChanged,
     getLastMainMonitorName: tauriMocks.getLastMainMonitorName,
     hideMainWindow: tauriMocks.hideMainWindow,
     listenForLanguageChanged: tauriMocks.listenForLanguageChanged,
+    listenForFontChanged: tauriMocks.listenForFontChanged,
     listenForMainWindowShown: tauriMocks.listenForMainWindowShown,
     listenForMonitorChanged: tauriMocks.listenForMonitorChanged,
     listenForThemeChanged: tauriMocks.listenForThemeChanged,
@@ -59,11 +63,13 @@ describe('Critical behavior: launch gating and persistence', () => {
     tauriMocks.getLastMainMonitorName.mockReturnValue(null);
     tauriMocks.parseMonitorPreferenceKey.mockReturnValue(null);
     tauriMocks.listenForLanguageChanged.mockResolvedValue(() => undefined);
+    tauriMocks.listenForFontChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForThemeChanged.mockResolvedValue(() => undefined);
     tauriMocks.listenForMainWindowShown.mockResolvedValue(() => undefined);
     tauriMocks.listenForMonitorChanged.mockResolvedValue(() => undefined);
     tauriMocks.emitLanguageChanged.mockResolvedValue(undefined);
     tauriMocks.emitThemeChanged.mockResolvedValue(undefined);
+    tauriMocks.emitFontChanged.mockResolvedValue(undefined);
     tauriMocks.emitVadChanged.mockResolvedValue(undefined);
     tauriMocks.emitVoiceSyncChanged.mockResolvedValue(undefined);
     tauriMocks.openOverlayWindow.mockResolvedValue({ monitorName: 'Built-in', usedSavedBounds: false });

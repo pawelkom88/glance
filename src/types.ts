@@ -160,3 +160,5 @@ export interface ToastMessage {
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
+
+export type FontChoice = 'inter' | 'commissioner' | 'lexend' | 'atkinson';

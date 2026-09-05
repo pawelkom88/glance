@@ -602,7 +602,13 @@ export function OverlayPrompter() {
     () => {
       const preferredOffset = contentMetrics.height * focusLaneRatio;
       if (voiceSyncEnabled) {
-        return Math.max(70, Math.round(preferredOffset - (scaledLineHeight * 0.5)));
+        const isShortWindow = contentMetrics.height < 260;
+        const maxSafePadding = Math.max(10, Math.round(contentMetrics.height - scaledLineHeight - 16));
+        const targetOffset = isShortWindow
+          ? Math.round((contentMetrics.height - scaledLineHeight) / 2)
+          : Math.round(preferredOffset - (scaledLineHeight * 0.5));
+        const floor = isShortWindow ? 10 : 70;
+        return Math.max(floor, Math.min(maxSafePadding, targetOffset));
       }
       const clampedOffset = Math.max(52, Math.min(contentMetrics.height * 0.24, preferredOffset));
       return Math.max(0, clampedOffset - (scaledLineHeight * 0.5));
@@ -619,11 +625,14 @@ export function OverlayPrompter() {
     [lines]
   );
 
-  const firstLineLaneNudge = firstRenderableLine?.kind === 'heading'
-    ? -18
-    : firstRenderableLine?.kind === 'bullet'
-      ? -10
-      : 0;
+  const isShortViewport = contentMetrics.height < 260;
+  const firstLineLaneNudge = isShortViewport
+    ? 0
+    : (firstRenderableLine?.kind === 'heading'
+      ? -18
+      : firstRenderableLine?.kind === 'bullet'
+        ? -10
+        : 0);
 
   const sectionStartLineIndexes = useMemo(() => {
     return sections.map((section) => {

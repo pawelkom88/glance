@@ -312,7 +312,10 @@ export const esCatalog: TranslationCatalog = {
       readingRulerSubtitle: 'Mostrar una banda de enfoque en el prompter.',
       readingRulerAria: 'Mostrar línea de lectura',
       readingRulerEnabledToast: 'Línea de lectura activada',
-      readingRulerDisabledToast: 'Línea de lectura desactivada'
+      readingRulerDisabledToast: 'Línea de lectura desactivada',
+      fontTitle: 'Fuente del prompter',
+      fontSubtitle: 'Elige la tipografía para el teleprompter.',
+      fontToast: ({ font }) => `Fuente establecida en ${font}`
     },
     overlay: {
       title: 'Superposición',

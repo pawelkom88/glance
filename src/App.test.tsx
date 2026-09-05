@@ -62,11 +62,13 @@ vi.mock('./lib/tauri', () => ({
   closeOverlayWindow: vi.fn().mockResolvedValue(undefined),
   emitLanguageChanged: vi.fn().mockResolvedValue(undefined),
   emitThemeChanged: vi.fn().mockResolvedValue(undefined),
+  emitFontChanged: vi.fn().mockResolvedValue(undefined),
   emitVadChanged: vi.fn().mockResolvedValue(undefined),
   emitVoiceSyncChanged: vi.fn().mockResolvedValue(undefined),
   getLastMainMonitorName: vi.fn().mockReturnValue(null),
   hideMainWindow: vi.fn().mockResolvedValue(undefined),
   listenForLanguageChanged: vi.fn().mockResolvedValue(() => undefined),
+  listenForFontChanged: vi.fn().mockResolvedValue(() => undefined),
   listenForMonitorChanged: vi.fn().mockImplementation(async (
     listener: (payload: {
       name: string;

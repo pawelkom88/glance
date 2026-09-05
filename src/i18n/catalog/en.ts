@@ -312,7 +312,10 @@ export const enCatalog: TranslationCatalog = {
       readingRulerSubtitle: 'Show a focus band in the prompter overlay.',
       readingRulerAria: 'Show reading ruler',
       readingRulerEnabledToast: 'Reading ruler enabled',
-      readingRulerDisabledToast: 'Reading ruler disabled'
+      readingRulerDisabledToast: 'Reading ruler disabled',
+      fontTitle: 'Prompter Font',
+      fontSubtitle: 'Choose the typeface for the teleprompter.',
+      fontToast: ({ font }) => `Font set to ${font}`
     },
     overlay: {
       title: 'Overlay',

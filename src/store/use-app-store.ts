@@ -10,6 +10,7 @@ import {
   deleteFolder,
   deleteSession,
   duplicateSession,
+  emitFontChanged,
   emitLanguageChanged,
   emitVadChanged,
   emitVoiceSyncChanged,
@@ -43,6 +44,7 @@ import type {
   ThemeMode,
   ToastMessage,
   ToastVariant,
+  FontChoice
 } from '../types';
 import { DEFAULT_VOICE_PAUSE_DELAY_MS, normalizeVoicePauseDelayMs } from '../lib/voice-activity';
 
@@ -63,6 +65,7 @@ interface AppStoreState {
   readonly showReadingRuler: boolean;
   readonly themeMode: ThemeMode;
   readonly resolvedTheme: ResolvedTheme;
+  readonly fontChoice: FontChoice;
   readonly language: AppLanguage;
   readonly resolvedLanguage: AppResolvedLanguage;
   readonly speedStep: number;
@@ -103,6 +106,8 @@ interface AppStoreState {
   readonly setLineSpacing: (value: number) => void;
   readonly setThemeMode: (mode: ThemeMode) => void;
   readonly hydrateThemeFromStorage: () => void;
+  readonly setFontChoice: (font: FontChoice, emit?: boolean) => void;
+  readonly hydrateFontChoiceFromStorage: () => void;
   readonly setLanguage: (language: AppLanguage, emit?: boolean) => void;
   readonly hydrateLanguageFromStorage: () => void;
   readonly setSpeedStep: (value: number) => void;
@@ -124,6 +129,7 @@ function readLocalOnboardingState(): boolean {
 }
 
 const themeModeStorageKey = 'glance-theme-mode-v1';
+const fontChoiceStorageKey = 'glance-font-choice-v1';
 const showReadingRulerStorageKey = 'glance-show-reading-ruler-v1';
 const speedStepStorageKey = 'glance-speed-step-v1';
 const languageStorageKey = 'glance-language-v1';
@@ -217,6 +223,31 @@ function writeThemeMode(mode: ThemeMode): void {
   }
 
   window.localStorage.setItem(themeModeStorageKey, mode);
+}
+
+function isFontChoice(value: unknown): value is FontChoice {
+  return value === 'inter' || value === 'commissioner' || value === 'lexend' || value === 'atkinson';
+}
+
+function readFontChoice(): FontChoice {
+  if (typeof window === 'undefined') {
+    return 'inter';
+  }
+
+  const raw = window.localStorage.getItem(fontChoiceStorageKey);
+  if (isFontChoice(raw)) {
+    return raw;
+  }
+
+  return 'inter';
+}
+
+function writeFontChoice(font: FontChoice): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(fontChoiceStorageKey, font);
 }
 
 function readLanguageFromStorage(): AppLanguage | null {
@@ -442,6 +473,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     lineSpacing: storedOverlayState.lineSpacing,
     themeMode: initialThemeMode,
     resolvedTheme: initialResolvedTheme,
+    fontChoice: readFontChoice(),
     language: initialLanguage,
     resolvedLanguage: initialResolvedLanguage,
     speedStep: readSpeedStep(),
@@ -922,6 +954,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const vadDelay = readVoicePauseDelayMs();
       const ruler = readShowReadingRuler();
       const step = readSpeedStep();
+      const font = readFontChoice();
       const overlayState = readOverlayPersistentState();
 
       set({
@@ -932,7 +965,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         showReadingRuler: overlayState.showReadingRuler ?? ruler,
         speedStep: step,
         scrollSpeed: overlayState.speed,
-        overlayFontScale: overlayState.fontScale
+        overlayFontScale: overlayState.fontScale,
+        fontChoice: font
       });
     },
 
@@ -976,6 +1010,30 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       set({
         themeMode: nextMode,
         resolvedTheme: nextResolvedTheme
+      });
+    },
+
+    setFontChoice: (font: FontChoice, emit = true) => {
+      const normalized: FontChoice = isFontChoice(font) ? font : 'inter';
+      writeFontChoice(normalized);
+      if (emit) {
+        void emitFontChanged(normalized);
+      }
+      set({
+        fontChoice: normalized
+      });
+    },
+
+    hydrateFontChoiceFromStorage: () => {
+      const nextFont = readFontChoice();
+      const state = get();
+
+      if (state.fontChoice === nextFont) {
+        return;
+      }
+
+      set({
+        fontChoice: nextFont
       });
     },
 

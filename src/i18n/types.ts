@@ -321,6 +321,9 @@ export interface TranslationCatalog {
       readonly readingRulerAria: string;
       readonly readingRulerEnabledToast: string;
       readonly readingRulerDisabledToast: string;
+      readonly fontTitle: string;
+      readonly fontSubtitle: string;
+      readonly fontToast: (params: { readonly font: string }) => string;
     };
     readonly overlay: {
       readonly title: string;

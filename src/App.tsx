@@ -11,12 +11,14 @@ import { useAppReady } from './hooks/useAppReady';
 import { parseMarkdown } from './lib/markdown';
 import {
   closeOverlayWindow,
+  emitFontChanged,
   emitThemeChanged,
   emitVadChanged,
   emitVoiceSyncChanged,
   getLastMainMonitorName,
   hideMainWindow,
   listenForLanguageChanged,
+  listenForFontChanged,
   listenForMonitorChanged,
   listenForThemeChanged,
   listenForMainWindowShown,
@@ -25,6 +27,7 @@ import {
   parseMonitorPreferenceKey,
   setLastMainMonitorName
 } from './lib/tauri';
+import { applyFontToDocument } from './lib/fonts';
 import { useAppStore } from './store/use-app-store';
 import { useI18n } from './i18n/use-i18n';
 import type { ToastVariant } from './types';
@@ -174,7 +177,9 @@ export default function App() {
   const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
   const themeMode = useAppStore((state) => state.themeMode);
   const resolvedTheme = useAppStore((state) => state.resolvedTheme);
+  const fontChoice = useAppStore((state) => state.fontChoice);
   const hydrateThemeFromStorage = useAppStore((state) => state.hydrateThemeFromStorage);
+  const hydrateFontChoiceFromStorage = useAppStore((state) => state.hydrateFontChoiceFromStorage);
   const hydrateLanguageFromStorage = useAppStore((state) => state.hydrateLanguageFromStorage);
   const syncSystemTheme = useAppStore((state) => state.syncSystemTheme);
 
@@ -245,6 +250,10 @@ export default function App() {
   }, [resolvedTheme, themeMode]);
 
   useEffect(() => {
+    applyFontToDocument(fontChoice);
+  }, [fontChoice]);
+
+  useEffect(() => {
     if (typeof document === 'undefined') {
       return;
     }
@@ -287,6 +296,11 @@ export default function App() {
         return;
       }
 
+      if (event.key === 'glance-font-choice-v1') {
+        hydrateFontChoiceFromStorage();
+        return;
+      }
+
       if (event.key === 'glance-language-v1') {
         hydrateLanguageFromStorage();
       }
@@ -296,7 +310,7 @@ export default function App() {
     return () => {
       window.removeEventListener('storage', onStorage);
     };
-  }, [hydrateLanguageFromStorage, hydrateThemeFromStorage]);
+  }, [hydrateFontChoiceFromStorage, hydrateLanguageFromStorage, hydrateThemeFromStorage]);
 
   useEffect(() => {
     let didCancel = false;
@@ -343,6 +357,32 @@ export default function App() {
         }
 
         state.hydrateLanguageFromStorage();
+      });
+    })();
+
+    return () => {
+      didCancel = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    let didCancel = false;
+    let unlisten: (() => void) | null = null;
+
+    void (async () => {
+      unlisten = await listenForFontChanged(({ font: nextFont }) => {
+        if (didCancel) {
+          return;
+        }
+
+        const state = useAppStore.getState();
+        if (state.fontChoice !== nextFont) {
+          state.setFontChoice(nextFont, false);
+          return;
+        }
+
+        state.hydrateFontChoiceFromStorage();
       });
     })();
 
@@ -643,6 +683,7 @@ export default function App() {
                 });
                 await openOverlayWindow();
                 await emitThemeChanged(themeMode);
+                await emitFontChanged(useAppStore.getState().fontChoice);
                 await emitVoiceSyncChanged({
                   enabled: useAppStore.getState().voiceSyncEnabled,
                   apiKey: useAppStore.getState().speechmaticsApiKey

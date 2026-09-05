@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearActivationRecord,
   clearStoredLicense,
+  emitFontChanged,
   emitLanguageChanged,
   emitVadChanged,
   emitVoiceSyncChanged,
   getOrCreateLicenseDeviceId,
   getMonitors,
+  listenForFontChanged,
   listenForLanguageChanged,
   listenForVadChanged,
   listenForVoiceSyncChanged,
@@ -268,6 +270,25 @@ describe('tauri monitor bridge behavior', () => {
     const listener = listenMock.mock.calls[0]?.[1] as ((event: { payload: { language: 'en' | 'fr' | 'es' } }) => void);
     listener({ payload: { language: 'en' } });
     expect(callback).toHaveBeenCalledWith({ language: 'en' });
+
+    unlisten();
+    expect(detach).toHaveBeenCalled();
+  });
+
+  it('emits and listens for font-changed events', async () => {
+    const detach = vi.fn();
+    listenMock.mockResolvedValue(detach);
+    const callback = vi.fn();
+
+    await emitFontChanged('lexend');
+    expect(emitMock).toHaveBeenCalledWith('glance-font-changed', { font: 'lexend' });
+
+    const unlisten = await listenForFontChanged(callback);
+    expect(listenMock).toHaveBeenCalledWith('glance-font-changed', expect.any(Function));
+
+    const listener = listenMock.mock.calls[0]?.[1] as ((event: { payload: { font: string } }) => void);
+    listener({ payload: { font: 'atkinson' } });
+    expect(callback).toHaveBeenCalledWith({ font: 'atkinson' });
 
     unlisten();
     expect(detach).toHaveBeenCalled();

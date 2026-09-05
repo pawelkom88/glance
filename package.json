@@ -26,8 +26,10 @@
     "deploy:landing": "netlify deploy --prod --dir=landing-page --site 92add545-3e1a-44bd-8803-afec8f7908e3 --no-build"
   },
   "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
     "@fontsource-variable/commissioner": "^5.2.10",
     "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/lexend": "^5.3.0",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-shell": "^2.3.5",

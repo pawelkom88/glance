@@ -950,4 +950,36 @@ describe('OverlayPrompter behavior', () => {
     expect(words[1]?.classList.contains('is-voice-upcoming')).toBe(true);
     expect(words[2]?.classList.contains('is-voice-upcoming')).toBe(true);
   });
+
+  it('dynamically centers lanePadding when voice sync is active in short viewport heights', async () => {
+    const clientHeightSpy = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('overlay-content')) {
+        return 120; // short viewport height (e.g. 120px)
+      }
+      return 0;
+    });
+
+    useAppStore.setState({
+      voiceSyncEnabled: true,
+      speechmaticsApiKey: 'valid-test-key',
+      markdown: 'Welcome to Glance.'
+    });
+
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<OverlayPrompter />);
+    });
+    const { container } = renderResult;
+
+    const overlayLines = container.querySelector('.overlay-lines') as HTMLElement | null;
+    expect(overlayLines).not.toBeNull();
+    // In a 120px viewport, lanePadding should be centered around (120 - 60) / 2 = 30px
+    // instead of hardcoded 70px which would push the line off-screen
+    const paddingTop = parseInt(overlayLines?.style.paddingTop || '0', 10);
+    expect(paddingTop).toBeLessThanOrEqual(35);
+    expect(paddingTop).toBeGreaterThanOrEqual(20);
+
+    clientHeightSpy.mockRestore();
+  });
 });
+
