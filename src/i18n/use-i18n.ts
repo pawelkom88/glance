@@ -2,9 +2,6 @@ import { useAppStore } from '../store/use-app-store';
 import { defaultTranslationCatalog, translationCatalogs } from './catalog';
 import type { ResolvedLanguage, TranslationCatalog, TranslationKey, TranslationKeyParams } from './types';
 
-const warnedMessages = new Set<string>();
-const isDevelopment = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
-
 function readTranslationValue(catalog: TranslationCatalog, key: TranslationKey): unknown {
   return key
     .split('.')
@@ -18,12 +15,12 @@ function readTranslationValue(catalog: TranslationCatalog, key: TranslationKey):
     }, catalog);
 }
 
+const isDevelopment = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+
 function warnMissingTranslation(message: string): void {
-  if (!isDevelopment || warnedMessages.has(message)) {
+  if (!isDevelopment) {
     return;
   }
-
-  warnedMessages.add(message);
   console.warn(message);
 }
 

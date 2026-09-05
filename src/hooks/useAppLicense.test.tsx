@@ -6,6 +6,7 @@ import * as licenseApi from '../lib/license-api';
 import * as tauriBridge from '../lib/tauri';
 
 vi.mock('../lib/tauri', () => ({
+  checkLicenseStatus: vi.fn(),
   clearActivationRecord: vi.fn(),
   clearStoredLicense: vi.fn(),
   getOrCreateLicenseDeviceId: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('../lib/license-api', async (importOriginal) => {
 });
 
 const tauriMock = tauriBridge as unknown as {
+  checkLicenseStatus: ReturnType<typeof vi.fn>;
   clearActivationRecord: ReturnType<typeof vi.fn>;
   clearStoredLicense: ReturnType<typeof vi.fn>;
   getOrCreateLicenseDeviceId: ReturnType<typeof vi.fn>;
@@ -232,5 +234,25 @@ describe('useAppLicense', () => {
       state: 'licensed',
       licenseId: '3C49',
     });
+  });
+
+  it('honors developer-bypass status from tauri environment', async () => {
+    tauriMock.checkLicenseStatus.mockResolvedValue({
+      state: 'licensed',
+      licenseId: 'developer-bypass',
+    });
+
+    const { result } = renderHook(() => useAppLicense());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.status).toEqual({
+      state: 'licensed',
+      licenseId: 'developer-bypass',
+    });
+    expect(tauriMock.loadSavedLicenseKey).not.toHaveBeenCalled();
+    expect(licenseApiMock.validateLicense).not.toHaveBeenCalled();
   });
 });

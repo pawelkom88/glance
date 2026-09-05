@@ -254,7 +254,13 @@ export const esCatalog: TranslationCatalog = {
     autoPauseStatusLabel: 'Voz',
     autoPauseStatusListening: 'La pausa automática por voz está escuchando',
     autoPauseStatusSilent: 'La pausa automática por voz está esperando que vuelvas a hablar',
-    autoPauseStatusStarting: 'La pausa automática por voz se está iniciando'
+    autoPauseStatusStarting: 'La pausa automática por voz se está iniciando',
+    voiceSyncStatusLabel: 'Sincronización por voz',
+    voiceSyncStatusListening: 'La sincronización por voz está escuchando',
+    voiceSyncStatusSyncing: 'La sincronización por voz está siguiendo',
+    voiceSyncStatusConnecting: 'La sincronización por voz se está conectando',
+    voiceSyncStatusMissingKey: 'La sincronización por voz requiere una clave API',
+    voiceSyncStatusError: 'Error en la sincronización por voz'
   },
   settingsView: {
     title: 'Configuración',
@@ -270,6 +276,26 @@ export const esCatalog: TranslationCatalog = {
       enabledAria: 'Activar detección de actividad de voz',
       pauseDelayTitle: 'Pausar tras el silencio',
       pauseDelaySubtitle: 'Cuánto espera Glance antes de pausar cuando dejas de hablar.',
+    },
+    voiceSync: {
+      title: 'Desplazamiento sincronizado por voz',
+      enabledTitle: 'Desplazamiento sincronizado por voz',
+      enabledSubtitle: 'Desplaza automáticamente el prompter palabra por palabra según hablas.',
+      enabledAria: 'Activar desplazamiento sincronizado por voz',
+      apiKeyTitle: 'Clave API de Speechmatics',
+      apiKeySubtitle: 'Requerida para la sincronización por voz en tiempo real. Guardada localmente.',
+      apiKeyPlaceholder: 'Pega tu clave API de Speechmatics…',
+      apiKeyMissing: 'Falta clave',
+      apiKeyConfigured: 'Configurada',
+      apiKeyInvalid: 'Clave no válida',
+      validatingKey: 'Validando…',
+      saveKey: 'Guardar clave',
+      clearKey: 'Borrar',
+      keySavedToast: 'Clave API de Speechmatics guardada',
+      keyVerifiedToast: 'Clave API de Speechmatics verificada y guardada',
+      keyClearedToast: 'Clave API de Speechmatics borrada',
+      keyHint: 'Obtén una clave gratis con 100 $ de crédito en portal.speechmatics.com',
+      getKeyLink: 'Obtener clave gratis ↗'
     },
     appearance: {
       title: 'Apariencia',

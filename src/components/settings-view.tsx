@@ -31,6 +31,7 @@ import type { AppLanguage } from '../i18n/types';
 import type { DetectedMonitor, MonitorChangedPayload, ThemeMode } from '../types';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 import { SettingsLicenseCard } from './settings-license-card';
+import { fetchSpeechmaticsJwt } from '../lib/speechmatics';
 import {
   classifyVoiceActivityError,
   MAX_VOICE_PAUSE_DELAY_MS,
@@ -200,6 +201,20 @@ export function SettingsView() {
   const voicePauseDelayMs = useAppStore((state) => state.voicePauseDelayMs);
   const setVadEnabled = useAppStore((state) => state.setVadEnabled);
   const setVoicePauseDelayMs = useAppStore((state) => state.setVoicePauseDelayMs);
+  const voiceSyncEnabled = useAppStore((state) => state.voiceSyncEnabled);
+  const speechmaticsApiKey = useAppStore((state) => state.speechmaticsApiKey);
+  const setVoiceSyncEnabled = useAppStore((state) => state.setVoiceSyncEnabled);
+  const setSpeechmaticsApiKey = useAppStore((state) => state.setSpeechmaticsApiKey);
+  const [apiKeyDraft, setApiKeyDraft] = useState(speechmaticsApiKey);
+  const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
+  const [isValidatingKey, setIsValidatingKey] = useState(false);
+  const [keyValidationError, setKeyValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setApiKeyDraft(speechmaticsApiKey);
+    setKeyValidationError(null);
+  }, [speechmaticsApiKey]);
+
   const { t } = useI18n();
   const {
     status: licenseStatus,
@@ -250,6 +265,53 @@ export function SettingsView() {
     [savedShortcutConfig, shortcutConfig]
   );
   const shouldShowDisplaySetting = true;
+
+  const handleSaveApiKey = async () => {
+    const trimmed = apiKeyDraft.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setIsValidatingKey(true);
+    setKeyValidationError(null);
+
+    try {
+      await fetchSpeechmaticsJwt(trimmed);
+      setSpeechmaticsApiKey(trimmed);
+      setKeyValidationError(null);
+      showToast(t('settingsView.voiceSync.keyVerifiedToast'), 'success');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Invalid Speechmatics API key';
+      setKeyValidationError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setIsValidatingKey(false);
+    }
+  };
+
+  const handleClearApiKey = () => {
+    setApiKeyDraft('');
+    setSpeechmaticsApiKey('');
+    setKeyValidationError(null);
+    showToast(t('settingsView.voiceSync.keyClearedToast'), 'info');
+  };
+
+  const handleVoiceSyncToggle = async () => {
+    if (voiceSyncEnabled) {
+      setVoiceSyncEnabled(false);
+      return;
+    }
+
+    try {
+      const stream = await requestVoiceActivityStream();
+      stream.getTracks().forEach((track) => track.stop());
+      setVoiceSyncEnabled(true);
+    } catch (error) {
+      const { permissionError } = classifyVoiceActivityError(error);
+      setVoiceSyncEnabled(false);
+      showToast(permissionError, 'error');
+    }
+  };
 
   const handleVadToggle = async () => {
     if (vadEnabled) {
@@ -883,6 +945,144 @@ export function SettingsView() {
                 </div>
               </div>
             ) : null}
+          </div>
+        </section>
+
+        <section className="settings-group" aria-labelledby="settings-voicesync-label">
+          <h3 id="settings-voicesync-label" className="settings-group-label">{t('settingsView.voiceSync.title')}</h3>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-copy">
+                <span className="setting-title">{t('settingsView.voiceSync.enabledTitle')}</span>
+                <span className="setting-subtitle">{t('settingsView.voiceSync.enabledSubtitle')}</span>
+              </div>
+              <button
+                type="button"
+                className={`setting-switch ${voiceSyncEnabled ? 'is-on' : ''}`}
+                role="switch"
+                aria-checked={voiceSyncEnabled}
+                aria-label={t('settingsView.voiceSync.enabledAria')}
+                onClick={() => {
+                  void handleVoiceSyncToggle();
+                }}
+              >
+                <span className="setting-switch-thumb" />
+              </button>
+            </div>
+
+            <div className="setting-row setting-row-column">
+              <div className="setting-copy">
+                <div className="setting-title-with-badge">
+                  <span className="setting-title">{t('settingsView.voiceSync.apiKeyTitle')}</span>
+                  <span
+                    className={`setting-badge ${
+                      isValidatingKey
+                        ? 'is-validating'
+                        : keyValidationError
+                          ? 'is-error'
+                          : speechmaticsApiKey
+                            ? 'is-configured'
+                            : 'is-missing'
+                    }`}
+                  >
+                    {isValidatingKey
+                      ? t('settingsView.voiceSync.validatingKey')
+                      : keyValidationError
+                        ? t('settingsView.voiceSync.apiKeyInvalid')
+                        : speechmaticsApiKey
+                          ? t('settingsView.voiceSync.apiKeyConfigured')
+                          : t('settingsView.voiceSync.apiKeyMissing')}
+                  </span>
+                </div>
+                <span className="setting-subtitle">{t('settingsView.voiceSync.apiKeySubtitle')}</span>
+              </div>
+              <div className="setting-key-input-row">
+                <div className="setting-key-input-wrap">
+                  <input
+                    type={isApiKeyVisible ? 'text' : 'password'}
+                    value={apiKeyDraft}
+                    placeholder={t('settingsView.voiceSync.apiKeyPlaceholder')}
+                    onChange={(e) => {
+                      setApiKeyDraft(e.target.value);
+                      if (keyValidationError) {
+                        setKeyValidationError(null);
+                      }
+                    }}
+                    className={`setting-key-input ${keyValidationError ? 'has-error' : ''}`}
+                    aria-label={t('settingsView.voiceSync.apiKeyTitle')}
+                    disabled={isValidatingKey}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void handleSaveApiKey();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="setting-key-visibility-btn"
+                    onClick={() => setIsApiKeyVisible((prev) => !prev)}
+                    title={isApiKeyVisible ? 'Hide API key' : 'Show API key'}
+                    aria-label={isApiKeyVisible ? 'Hide API key' : 'Show API key'}
+                  >
+                    {isApiKeyVisible ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <div className="setting-key-actions">
+                  <button
+                    type="button"
+                    className="primary-button setting-key-save-btn"
+                    onClick={() => {
+                      void handleSaveApiKey();
+                    }}
+                    disabled={isValidatingKey || apiKeyDraft.trim() === speechmaticsApiKey || !apiKeyDraft.trim()}
+                  >
+                    {isValidatingKey ? t('settingsView.voiceSync.validatingKey') : t('settingsView.voiceSync.saveKey')}
+                  </button>
+                  {speechmaticsApiKey ? (
+                    <button
+                      type="button"
+                      className="cancel-button setting-key-clear-btn"
+                      onClick={handleClearApiKey}
+                      disabled={isValidatingKey}
+                    >
+                      {t('settingsView.voiceSync.clearKey')}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {keyValidationError ? (
+                <div className="setting-key-error-row" role="alert">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{keyValidationError}</span>
+                </div>
+              ) : null}
+              <div className="setting-key-hint-row">
+                <span className="setting-key-hint">{t('settingsView.voiceSync.keyHint')}</span>
+                <a
+                  href="https://portal.speechmatics.com/api-keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="setting-key-link"
+                >
+                  {t('settingsView.voiceSync.getKeyLink')}
+                </a>
+              </div>
+            </div>
           </div>
         </section>
       </div >

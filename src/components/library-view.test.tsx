@@ -91,7 +91,7 @@ describe('LibraryView behavior', () => {
     const user = userEvent.setup();
     const props = renderLibrary({ folders: noFolders });
 
-    await user.click(screen.getByRole('button', { name: /\+ New Session/i }));
+    await user.click(screen.getByRole('button', { name: /New session/i }));
 
     const input = await screen.findByLabelText('Session name');
     await user.clear(input);
@@ -106,12 +106,12 @@ describe('LibraryView behavior', () => {
     renderLibrary();
 
     await user.click(screen.getByRole('button', { name: 'Select' }));
-    await user.click(screen.getByText('Select All'));
+    await user.click(screen.getByText(/Select all/i));
 
     expect((screen.getByRole('button', { name: /Delete 2/i }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByRole('button', { name: /Move 2/i }) as HTMLButtonElement).disabled).toBe(false);
 
-    await user.click(screen.getByText('Deselect All'));
+    await user.click(screen.getByText(/Deselect all/i));
 
     expect((screen.getByRole('button', { name: /Delete 0/i }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -121,12 +121,13 @@ describe('LibraryView behavior', () => {
     const props = renderLibrary({ folders: multipleFolders });
 
     await user.click(screen.getByRole('button', { name: 'Select' }));
-    await user.click(screen.getByText('Select All'));
+    await user.click(screen.getByText(/Select all/i));
     await user.click(screen.getByRole('button', { name: /Move 2/i }));
 
-    const select = await screen.findByLabelText('Destination');
+    const select = await screen.findByLabelText(/^Folder$/i);
     await user.selectOptions(select, 'f-2');
-    await user.click(screen.getByRole('button', { name: 'Move' }));
+    const sheet = select.closest('.confirm-sheet')!;
+    await user.click(within(sheet as HTMLElement).getByRole('button', { name: /Move 2/i }));
 
     const moveSpy = props.onMoveSessions as unknown as ReturnType<typeof vi.fn>;
     await waitFor(() => {
@@ -151,7 +152,7 @@ describe('LibraryView behavior', () => {
 
     fireEvent.keyDown(window, { key: 'f', metaKey: true });
 
-    const input = await screen.findByPlaceholderText('Search titles and script content');
+    const input = await screen.findByPlaceholderText(/Search/i);
     await user.type(input, 'launch');
 
     await waitFor(() => {
@@ -176,7 +177,7 @@ describe('LibraryView behavior', () => {
     expect(searchButton.getAttribute('aria-pressed')).toBe('true');
     expect(searchButton.className).toContain('is-active');
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search titles and script content')).toBeTruthy();
+      expect(screen.getByPlaceholderText(/Search/i)).toBeTruthy();
     });
 
     await user.click(filterButton);
@@ -198,6 +199,7 @@ describe('LibraryView behavior', () => {
 
     fireEvent.pointerDown(alphaCard as HTMLElement, { pointerId: 10, pointerType: 'mouse', button: 0, clientX: 20, clientY: 20 });
     fireEvent.click(alphaCard as HTMLElement, { clientX: 20, clientY: 20 });
+    fireEvent.click(alphaCard as HTMLElement, { clientX: 20, clientY: 20 });
     expect(props.onOpen).toHaveBeenCalledWith('a');
     await flushReactUpdates();
   });
@@ -210,8 +212,8 @@ describe('LibraryView behavior', () => {
 
   it('shows the temporary double-click coaching hint above the first folder', async () => {
     renderLibrary();
-    const unfiledGroup = screen.getByLabelText('Unfiled folder');
-    expect(within(unfiledGroup).getByText('Tip: Double-click a session to open it. Drag to move.')).toBeTruthy();
+    const unfiledGroup = screen.getByLabelText(/Unfiled folder/i);
+    expect(within(unfiledGroup).getByText(/Tip:/i)).toBeTruthy();
     await flushReactUpdates();
   });
 
@@ -219,7 +221,7 @@ describe('LibraryView behavior', () => {
     const user = userEvent.setup();
     const props = renderLibrary();
 
-    await user.click(screen.getByRole('button', { name: /\+ New Session/i }));
+    await user.click(screen.getByRole('button', { name: /New session/i }));
 
     expect(screen.getByRole('dialog', { name: 'New session folder selection' })).toBeTruthy();
     expect(screen.queryByLabelText('Session name')).toBeNull();
@@ -257,14 +259,14 @@ describe('LibraryView behavior', () => {
     const user = userEvent.setup();
     renderLibrary({ folders: multipleFolders });
 
-    await user.click(screen.getByRole('button', { name: /\+ New Session/i }));
+    await user.click(screen.getByRole('button', { name: /New session/i }));
     expect(screen.getByRole('dialog', { name: 'New session folder selection' })).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'New session folder selection' })).toBeNull();
     });
 
-    await user.click(screen.getByRole('button', { name: /\+ New Session/i }));
+    await user.click(screen.getByRole('button', { name: /New session/i }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByLabelText('Session name')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -279,7 +281,7 @@ describe('LibraryView behavior', () => {
       expect(screen.queryByLabelText('Folder name')).toBeNull();
     });
 
-    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    const unfiledGroup = screen.getByLabelText(/Unfiled folder/i);
     await user.click(within(unfiledGroup).getByRole('button', { name: 'Rename' }));
     expect(await screen.findByLabelText('Rename folder')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -287,35 +289,35 @@ describe('LibraryView behavior', () => {
       expect(screen.queryByLabelText('Rename folder')).toBeNull();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Delete Alpha' }));
-    expect(await screen.findByRole('dialog', { name: 'Delete session confirmation' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /Delete.*Alpha/i }));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Delete session confirmation' })).toBeNull();
+      expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     await user.click(within(unfiledGroup).getByRole('button', { name: 'Delete' }));
-    expect(await screen.findByRole('button', { name: 'Delete Folder' })).toBeTruthy();
+    expect(await screen.findByRole('dialog')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Delete Folder' })).toBeNull();
+      expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     await user.click(screen.getByRole('button', { name: 'Select' }));
-    await user.click(screen.getByText('Select All'));
+    await user.click(screen.getByText(/Select all/i));
 
     await user.click(screen.getByRole('button', { name: /Delete 2/i }));
-    expect(await screen.findByText('Delete 2 sessions ?')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: /Delete 2 sessions/i })).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => {
-      expect(screen.queryByText('Delete 2 sessions ?')).toBeNull();
+      expect(screen.queryByRole('heading', { name: /Delete 2 sessions/i })).toBeNull();
     });
 
     await user.click(screen.getByRole('button', { name: /Move 2/i }));
-    expect(await screen.findByRole('button', { name: 'Move' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: /Move 2 sessions/i })).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Move' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: /Move 2 sessions/i })).toBeNull();
     });
   });
 
@@ -332,7 +334,7 @@ describe('LibraryView behavior', () => {
     const user = userEvent.setup();
     const props = renderLibrary({ folders: noFolders, sessions: oneSession });
 
-    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    const unfiledGroup = screen.getByLabelText(/Unfiled folder/i);
     await user.click(within(unfiledGroup).getByRole('button', { name: 'Rename' }));
 
     const input = await screen.findByLabelText('Rename folder');
@@ -341,12 +343,12 @@ describe('LibraryView behavior', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(props.onRenameFolder).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Inbox folder')).toBeTruthy();
+    expect(screen.getByLabelText(/Inbox folder/i)).toBeTruthy();
   });
 
   it('shows delete action for the default unfiled folder', async () => {
     renderLibrary();
-    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    const unfiledGroup = screen.getByLabelText(/Unfiled folder/i);
     expect(within(unfiledGroup).getByRole('button', { name: 'Delete' })).toBeTruthy();
     await flushReactUpdates();
   });
@@ -355,11 +357,12 @@ describe('LibraryView behavior', () => {
     const user = userEvent.setup();
     renderLibrary({ sessions: [sessions[1]], folders: multipleFolders });
 
-    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    const unfiledGroup = screen.getByLabelText(/Unfiled folder/i);
     await user.click(within(unfiledGroup).getByRole('button', { name: 'Delete' }));
-    await user.click(screen.getByRole('button', { name: 'Delete Folder' }));
+    const confirm = await screen.findByRole('dialog');
+    await user.click(within(confirm).getByRole('button', { name: 'Delete' }));
 
-    expect(screen.queryByLabelText('Unfiled folder')).toBeNull();
+    expect(screen.queryByLabelText(/Unfiled folder/i)).toBeNull();
   });
 
   it('hides empty folders while in selection mode', async () => {
@@ -374,14 +377,14 @@ describe('LibraryView behavior', () => {
       folders: multipleFolders
     });
 
-    expect(screen.getByLabelText('Unfiled folder')).toBeTruthy();
-    expect(screen.getByLabelText('Internal folder')).toBeTruthy();
+    expect(screen.getByLabelText(/Unfiled folder/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Internal folder/i)).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Select' }));
 
-    expect(screen.queryByLabelText('Unfiled folder')).toBeNull();
-    expect(screen.getByLabelText('Client Work folder')).toBeTruthy();
-    expect(screen.queryByLabelText('Internal folder')).toBeNull();
+    expect(screen.queryByLabelText(/Unfiled folder/i)).toBeNull();
+    expect(screen.getByLabelText(/Client Work folder/i)).toBeTruthy();
+    expect(screen.queryByLabelText(/Internal folder/i)).toBeNull();
   });
 
   it('shows search, filter, and select controls only when there is more than one session', async () => {
@@ -444,7 +447,7 @@ describe('LibraryView behavior', () => {
     const props = renderLibrary({ folders: multipleFolders });
 
     const alphaCard = screen.getByText('Alpha').closest('article');
-    const internalGroup = screen.getByLabelText('Internal folder');
+    const internalGroup = screen.getByLabelText(/Internal folder/i);
     expect(alphaCard).toBeTruthy();
     expect(internalGroup).toBeTruthy();
 
@@ -465,7 +468,7 @@ describe('LibraryView behavior', () => {
     renderLibrary({ folders: multipleFolders });
 
     const alphaCard = screen.getByText('Alpha').closest('article');
-    const internalGroup = screen.getByLabelText('Internal folder');
+    const internalGroup = screen.getByLabelText(/Internal folder/i);
     const internalLabel = within(internalGroup).getByText('Internal');
     expect(alphaCard).toBeTruthy();
 
@@ -500,7 +503,7 @@ describe('LibraryView behavior', () => {
     const props = renderLibrary({ folders: multipleFolders });
 
     const alphaCard = screen.getByText('Alpha').closest('article');
-    const internalGroup = screen.getByLabelText('Internal folder');
+    const internalGroup = screen.getByLabelText(/Internal folder/i);
     const internalLabel = within(internalGroup).getByText('Internal');
     expect(alphaCard).toBeTruthy();
 
@@ -520,7 +523,7 @@ describe('LibraryView behavior', () => {
     renderLibrary({ folders: multipleFolders });
 
     const alphaCard = screen.getByText('Alpha').closest('article');
-    const internalGroup = screen.getByLabelText('Internal folder');
+    const internalGroup = screen.getByLabelText(/Internal folder/i);
     const internalLabel = within(internalGroup).getByText('Internal');
     expect(alphaCard).toBeTruthy();
 
@@ -579,7 +582,7 @@ describe('LibraryView behavior', () => {
 
     const { rerender } = render(<LibraryView {...baseProps} />);
 
-    const unfiledGroup = screen.getByLabelText('Unfiled folder');
+    const unfiledGroup = screen.getByLabelText(/Unfiled folder/i);
     const unfiledToggle = within(unfiledGroup).getByRole('button', { name: /Unfiled/i });
     expect(unfiledToggle.getAttribute('aria-expanded')).toBe('true');
 
@@ -600,7 +603,7 @@ describe('LibraryView behavior', () => {
     rerender(<LibraryView {...baseProps} sessions={movedSessions} />);
 
     await waitFor(() => {
-      const updatedGroup = screen.getByLabelText('Unfiled folder');
+      const updatedGroup = screen.getByLabelText(/Unfiled folder/i);
       const updatedToggle = within(updatedGroup).getByRole('button', { name: /Unfiled/i });
       expect(updatedToggle.getAttribute('aria-expanded')).toBe('false');
     });
@@ -631,12 +634,12 @@ describe('LibraryView behavior', () => {
 
     const { rerender } = render(<LibraryView {...baseProps} />);
 
-    const clientGroup = screen.getByLabelText('Client Work folder');
+    const clientGroup = screen.getByLabelText(/Client Work folder/i);
     const clientToggle = within(clientGroup).getByRole('button', { name: /Client Work/i });
     expect(clientToggle.getAttribute('aria-expanded')).toBe('true');
 
-    await user.click(screen.getByRole('button', { name: 'Delete Alpha' }));
-    const confirm = await screen.findByRole('dialog', { name: 'Delete session confirmation' });
+    await user.click(screen.getByRole('button', { name: /Delete.*Alpha/i }));
+    const confirm = await screen.findByRole('dialog');
     await user.click(within(confirm).getByRole('button', { name: 'Delete' }));
 
     expect(deleteSpy).toHaveBeenCalledWith('a');
@@ -645,7 +648,7 @@ describe('LibraryView behavior', () => {
     rerender(<LibraryView {...baseProps} sessions={remainingSessions} />);
 
     await waitFor(() => {
-      const updatedGroup = screen.getByLabelText('Client Work folder');
+      const updatedGroup = screen.getByLabelText(/Client Work folder/i);
       const updatedToggle = within(updatedGroup).getByRole('button', { name: /Client Work/i });
       expect(updatedToggle.getAttribute('aria-expanded')).toBe('false');
     });

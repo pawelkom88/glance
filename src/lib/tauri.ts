@@ -36,25 +36,13 @@ const overlayLastMonitorStorageKey = 'glance-overlay-last-monitor-v2';
 const mainLastMonitorStorageKey = 'glance-main-last-monitor-v1';
 const overlayAlwaysOnTopStorageKey = 'glance-overlay-always-on-top-v1';
 const lastActiveSessionStorageKey = 'glance-last-active-session-v1';
-const monitorDebugStorageKey = 'glance-monitor-debug-v1';
 
 function inTauri(): boolean {
   return isTauri();
 }
 
-function monitorDebugEnabled(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return window.localStorage.getItem(monitorDebugStorageKey) === '1';
-}
-
-function logMonitorDebug(message: string, payload: unknown): void {
-  if (!monitorDebugEnabled()) {
-    return;
-  }
-  // eslint-disable-next-line no-console
-  console.debug(`[monitor-debug] ${message}`, payload);
+function logMonitorDebug(_message: string, _payload: unknown): void {
+  // Debug logs removed in production
 }
 
 interface RuntimeMonitorSnapshot {
@@ -348,6 +336,17 @@ export async function listSessions(): Promise<readonly SessionSummary[]> {
 
 export function isTauriEnvironment(): boolean {
   return inTauri();
+}
+
+export async function checkLicenseStatus(): Promise<AppLicenseStatus | null> {
+  if (!inTauri()) {
+    return {
+      state: 'licensed',
+      licenseId: 'developer-mode',
+    };
+  }
+
+  return invoke<AppLicenseStatus>('check_status');
 }
 
 export async function loadSavedLicenseKey(): Promise<string | null> {

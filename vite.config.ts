@@ -9,6 +9,10 @@ function landingPageRouting(): Plugin {
 
   function resolveLandingPageRequest(pathname: string): string | null {
     if (pathname === '/' || pathname === '/index.html') {
+      return null;
+    }
+
+    if (pathname === '/landing-page' || pathname === '/landing-page/' || pathname === '/landing-page/index.html') {
       return path.join(landingPageRoot, 'index.html');
     }
 
@@ -89,6 +93,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    include: ['src/**/*.test.{ts,tsx}'],
   },
   clearScreen: false,
   server: {

@@ -309,7 +309,13 @@ export const plCatalog: TranslationCatalog = {
         autoPauseStatusLabel: 'Głos',
         autoPauseStatusListening: 'Automatyczna pauza głosowa nasłuchuje',
         autoPauseStatusSilent: 'Automatyczna pauza głosowa czeka, aż znów zaczniesz mówić',
-        autoPauseStatusStarting: 'Automatyczna pauza głosowa uruchamia się'
+        autoPauseStatusStarting: 'Automatyczna pauza głosowa uruchamia się',
+        voiceSyncStatusLabel: 'Sync głosem',
+        voiceSyncStatusListening: 'Synchronizacja głosem nasłuchuje',
+        voiceSyncStatusSyncing: 'Synchronizacja głosem podąża za mową',
+        voiceSyncStatusConnecting: 'Synchronizacja głosem łączy się',
+        voiceSyncStatusMissingKey: 'Synchronizacja głosem wymaga klucza API',
+        voiceSyncStatusError: 'Błąd synchronizacji głosem'
     },
     settingsView: {
         title: 'Ustawienia',
@@ -325,6 +331,26 @@ export const plCatalog: TranslationCatalog = {
             enabledAria: 'Włącz wykrywanie aktywności głosowej',
             pauseDelayTitle: 'Pauza po ciszy',
             pauseDelaySubtitle: 'Jak długo Glance czeka przed zatrzymaniem po tym, jak przestaniesz mówić.',
+        },
+        voiceSync: {
+            title: 'Przewijanie synchronizowane głosem',
+            enabledTitle: 'Przewijanie synchronizowane głosem',
+            enabledSubtitle: 'Automatycznie przewija prompter słowo po słowie, gdy mówisz.',
+            enabledAria: 'Włącz przewijanie synchronizowane głosem',
+            apiKeyTitle: 'Klucz API Speechmatics',
+            apiKeySubtitle: 'Wymagany do synchronizacji głosem w czasie rzeczywistym. Zapisywany lokalnie.',
+            apiKeyPlaceholder: 'Wklej swój klucz API Speechmatics…',
+            apiKeyMissing: 'Brak klucza',
+            apiKeyConfigured: 'Skonfigurowany',
+            apiKeyInvalid: 'Nieprawidłowy klucz',
+            validatingKey: 'Weryfikacja…',
+            saveKey: 'Zapisz klucz',
+            clearKey: 'Wyczyść',
+            keySavedToast: 'Zapisano klucz API Speechmatics',
+            keyVerifiedToast: 'Klucz API Speechmatics zweryfikowany i zapisany',
+            keyClearedToast: 'Wyczyszczono klucz API Speechmatics',
+            keyHint: 'Zdobądź darmowy klucz ze 100 $ kredytu na portal.speechmatics.com',
+            getKeyLink: 'Odbierz darmowy klucz ↗'
         },
         appearance: {
             title: 'Wygląd',

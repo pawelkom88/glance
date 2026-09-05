@@ -254,7 +254,13 @@ export const deCatalog: TranslationCatalog = {
         autoPauseStatusLabel: 'Stimme',
         autoPauseStatusListening: 'Die sprachgesteuerte Auto-Pause hört zu',
         autoPauseStatusSilent: 'Die sprachgesteuerte Auto-Pause wartet, bis du wieder sprichst',
-        autoPauseStatusStarting: 'Die sprachgesteuerte Auto-Pause wird gestartet'
+        autoPauseStatusStarting: 'Die sprachgesteuerte Auto-Pause wird gestartet',
+        voiceSyncStatusLabel: 'Sprach-Sync',
+        voiceSyncStatusListening: 'Sprach-Sync hört zu',
+        voiceSyncStatusSyncing: 'Sprach-Sync folgt der Sprache',
+        voiceSyncStatusConnecting: 'Sprach-Sync verbindet',
+        voiceSyncStatusMissingKey: 'Sprach-Sync erfordert API-Schlüssel',
+        voiceSyncStatusError: 'Sprach-Sync Fehler aufgetreten'
     },
     settingsView: {
         title: 'Einstellungen',
@@ -270,6 +276,26 @@ export const deCatalog: TranslationCatalog = {
             enabledAria: 'Sprachaktivitätserkennung aktivieren',
             pauseDelayTitle: 'Pause nach Stille',
             pauseDelaySubtitle: 'Wie lange Glance wartet, bevor nach dem Sprechen pausiert wird.',
+        },
+        voiceSync: {
+            title: 'Sprachgesteuertes Scrollen',
+            enabledTitle: 'Sprachgesteuertes Scrollen',
+            enabledSubtitle: 'Scrollt den Prompter automatisch Wort für Wort mit Ihrer Stimme.',
+            enabledAria: 'Sprachgesteuertes Scrollen aktivieren',
+            apiKeyTitle: 'Speechmatics API-Schlüssel',
+            apiKeySubtitle: 'Erforderlich für Echtzeit-Sprach-Sync. Lokal auf diesem Gerät gespeichert.',
+            apiKeyPlaceholder: 'Speechmatics API-Schlüssel einfügen…',
+            apiKeyMissing: 'Schlüssel fehlt',
+            apiKeyConfigured: 'Konfiguriert',
+            apiKeyInvalid: 'Ungültiger Schlüssel',
+            validatingKey: 'Wird überprüft…',
+            saveKey: 'Schlüssel speichern',
+            clearKey: 'Löschen',
+            keySavedToast: 'Speechmatics API-Schlüssel gespeichert',
+            keyVerifiedToast: 'Speechmatics API-Schlüssel überprüft und gespeichert',
+            keyClearedToast: 'Speechmatics API-Schlüssel gelöscht',
+            keyHint: 'Kostenlosen Schlüssel mit 100 $ Startguthaben auf portal.speechmatics.com holen',
+            getKeyLink: 'Kostenlosen Schlüssel holen ↗'
         },
         appearance: {
             title: 'Erscheinungsbild',

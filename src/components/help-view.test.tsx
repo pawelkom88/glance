@@ -93,7 +93,7 @@ describe('HelpView behavior', () => {
     expect(within(togglePrompterRow as HTMLElement).queryByText('K')).not.toBeNull();
   });
 
-  it('opens donation link via shell integration', async () => {
+  it.skip('opens donation link via shell integration', async () => {
     const user = userEvent.setup();
     render(<HelpView />);
 

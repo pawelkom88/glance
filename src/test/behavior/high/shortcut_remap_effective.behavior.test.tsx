@@ -82,7 +82,7 @@ describe('High behavior: shortcut remap propagation', () => {
     render(<SettingsView />);
 
     await user.click(screen.getByRole('tab', { name: 'Shortcuts' }));
-    const playPauseInput = await screen.findByLabelText('settingsView.shortcuts.playPause shortcut');
+    const playPauseInput = await screen.findByLabelText('Play / Pause shortcut');
 
     await user.click(playPauseInput);
     await user.keyboard('{Shift>}p{/Shift}');
@@ -110,9 +110,9 @@ describe('High behavior: shortcut remap propagation', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Shortcuts' }));
 
-    const rewindInput = await screen.findByLabelText('settingsView.shortcuts.rewind shortcut');
+    const restartInput = await screen.findByLabelText('Rewind shortcut');
 
-    await user.click(rewindInput);
+    await user.click(restartInput);
     await user.keyboard('{Space}');
 
     await user.click(screen.getByRole('button', { name: 'Apply shortcuts' }));
@@ -128,7 +128,7 @@ describe('High behavior: shortcut remap propagation', () => {
     const { unmount } = render(<SettingsView />);
 
     await user.click(screen.getByRole('tab', { name: 'Shortcuts' }));
-    const playPauseInput = await screen.findByLabelText('settingsView.shortcuts.playPause shortcut');
+    const playPauseInput = await screen.findByLabelText('Play / Pause shortcut');
 
     await user.click(playPauseInput);
     await user.keyboard('{Shift>}p{/Shift}');

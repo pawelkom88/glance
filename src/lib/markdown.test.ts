@@ -79,4 +79,37 @@ describe('display line generation', () => {
 
     expect(lines.map((line) => line.text)).toEqual(['alpha', 'beta', 'gamma', 'delta']);
   });
+
+  it('correctly identifies heading levels, numbered lists, and blockquotes', () => {
+    const markdown = `# Main Title
+## Section 2
+1. First step
+2. Second step
+- Bullet point
+> Blockquote text`;
+
+    const lines = markdownToDisplayLines(markdown);
+
+    expect(lines[0]?.kind).toBe('heading');
+    expect(lines[0]?.level).toBe(1);
+    expect(lines[0]?.text).toBe('Main Title');
+
+    expect(lines[1]?.kind).toBe('heading');
+    expect(lines[1]?.level).toBe(2);
+    expect(lines[1]?.text).toBe('Section 2');
+
+    expect(lines[2]?.kind).toBe('numbered');
+    expect(lines[2]?.listNumber).toBe(1);
+    expect(lines[2]?.text).toBe('First step');
+
+    expect(lines[3]?.kind).toBe('numbered');
+    expect(lines[3]?.listNumber).toBe(2);
+    expect(lines[3]?.text).toBe('Second step');
+
+    expect(lines[4]?.kind).toBe('bullet');
+    expect(lines[4]?.text).toBe('Bullet point');
+
+    expect(lines[5]?.kind).toBe('blockquote');
+    expect(lines[5]?.text).toBe('Blockquote text');
+  });
 });

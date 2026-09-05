@@ -263,6 +263,12 @@ export interface TranslationCatalog {
     readonly autoPauseStatusListening: string;
     readonly autoPauseStatusSilent: string;
     readonly autoPauseStatusStarting: string;
+    readonly voiceSyncStatusLabel: string;
+    readonly voiceSyncStatusListening: string;
+    readonly voiceSyncStatusSyncing: string;
+    readonly voiceSyncStatusConnecting: string;
+    readonly voiceSyncStatusMissingKey: string;
+    readonly voiceSyncStatusError: string;
   };
   readonly settingsView: {
     readonly title: string;
@@ -278,6 +284,26 @@ export interface TranslationCatalog {
       readonly enabledAria: string;
       readonly pauseDelayTitle: string;
       readonly pauseDelaySubtitle: string;
+    };
+    readonly voiceSync: {
+      readonly title: string;
+      readonly enabledTitle: string;
+      readonly enabledSubtitle: string;
+      readonly enabledAria: string;
+      readonly apiKeyTitle: string;
+      readonly apiKeySubtitle: string;
+      readonly apiKeyPlaceholder: string;
+      readonly apiKeyMissing: string;
+      readonly apiKeyConfigured: string;
+      readonly apiKeyInvalid: string;
+      readonly validatingKey: string;
+      readonly saveKey: string;
+      readonly clearKey: string;
+      readonly keySavedToast: string;
+      readonly keyVerifiedToast: string;
+      readonly keyClearedToast: string;
+      readonly keyHint: string;
+      readonly getKeyLink: string;
     };
     readonly appearance: {
       readonly title: string;

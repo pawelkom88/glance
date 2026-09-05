@@ -64,7 +64,9 @@ export interface ParsedMarkdown {
 
 export interface DisplayLine {
   readonly id: string;
-  readonly kind: 'heading' | 'bullet' | 'text' | 'empty';
+  readonly kind: 'heading' | 'bullet' | 'numbered' | 'blockquote' | 'text' | 'empty';
+  readonly level?: number;
+  readonly listNumber?: number;
   readonly text: string;
   readonly sectionIndex: number | null;
   readonly segments?: readonly DisplaySegment[];

@@ -93,6 +93,8 @@ function resetStore() {
     toastMessage: null,
     vadEnabled: false,
     voicePauseDelayMs: 1500,
+    voiceSyncEnabled: false,
+    speechmaticsApiKey: '',
     initialized: false,
     hasCompletedOnboarding: true
   });
@@ -615,4 +617,22 @@ describe('useAppStore session lifecycle behavior', () => {
       variant: 'warning'
     });
   });
+
+  it('updates voiceSyncEnabled and speechmaticsApiKey and persists them', () => {
+    expect(useAppStore.getState().voiceSyncEnabled).toBe(false);
+    expect(useAppStore.getState().speechmaticsApiKey).toBe('');
+
+    useAppStore.getState().setVoiceSyncEnabled(true);
+    expect(useAppStore.getState().voiceSyncEnabled).toBe(true);
+    expect(window.localStorage.getItem('glance-voice-sync-enabled-v1')).toBe('true');
+
+    useAppStore.getState().setSpeechmaticsApiKey('  test-speechmatics-key  ');
+    expect(useAppStore.getState().speechmaticsApiKey).toBe('test-speechmatics-key');
+    expect(window.localStorage.getItem('glance-speechmatics-api-key-v1')).toBe('test-speechmatics-key');
+
+    useAppStore.getState().setSpeechmaticsApiKey('');
+    expect(useAppStore.getState().speechmaticsApiKey).toBe('');
+    expect(window.localStorage.getItem('glance-speechmatics-api-key-v1')).toBeNull();
+  });
 });
+

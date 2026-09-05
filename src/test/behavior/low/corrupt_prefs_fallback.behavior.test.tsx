@@ -81,6 +81,6 @@ describe('Low behavior: corrupted preference fallback', () => {
 
     expect(await screen.findByRole('button', { name: 'Play' })).toBeTruthy();
     expect(screen.getByText('00:00')).toBeTruthy();
-    expect(screen.getAllByText(/1\.0+x/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1\.0+(x|×)/i).length).toBeGreaterThan(0);
   });
 });

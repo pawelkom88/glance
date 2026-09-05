@@ -36,6 +36,7 @@ import {
 } from '../constants';
 import { ShortcutKeycaps } from './shortcut-keycaps';
 import { useVoiceActivity } from '../hooks/useVoiceActivity';
+import { useVoiceSync } from '../hooks/useVoiceSync';
 
 const baseLineHeight = 80;
 const overlayLineGapPx = 0;
@@ -173,30 +174,6 @@ function logSnapDebug(message: string, payload?: Record<string, unknown>): void 
     timestamp: new Date().toISOString()
   };
   sink.__GLANCE_SNAP_DEBUG__ = [...(sink.__GLANCE_SNAP_DEBUG__ ?? []).slice(-79), entry];
-
-  const serialized = payload ? JSON.stringify(entry, (_, value) => {
-    if (value && typeof value === 'object') {
-      if ('x' in (value as Record<string, unknown>) && 'y' in (value as Record<string, unknown>)) {
-        const point = value as { x?: unknown; y?: unknown };
-        return { x: point.x, y: point.y };
-      }
-      if (
-        'width' in (value as Record<string, unknown>)
-        && 'height' in (value as Record<string, unknown>)
-      ) {
-        const size = value as { width?: unknown; height?: unknown };
-        return { width: size.width, height: size.height };
-      }
-    }
-    return value;
-  }) : '';
-
-  if (payload) {
-    console.info(`[overlay-anchor-debug] ${message}`, payload);
-    console.info(`[overlay-anchor-debug-json] ${serialized}`);
-    return;
-  }
-  console.info(`[overlay-anchor-debug] ${message}`);
 }
 
 function readTimerPrefs(): TimerPrefs {
@@ -460,6 +437,7 @@ export function OverlayPrompter() {
   const speedStep = useAppStore((state) => state.speedStep);
   const persistActiveSession = useAppStore((state) => state.persistActiveSession);
   const showToast = useAppStore((state) => state.showToast);
+  const voiceSyncEnabled = useAppStore((state) => state.voiceSyncEnabled);
 
   // Voice Activity Detection
   const vadPausedByVadRef = useRef(false);
@@ -536,7 +514,7 @@ export function OverlayPrompter() {
 
   const engineRef = useRef<ScrollEngine | null>(null);
   const speedRef = useRef(scrollSpeed);
-  const lineRefs = useRef<Array<HTMLParagraphElement | null>>([]);
+  const lineRefs = useRef<Array<HTMLElement | null>>([]);
   const monitorNameRef = useRef<string | null>(getLastOverlayMonitorName());
   const contentRef = useRef<HTMLElement | null>(null);
   const overlayRootRef = useRef<HTMLElement | null>(null);
@@ -551,7 +529,6 @@ export function OverlayPrompter() {
   const fontPersistTimeoutRef = useRef<number | null>(null);
   const speedIconAnimationTimeoutRef = useRef<number | null>(null);
   const speedBubbleTimeoutRef = useRef<number | null>(null);
-  const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resizeTimeoutRef = useRef<number | null>(null);
   const jumpScrollRafRef = useRef<number | null>(null);
   const moveTimeoutRef = useRef<number | null>(null);
@@ -609,42 +586,22 @@ export function OverlayPrompter() {
 
   const scaledLineHeight = Math.max(60, Math.round(baseLineHeight * overlayFontScale));
   const lineStride = scaledLineHeight + overlayLineGapPx;
-  const focusLaneRatio = 0.14;
+  const focusLaneRatio = voiceSyncEnabled ? 0.48 : 0.14;
   const lanePadding = useMemo(
     () => {
       const preferredOffset = contentMetrics.height * focusLaneRatio;
+      if (voiceSyncEnabled) {
+        return Math.max(70, Math.round(preferredOffset - (scaledLineHeight * 0.5)));
+      }
       const clampedOffset = Math.max(52, Math.min(contentMetrics.height * 0.24, preferredOffset));
       return Math.max(0, clampedOffset - (scaledLineHeight * 0.5));
     },
-    [contentMetrics.height, focusLaneRatio, scaledLineHeight]
+    [contentMetrics.height, focusLaneRatio, scaledLineHeight, voiceSyncEnabled]
   );
 
-  const measureText = useCallback((text: string): number => {
-    if (typeof window === 'undefined') {
-      return text.length * 16;
-    }
-
-    if (!measureCanvasRef.current) {
-      measureCanvasRef.current = document.createElement('canvas');
-    }
-
-    const context = measureCanvasRef.current.getContext('2d');
-    if (!context) {
-      return text.length * 16;
-    }
-
-    const fontSize = Math.round(28 * overlayFontScale);
-    context.font = `400 ${fontSize}px "Lora", serif`;
-    return context.measureText(text).width;
-  }, [overlayFontScale]);
-
   const lines = useMemo(() => {
-    const maxLineWidthPx = Math.max(280, contentMetrics.width - 120);
-    return markdownToDisplayLines(markdown, {
-      maxLineWidthPx,
-      measureText
-    });
-  }, [contentMetrics.width, markdown, measureText]);
+    return markdownToDisplayLines(markdown);
+  }, [markdown]);
 
   const firstRenderableLine = useMemo(
     () => lines.find((line) => line.kind !== 'empty') ?? null,
@@ -731,6 +688,40 @@ export function OverlayPrompter() {
 
   const currentSection = sections[currentSectionIndex] ?? null;
   const nextSection = sections[currentSectionIndex + 1] ?? null;
+
+  const voiceSync = useVoiceSync({
+    lines,
+    linePositions,
+    lineRefs,
+    lanePadding,
+    firstLineLaneNudge,
+    playbackState,
+    onTargetScrollChange: useCallback((targetScrollY: number) => {
+      setScrollPosition(targetScrollY);
+    }, [setScrollPosition])
+  });
+
+  const voiceSyncStatusAriaLabel = useMemo(() => {
+    if (!voiceSync.voiceSyncEnabled) {
+      return '';
+    }
+    if (voiceSync.voiceSyncState === 'missing-key') {
+      return t('overlay.voiceSyncStatusMissingKey');
+    }
+    if (voiceSync.voiceSyncState === 'authorizing' || voiceSync.voiceSyncState === 'connecting') {
+      return t('overlay.voiceSyncStatusConnecting');
+    }
+    if (voiceSync.voiceSyncState === 'syncing') {
+      return t('overlay.voiceSyncStatusSyncing');
+    }
+    if (voiceSync.voiceSyncState === 'listening') {
+      return t('overlay.voiceSyncStatusListening');
+    }
+    if (voiceSync.voiceSyncState === 'error') {
+      return voiceSync.errorMessage || t('overlay.voiceSyncStatusError');
+    }
+    return '';
+  }, [t, voiceSync.errorMessage, voiceSync.voiceSyncEnabled, voiceSync.voiceSyncState]);
 
   const normalizedSpeed = scrollSpeed;
   const currentFontSize = Math.round(28 * overlayFontScale);
@@ -967,8 +958,8 @@ export function OverlayPrompter() {
           await appWindow.setSize(new LogicalSize(logicalWidth, 400));
         }
       }
-    } catch (error) {
-      console.warn('Failed to update window constraints:', error);
+    } catch {
+      // Ignored in production
     }
   }, [isCompactTopBar, isControlsCollapsed]);
 
@@ -1006,8 +997,8 @@ export function OverlayPrompter() {
           await appWindow.setSize(new LogicalSize(logicalWidth, expandedHeight));
         }
         await appWindow.setMinSize(new LogicalSize(500, expandedHeight));
-      } catch (error) {
-        console.warn('Failed compact controls mount sizing:', error);
+      } catch {
+        // Ignored in production
       }
     })();
   }, [getCompactControlsHeight, isCompactTopBar, isControlsCollapsed]);
@@ -1087,8 +1078,8 @@ export function OverlayPrompter() {
           await appWindow.setSize(new LogicalSize(logicalWidth, compactCollapsedHeightRef.current));
           compactExpandedHeightRef.current = null;
         }
-      } catch (error) {
-        console.warn('Failed compact controls resize:', error);
+      } catch {
+        // Ignored in production
       }
     } else if (!nextCollapsed && isTauriRuntime()) {
       const appWindow = getCurrentWindow();
@@ -1105,8 +1096,8 @@ export function OverlayPrompter() {
           // Proactively grow window before expanding controls
           await appWindow.setSize(new LogicalSize(logicalWidth, 400));
         }
-      } catch (error) {
-        console.warn('Failed proactive expansion:', error);
+      } catch {
+        // Ignored in production
       }
     } else if (!isCompactTopBar) {
       compactExpandedHeightRef.current = null;
@@ -1334,10 +1325,51 @@ export function OverlayPrompter() {
     );
   };
 
+  const renderVoiceSyncStatus = (className = '') => {
+    if (!voiceSync.voiceSyncEnabled) {
+      return null;
+    }
+
+    const isError = voiceSync.voiceSyncState === 'error' || voiceSync.voiceSyncState === 'missing-key';
+    const stateClass =
+      voiceSync.voiceSyncState === 'syncing'
+        ? 'listening-speaking'
+        : voiceSync.voiceSyncState === 'listening'
+          ? 'listening-silent'
+          : voiceSync.voiceSyncState === 'connecting' || voiceSync.voiceSyncState === 'authorizing'
+            ? 'starting'
+            : isError
+              ? 'error'
+              : 'off';
+
+    const tooltipText = isError && voiceSync.errorMessage
+      ? `Voice Sync Error: ${voiceSync.errorMessage}`
+      : voiceSyncStatusAriaLabel;
+
+    return (
+      <div
+        className={`overlay-voice-status overlay-voice-status--${stateClass} ${className} ${isError ? 'has-error' : ''}`.trim()}
+        role="status"
+        aria-live="polite"
+        aria-label={tooltipText}
+        title={tooltipText}
+        onClick={() => {
+          if (isError && voiceSync.errorMessage) {
+            showToast(voiceSync.errorMessage, 'error');
+          }
+        }}
+      >
+        <span className="overlay-voice-status-dot" aria-hidden="true" />
+        <span className="overlay-voice-status-label">{t('overlay.voiceSyncStatusLabel')}</span>
+      </div>
+    );
+  };
+
   const renderFooterStatus = (className = '') => (
     <div className={`overlay-footer-status-center ${className}`.trim()}>
       {renderTimerControls()}
       {renderVoiceStatus()}
+      {renderVoiceSyncStatus()}
     </div>
   );
 
@@ -1359,6 +1391,7 @@ export function OverlayPrompter() {
           onClick={(e) => {
             setPlaybackState('paused');
             setScrollPosition(0);
+            voiceSync.repositionToLine(0);
             resetPresentationTimer();
             e.currentTarget.blur();
             overlayRootRef.current?.focus({ preventScroll: true });
@@ -1486,66 +1519,96 @@ export function OverlayPrompter() {
     </div>
   );
 
-  const renderSpeedControls = (className: string, showFooterStatus = false) => (
-    <footer className={className}>
-      <div className="overlay-speed-inline">
-        <span
-          className={`overlay-speed-icon overlay-speed-icon-slow ${animatedSpeedIcon === 'slow' ? 'is-animating' : ''}`}
-          aria-hidden="true"
-        >
-          <SlowSpeedIcon />
-        </span>
-        <div className="overlay-speed-track-wrap">
-          <div
-            className={`overlay-speed-bubble ${isSpeedBubbleVisible ? 'is-visible' : ''}`}
-            aria-hidden="true"
-            style={{ left: `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%` }}
-          >
-            {normalizedSpeed.toFixed(2)}x
+  const renderSpeedControls = (className: string, showFooterStatus = false) => {
+    if (voiceSync.voiceSyncEnabled && voiceSync.hasApiKey) {
+      const voiceLabel =
+        voiceSync.voiceSyncState === 'syncing'
+          ? (voiceSync.activeSpokenWord ? `“${voiceSync.activeSpokenWord}”` : t('overlay.voiceSyncStatusSyncing'))
+          : voiceSync.voiceSyncState === 'listening'
+            ? t('overlay.voiceSyncStatusListening')
+            : voiceSync.voiceSyncState === 'connecting' || voiceSync.voiceSyncState === 'authorizing'
+              ? t('overlay.voiceSyncStatusConnecting')
+              : voiceSync.voiceSyncState === 'error'
+                ? (voiceSync.errorMessage || t('overlay.voiceSyncStatusError'))
+                : t('overlay.voiceSyncStatusLabel');
+
+      return (
+        <footer className={`${className} overlay-footer--voice-sync`}>
+          <div className="overlay-voice-sync-footer-bar">
+            <div
+              className={`overlay-voice-sync-pulse-indicator is-state-${voiceSync.voiceSyncState}`}
+              title={voiceSync.errorMessage ?? undefined}
+            >
+              <span className="overlay-voice-pulse-dot" />
+              <span className="overlay-voice-sync-label">{voiceLabel}</span>
+            </div>
           </div>
-          <input
-            className="overlay-speed-slider"
-            type="range"
-            min={MIN_SPEED_MULTIPLIER}
-            max={MAX_SPEED_MULTIPLIER}
-            step={speedStep}
-            value={scrollSpeed}
-            onChange={(event) => {
-              const nextValue = Number(event.target.value);
-              setScrollSpeed(nextValue);
-              revealSpeedBubble();
-              if (nextValue < scrollSpeed) {
-                triggerSpeedIconAnimation('slow');
-                return;
-              }
-              if (nextValue > scrollSpeed) {
-                triggerSpeedIconAnimation('fast');
-                return;
-              }
-              triggerSpeedIconAnimation(nextValue <= 1.0 ? 'slow' : 'fast');
-            }}
-            aria-label={t('overlay.scrollSpeedAria')}
-            onPointerDown={() => revealSpeedBubble()}
-            onFocus={() => revealSpeedBubble()}
-            onPointerUp={(e) => {
-              e.currentTarget.blur();
-              overlayRootRef.current?.focus({ preventScroll: true });
-            }}
-            style={{
-              '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
-            } as CSSProperties}
-          />
+          {showFooterStatus ? renderFooterStatus('overlay-footer-status-center-desktop') : null}
+        </footer>
+      );
+    }
+
+    return (
+      <footer className={className}>
+        <div className="overlay-speed-inline">
+          <span
+            className={`overlay-speed-icon overlay-speed-icon-slow ${animatedSpeedIcon === 'slow' ? 'is-animating' : ''}`}
+            aria-hidden="true"
+          >
+            <SlowSpeedIcon />
+          </span>
+          <div className="overlay-speed-track-wrap">
+            <div
+              className={`overlay-speed-bubble ${isSpeedBubbleVisible ? 'is-visible' : ''}`}
+              aria-hidden="true"
+              style={{ left: `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%` }}
+            >
+              {normalizedSpeed.toFixed(2)}x
+            </div>
+            <input
+              className="overlay-speed-slider"
+              type="range"
+              min={MIN_SPEED_MULTIPLIER}
+              max={MAX_SPEED_MULTIPLIER}
+              step={speedStep}
+              value={scrollSpeed}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                setScrollSpeed(nextValue);
+                revealSpeedBubble();
+                if (nextValue < scrollSpeed) {
+                  triggerSpeedIconAnimation('slow');
+                  return;
+                }
+                if (nextValue > scrollSpeed) {
+                  triggerSpeedIconAnimation('fast');
+                  return;
+                }
+                triggerSpeedIconAnimation(nextValue <= 1.0 ? 'slow' : 'fast');
+              }}
+              aria-label={t('overlay.scrollSpeedAria')}
+              onPointerDown={() => revealSpeedBubble()}
+              onFocus={() => revealSpeedBubble()}
+              onPointerUp={(e) => {
+                e.currentTarget.blur();
+                overlayRootRef.current?.focus({ preventScroll: true });
+              }}
+              style={{
+                '--overlay-speed-progress': `${Math.max(0, Math.min(100, speedProgress)).toFixed(2)}%`
+              } as CSSProperties}
+            />
+          </div>
+          <span
+            className={`overlay-speed-icon overlay-speed-icon-fast ${animatedSpeedIcon === 'fast' ? 'is-animating' : ''}`}
+            aria-hidden="true"
+          >
+            <FastSpeedIcon />
+          </span>
         </div>
-        <span
-          className={`overlay-speed-icon overlay-speed-icon-fast ${animatedSpeedIcon === 'fast' ? 'is-animating' : ''}`}
-          aria-hidden="true"
-        >
-          <FastSpeedIcon />
-        </span>
-      </div>
-      {showFooterStatus ? renderFooterStatus('overlay-footer-status-center-desktop') : null}
-    </footer>
-  );
+        {showFooterStatus ? renderFooterStatus('overlay-footer-status-center-desktop') : null}
+      </footer>
+    );
+  };
 
   const overlayVars = useMemo(() => ({
     '--overlay-font-scale': overlayFontScale.toString(),
@@ -1596,6 +1659,8 @@ export function OverlayPrompter() {
     if (typeof targetLineIndex !== 'number' || !Number.isFinite(targetLineIndex)) {
       return;
     }
+
+    voiceSync.repositionToLine(targetLineIndex);
 
     // Prefer DOM measurement over computed linePositions because the real CSS
     // typography (Lora 28px × 1.70 line-height, 32px paragraph margins, 64px
@@ -1805,12 +1870,16 @@ export function OverlayPrompter() {
     }
 
     if (playbackState === 'running') {
-      engineRef.current.play();
+      if (voiceSync.voiceSyncEnabled && voiceSync.hasApiKey) {
+        engineRef.current.pause();
+      } else {
+        engineRef.current.play();
+      }
       return;
     }
 
     engineRef.current.pause();
-  }, [playbackState]);
+  }, [playbackState, voiceSync.hasApiKey, voiceSync.voiceSyncEnabled]);
 
   const requestCloseOverlay = useCallback(() => {
     if (isClosing) {
@@ -2847,50 +2916,45 @@ export function OverlayPrompter() {
           ) : null}
         </aside>
 
-        <section
-          className={`overlay-content ${showReadingRuler ? '' : 'overlay-content-no-ruler'}`.trim()}
-          aria-live="polite"
-          ref={contentRef}
-          data-overlay-no-drag="true"
-          style={{
-            '--spotlight-top': `${rulerStyle.top}px`,
-            '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
-          } as CSSProperties}
-        >
-          {showReadingRuler ? (
-            <div
-              className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
-              aria-hidden="true"
-              style={{ top: `${rulerStyle.top}px` }}
-            />
-          ) : null}
+        {(() => {
+          const isRulerActive = showReadingRuler && !voiceSync.voiceSyncEnabled;
+          return (
+            <section
+              className={`overlay-content ${isRulerActive ? '' : 'overlay-content-no-ruler'}`.trim()}
+              aria-live="polite"
+              ref={contentRef}
+              data-overlay-no-drag="true"
+              style={{
+                '--spotlight-top': `${rulerStyle.top}px`,
+                '--spotlight-height': `${Math.round(50 * overlayFontScale)}px`
+              } as CSSProperties}
+            >
+              {isRulerActive ? (
+                <div
+                  className={`reading-ruler ${rulerStyle.visible ? 'visible' : ''}`}
+                  aria-hidden="true"
+                  style={{ top: `${rulerStyle.top}px` }}
+                />
+              ) : null}
+
+              {voiceSync.voiceSyncEnabled ? (
+                <div
+                  className="voice-eyeline-guide"
+                  aria-hidden="true"
+                  style={{ top: `${lanePadding + Math.round(scaledLineHeight * 0.42)}px` }}
+                />
+              ) : null}
 
           <div
-            className="overlay-lines"
+            className={`overlay-lines ${voiceSync.voiceSyncEnabled ? 'is-voice-synced' : ''}`}
             style={{
               transform: `translateY(${-scrollPosition}px)`,
               paddingTop: `${lanePadding}px`,
-              paddingBottom: `${lanePadding}px`
+              paddingBottom: `${voiceSync.voiceSyncEnabled ? Math.round(contentMetrics.height * 0.70) : lanePadding}px`
             }}
           >
             {lines.map((line, index) => {
-              if (line.kind === 'empty') {
-                return null;
-              }
-
-              if (line.kind === 'heading') {
-                return (
-                  <div
-                    key={line.id}
-                    ref={(node) => {
-                      lineRefs.current[index] = node;
-                    }}
-                    className="script-section-title"
-                  >
-                    {line.text}
-                  </div>
-                );
-              }
+              const isVoiceActive = voiceSync.voiceSyncEnabled && voiceSync.activeMatchedLineIndex === index;
 
               const renderInlineContent = () => {
                 if (line.segments?.length) {
@@ -2914,21 +2978,131 @@ export function OverlayPrompter() {
                 return line.text || '\u00A0';
               };
 
+              const renderVoiceWords = () => {
+                const lineWords = voiceSync.wordsByLine.get(index) ?? [];
+                if (lineWords.length === 0) {
+                  return renderInlineContent();
+                }
+
+                const activeWordIdx = voiceSync.activeMatchedWordIndex;
+
+                return lineWords.map((w, wIdx) => {
+                  const isSpoken = activeWordIdx !== null && w.globalIndex < activeWordIdx;
+                  const isActive = activeWordIdx !== null && w.globalIndex === activeWordIdx;
+                  const wordStateClass = isActive ? 'is-voice-current' : isSpoken ? 'is-voice-spoken' : 'is-voice-upcoming';
+
+                  const wordNode =
+                    w.kind === 'strong' ? (
+                      <strong className={`voice-word ${wordStateClass}`}>{w.text}</strong>
+                    ) : w.kind === 'emphasis' ? (
+                      <em className={`voice-word ${wordStateClass}`}>{w.text}</em>
+                    ) : (
+                      <span className={`voice-word ${wordStateClass}`}>{w.text}</span>
+                    );
+
+                  return (
+                    <span key={w.globalIndex}>
+                      {wordNode}
+                      {wIdx < lineWords.length - 1 ? ' ' : ''}
+                    </span>
+                  );
+                });
+              };
+
+              if (line.kind === 'empty') {
+                return (
+                  <div
+                    key={line.id}
+                    ref={(node) => {
+                      lineRefs.current[index] = node;
+                    }}
+                    className="overlay-line-empty"
+                  />
+                );
+              }
+
+              if (line.kind === 'heading') {
+                const headingLevelClass =
+                  line.level === 1
+                    ? 'script-heading-1'
+                    : line.level === 2
+                      ? 'script-heading-2'
+                      : 'script-heading-3';
+                return (
+                  <h2
+                    key={line.id}
+                    ref={(node) => {
+                      lineRefs.current[index] = node;
+                    }}
+                    className={`script-heading ${headingLevelClass} ${isVoiceActive ? 'is-voice-active' : ''}`}
+                  >
+                    {voiceSync.voiceSyncEnabled ? renderVoiceWords() : renderInlineContent()}
+                  </h2>
+                );
+              }
+
+              if (line.kind === 'numbered') {
+                return (
+                  <p
+                    key={line.id}
+                    ref={(node) => {
+                      lineRefs.current[index] = node;
+                    }}
+                    className={`script-p script-numbered ${isVoiceActive ? 'is-voice-active' : ''}`}
+                  >
+                    {line.listNumber !== undefined ? (
+                      <span className="script-numbered-marker">{line.listNumber}. </span>
+                    ) : null}
+                    {voiceSync.voiceSyncEnabled ? renderVoiceWords() : renderInlineContent()}
+                  </p>
+                );
+              }
+
+              if (line.kind === 'bullet') {
+                return (
+                  <p
+                    key={line.id}
+                    ref={(node) => {
+                      lineRefs.current[index] = node;
+                    }}
+                    className={`script-p script-bullet ${isVoiceActive ? 'is-voice-active' : ''}`}
+                  >
+                    <span className="script-bullet-marker">• </span>
+                    {voiceSync.voiceSyncEnabled ? renderVoiceWords() : renderInlineContent()}
+                  </p>
+                );
+              }
+
+              if (line.kind === 'blockquote') {
+                return (
+                  <blockquote
+                    key={line.id}
+                    ref={(node) => {
+                      lineRefs.current[index] = node;
+                    }}
+                    className={`script-blockquote ${isVoiceActive ? 'is-voice-active' : ''}`}
+                  >
+                    {voiceSync.voiceSyncEnabled ? renderVoiceWords() : renderInlineContent()}
+                  </blockquote>
+                );
+              }
+
               return (
                 <p
                   key={line.id}
                   ref={(node) => {
                     lineRefs.current[index] = node;
                   }}
-                  className="script-p"
+                  className={`script-p ${isVoiceActive ? 'is-voice-active' : ''}`}
                 >
-                  {line.kind === 'bullet' ? <span className="overlay-bullet-marker">•</span> : null}
-                  {renderInlineContent()}
+                  {voiceSync.voiceSyncEnabled ? renderVoiceWords() : renderInlineContent()}
                 </p>
               );
             })}
           </div>
         </section>
+      );
+    })()}
 
         <aside className="overlay-right-sidebar" onMouseDown={handleDragMouseDown}>
           {isCompactTopBar ? (
@@ -2955,6 +3129,7 @@ export function OverlayPrompter() {
                     <div className="overlay-compact-status-row">
                       {renderTimerControls('overlay-timer-row--compact')}
                       {renderVoiceStatus('overlay-voice-status--compact')}
+                      {renderVoiceSyncStatus('overlay-voice-status--compact')}
                     </div>
                     {renderPlaybackControls('overlay-compact-transport', false, true)}
                     <div className="overlay-compact-settings-divider" aria-hidden="true" />

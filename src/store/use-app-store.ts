@@ -71,6 +71,8 @@ interface AppStoreState {
   readonly toastMessage: ToastMessage | null;
   readonly vadEnabled: boolean;
   readonly voicePauseDelayMs: number;
+  readonly voiceSyncEnabled: boolean;
+  readonly speechmaticsApiKey: string;
   readonly initialized: boolean;
   readonly hasCompletedOnboarding: boolean;
   readonly completeOnboarding: () => Promise<void>;
@@ -109,6 +111,8 @@ interface AppStoreState {
   readonly clearToast: () => void;
   readonly setVadEnabled: (value: boolean) => void;
   readonly setVoicePauseDelayMs: (value: number) => void;
+  readonly setVoiceSyncEnabled: (value: boolean) => void;
+  readonly setSpeechmaticsApiKey: (value: string) => void;
 }
 
 function readLocalOnboardingState(): boolean {
@@ -145,6 +149,34 @@ function readVoicePauseDelayMs(): number {
 function writeVoicePauseDelayMs(value: number): void {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(voicePauseDelayStorageKey, String(normalizeVoicePauseDelayMs(value)));
+}
+
+const voiceSyncEnabledStorageKey = 'glance-voice-sync-enabled-v1';
+const speechmaticsApiKeyStorageKey = 'glance-speechmatics-api-key-v1';
+
+function readVoiceSyncEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(voiceSyncEnabledStorageKey) === 'true';
+}
+
+function writeVoiceSyncEnabled(value: boolean): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(voiceSyncEnabledStorageKey, value ? 'true' : 'false');
+}
+
+function readSpeechmaticsApiKey(): string {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(speechmaticsApiKeyStorageKey) ?? '';
+}
+
+function writeSpeechmaticsApiKey(value: string): void {
+  if (typeof window === 'undefined') return;
+  const trimmed = value.trim();
+  if (trimmed) {
+    window.localStorage.setItem(speechmaticsApiKeyStorageKey, trimmed);
+  } else {
+    window.localStorage.removeItem(speechmaticsApiKeyStorageKey);
+  }
 }
 
 function readThemeMode(): ThemeMode {
@@ -414,6 +446,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     toastMessage: null,
     vadEnabled: readVadEnabled(),
     voicePauseDelayMs: readVoicePauseDelayMs(),
+    voiceSyncEnabled: readVoiceSyncEnabled(),
+    speechmaticsApiKey: readSpeechmaticsApiKey(),
     initialized: false,
     hasCompletedOnboarding: readLocalOnboardingState(),
 
@@ -843,6 +877,16 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const nextValue = normalizeVoicePauseDelayMs(value);
       writeVoicePauseDelayMs(nextValue);
       set({ voicePauseDelayMs: nextValue });
+    },
+
+    setVoiceSyncEnabled: (value: boolean) => {
+      writeVoiceSyncEnabled(value);
+      set({ voiceSyncEnabled: value });
+    },
+
+    setSpeechmaticsApiKey: (value: string) => {
+      writeSpeechmaticsApiKey(value);
+      set({ speechmaticsApiKey: value.trim() });
     },
 
     setIsControlsCollapsed: (value: boolean) => {

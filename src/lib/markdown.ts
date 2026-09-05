@@ -131,7 +131,7 @@ function wrapWordsByMeasurement(text: string, maxLineWidthPx: number, measureTex
 }
 
 function parseInlineSegments(text: string, lineId: string): readonly DisplaySegment[] {
-  const pattern = /(\*\*[^*]+\*\*|_[^_]+_|\[[^\]]+\])/g;
+  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_|\[[^\]]+\])/g;
   const segments: DisplaySegment[] = [];
   let cursor = 0;
   let match: RegExpExecArray | null = null;
@@ -153,6 +153,12 @@ function parseInlineSegments(text: string, lineId: string): readonly DisplaySegm
         id: `${lineId}-segment-${segmentIndex}`,
         kind: 'strong',
         text: token.slice(2, -2)
+      });
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      segments.push({
+        id: `${lineId}-segment-${segmentIndex}`,
+        kind: 'emphasis',
+        text: token.slice(1, -1)
       });
     } else if (token.startsWith('_') && token.endsWith('_')) {
       segments.push({
@@ -191,25 +197,34 @@ function parseInlineSegments(text: string, lineId: string): readonly DisplaySegm
 
 export function markdownToDisplayLines(markdown: string, options?: DisplayLineOptions): readonly DisplayLine[] {
   const output: DisplayLine[] = [];
-  const maxChars = options?.maxCharsPerLine ?? 56;
   const maxLineWidthPx = options?.maxLineWidthPx ?? null;
   const measureText = options?.measureText;
   let currentSectionIndex: number | null = null;
   let sectionCursor = 0;
+
   const wrap = (text: string): string[] => {
     if (maxLineWidthPx && measureText) {
       return wrapWordsByMeasurement(text, maxLineWidthPx, measureText);
     }
-    return wrapWordsByChars(text, maxChars);
+    if (typeof options?.maxCharsPerLine === 'number') {
+      return wrapWordsByChars(text, options.maxCharsPerLine);
+    }
+    return [text];
   };
 
-  markdown.split('\n').forEach((line, lineIndex) => {
-    if (/^#{1,6}\s/.test(line)) {
-      const headingText = line.replace(/^#{1,6}\s+/, '').trim();
+  markdown.split('\n').forEach((rawLine, lineIndex) => {
+    const line = rawLine.trimEnd();
+
+    // 1. Heading (#, ##, ###, etc.)
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1]!.length;
+      const headingText = headingMatch[2]!.trim();
       const headingId = `heading-${lineIndex}`;
       output.push({
         id: headingId,
         kind: 'heading',
+        level,
         text: headingText,
         sectionIndex: sectionCursor,
         segments: parseInlineSegments(headingText, headingId)
@@ -219,9 +234,31 @@ export function markdownToDisplayLines(markdown: string, options?: DisplayLineOp
       return;
     }
 
-    if (line.startsWith('- ')) {
-      const cleaned = line.replace(/^-+\s*/, '').trim();
-      const wrapped = wrap(cleaned);
+    // 2. Numbered list items (e.g. "1. Press Space...")
+    const numberedMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      const listNum = parseInt(numberedMatch[1]!, 10);
+      const itemText = numberedMatch[2]!.trim();
+      const wrapped = wrap(itemText);
+      wrapped.forEach((wrappedLine, wrappedIndex) => {
+        const lineId = `numbered-${lineIndex}-${wrappedIndex}`;
+        output.push({
+          id: lineId,
+          kind: wrappedIndex === 0 ? 'numbered' : 'text',
+          listNumber: wrappedIndex === 0 ? listNum : undefined,
+          text: wrappedLine,
+          sectionIndex: currentSectionIndex,
+          segments: parseInlineSegments(wrappedLine, lineId)
+        });
+      });
+      return;
+    }
+
+    // 3. Bullet list items (e.g. "- item" or "* item")
+    const bulletMatch = line.match(/^[-*+]\s+(.+)$/);
+    if (bulletMatch) {
+      const itemText = bulletMatch[1]!.trim();
+      const wrapped = wrap(itemText);
       wrapped.forEach((wrappedLine, wrappedIndex) => {
         const lineId = `bullet-${lineIndex}-${wrappedIndex}`;
         output.push({
@@ -229,12 +266,31 @@ export function markdownToDisplayLines(markdown: string, options?: DisplayLineOp
           kind: wrappedIndex === 0 ? 'bullet' : 'text',
           text: wrappedLine,
           sectionIndex: currentSectionIndex,
-          segments: wrapped.length === 1 ? parseInlineSegments(wrappedLine, lineId) : undefined
+          segments: parseInlineSegments(wrappedLine, lineId)
         });
       });
       return;
     }
 
+    // 4. Blockquotes (e.g. "> **Privacy First**")
+    const quoteMatch = line.match(/^>\s*(.*)$/);
+    if (quoteMatch) {
+      const quoteText = quoteMatch[1]!.trim();
+      const wrapped = wrap(quoteText);
+      wrapped.forEach((wrappedLine, wrappedIndex) => {
+        const lineId = `quote-${lineIndex}-${wrappedIndex}`;
+        output.push({
+          id: lineId,
+          kind: 'blockquote',
+          text: wrappedLine,
+          sectionIndex: currentSectionIndex,
+          segments: parseInlineSegments(wrappedLine, lineId)
+        });
+      });
+      return;
+    }
+
+    // 5. Empty line / Paragraph separator
     if (line.trim().length === 0) {
       const previous = output[output.length - 1];
       if (previous?.kind === 'empty') {
@@ -249,6 +305,7 @@ export function markdownToDisplayLines(markdown: string, options?: DisplayLineOp
       return;
     }
 
+    // 6. Regular body paragraph
     const wrapped = wrap(line.trim());
     wrapped.forEach((wrappedLine, wrappedIndex) => {
       const lineId = `text-${lineIndex}-${wrappedIndex}`;
@@ -257,7 +314,7 @@ export function markdownToDisplayLines(markdown: string, options?: DisplayLineOp
         kind: 'text',
         text: wrappedLine,
         sectionIndex: currentSectionIndex,
-        segments: wrapped.length === 1 ? parseInlineSegments(wrappedLine, lineId) : undefined
+        segments: parseInlineSegments(wrappedLine, lineId)
       });
     });
   });

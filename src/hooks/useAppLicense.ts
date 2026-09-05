@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AppActivationRecord, AppLicenseStatus } from '../types';
 import {
+  checkLicenseStatus,
   clearActivationRecord,
   clearStoredLicense,
   getOrCreateLicenseDeviceId,
@@ -90,12 +91,20 @@ export function useAppLicense(): UseAppLicenseResult {
     }
 
     try {
+      const devOrInitialStatus = await checkLicenseStatus();
+      if (devOrInitialStatus?.state === 'licensed' && devOrInitialStatus.licenseId === 'developer-bypass') {
+        setStatus(devOrInitialStatus);
+        setLoading(false);
+        return;
+      }
+
       const savedKey = await loadSavedLicenseKey();
       if (!savedKey) {
         setStatus({
           state: 'unlicensed',
           licenseId: null,
         });
+        setLoading(false);
         return;
       }
 

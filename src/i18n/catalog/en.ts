@@ -254,7 +254,13 @@ export const enCatalog: TranslationCatalog = {
     autoPauseStatusLabel: 'Voice',
     autoPauseStatusListening: 'Voice auto-pause is listening',
     autoPauseStatusSilent: 'Voice auto-pause is waiting for speech',
-    autoPauseStatusStarting: 'Voice auto-pause is starting'
+    autoPauseStatusStarting: 'Voice auto-pause is starting',
+    voiceSyncStatusLabel: 'Voice Sync',
+    voiceSyncStatusListening: 'Voice sync is listening',
+    voiceSyncStatusSyncing: 'Voice sync is following',
+    voiceSyncStatusConnecting: 'Voice sync is connecting',
+    voiceSyncStatusMissingKey: 'Voice sync requires an API key',
+    voiceSyncStatusError: 'Voice sync encountered an error'
   },
   settingsView: {
     title: 'Settings',
@@ -270,6 +276,26 @@ export const enCatalog: TranslationCatalog = {
       enabledAria: 'Enable voice activity detection',
       pauseDelayTitle: 'Pause After Silence',
       pauseDelaySubtitle: 'How long Glance waits before pausing after you stop speaking.',
+    },
+    voiceSync: {
+      title: 'Voice-Synced Scrolling',
+      enabledTitle: 'Voice-Synced Scrolling',
+      enabledSubtitle: 'Automatically scrolls the prompter word-by-word as you speak.',
+      enabledAria: 'Enable voice-synced scrolling',
+      apiKeyTitle: 'Speechmatics API Key',
+      apiKeySubtitle: 'Required for real-time voice sync. Stored locally on this device.',
+      apiKeyPlaceholder: 'Paste your Speechmatics API key…',
+      apiKeyMissing: 'Missing key',
+      apiKeyConfigured: 'Configured',
+      apiKeyInvalid: 'Invalid key',
+      validatingKey: 'Validating…',
+      saveKey: 'Save key',
+      clearKey: 'Clear',
+      keySavedToast: 'Speechmatics API key saved',
+      keyVerifiedToast: 'Speechmatics API key verified and saved',
+      keyClearedToast: 'Speechmatics API key cleared',
+      keyHint: 'Get a free key with $100 credit at portal.speechmatics.com',
+      getKeyLink: 'Get free key ↗'
     },
     appearance: {
       title: 'Appearance',

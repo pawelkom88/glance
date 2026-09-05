@@ -254,7 +254,13 @@ export const frCatalog: TranslationCatalog = {
     autoPauseStatusLabel: 'Voix',
     autoPauseStatusListening: 'La pause vocale automatique écoute',
     autoPauseStatusSilent: 'La pause vocale automatique attend la reprise de la voix',
-    autoPauseStatusStarting: 'La pause vocale automatique démarre'
+    autoPauseStatusStarting: 'La pause vocale automatique démarre',
+    voiceSyncStatusLabel: 'Sync vocale',
+    voiceSyncStatusListening: 'La synchronisation vocale écoute',
+    voiceSyncStatusSyncing: 'La synchronisation vocale suit votre voix',
+    voiceSyncStatusConnecting: 'La synchronisation vocale se connecte',
+    voiceSyncStatusMissingKey: 'Clé API requise pour la synchronisation vocale',
+    voiceSyncStatusError: 'Erreur de synchronisation vocale'
   },
   settingsView: {
     title: 'Réglages',
@@ -270,6 +276,26 @@ export const frCatalog: TranslationCatalog = {
       enabledAria: 'Activer la détection d\'activité vocale',
       pauseDelayTitle: 'Pause après silence',
       pauseDelaySubtitle: 'Temps d\'attente de Glance avant la pause quand vous cessez de parler.',
+    },
+    voiceSync: {
+      title: 'Défilement synchronisé par la voix',
+      enabledTitle: 'Défilement synchronisé par la voix',
+      enabledSubtitle: 'Fait défiler automatiquement le prompteur mot à mot pendant que vous parlez.',
+      enabledAria: 'Activer le défilement synchronisé par la voix',
+      apiKeyTitle: 'Clé API Speechmatics',
+      apiKeySubtitle: 'Requise pour la synchronisation vocale en temps réel. Stockée localement sur cet appareil.',
+      apiKeyPlaceholder: 'Collez votre clé API Speechmatics…',
+      apiKeyMissing: 'Clé manquante',
+      apiKeyConfigured: 'Configurée',
+      apiKeyInvalid: 'Clé non valide',
+      validatingKey: 'Validation…',
+      saveKey: 'Enregistrer la clé',
+      clearKey: 'Effacer',
+      keySavedToast: 'Clé API Speechmatics enregistrée',
+      keyVerifiedToast: 'Clé API Speechmatics vérifiée et enregistrée',
+      keyClearedToast: 'Clé API Speechmatics effacée',
+      keyHint: 'Obtenez une clé gratuite avec 100 $ de crédit sur portal.speechmatics.com',
+      getKeyLink: 'Obtenir une clé gratuite ↗'
     },
     appearance: {
       title: 'Apparence',

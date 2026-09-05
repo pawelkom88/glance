@@ -92,6 +92,8 @@ function resetStore() {
     showReadingRuler: true,
     vadEnabled: true,
     voicePauseDelayMs: 1500,
+    voiceSyncEnabled: false,
+    speechmaticsApiKey: '',
     toastMessage: null,
     shortcutWarning: null
   });
@@ -666,4 +668,83 @@ describe('SettingsView behavior', () => {
       variant: 'success'
     });
   });
+
+  it('toggles Voice-Synced Scrolling and saves Speechmatics API key', async () => {
+    const user = userEvent.setup();
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }]
+    });
+    Object.defineProperty(globalThis, 'AudioContext', {
+      value: vi.fn(),
+      configurable: true
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ key_value: 'test-jwt-token' })
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(<SettingsView />);
+
+    // Check voice sync toggle
+    const voiceSyncToggle = screen.getByRole('switch', { name: 'Enable voice-synced scrolling' });
+    expect(voiceSyncToggle.getAttribute('aria-checked')).toBe('false');
+
+    // Enter API key
+    const keyInput = screen.getByLabelText('Speechmatics API Key');
+    await user.type(keyInput, 'test-speechmatics-secret-key');
+
+    const saveKeyButton = screen.getByRole('button', { name: 'Save key' });
+    await user.click(saveKeyButton);
+
+    await waitFor(() => {
+      expect(useAppStore.getState().speechmaticsApiKey).toBe('test-speechmatics-secret-key');
+      expect(useAppStore.getState().toastMessage?.message).toBe('Speechmatics API key verified and saved');
+      expect(screen.getByText('Configured')).toBeTruthy();
+    });
+
+    // Toggle on voice sync
+    await user.click(voiceSyncToggle);
+    await waitFor(() => {
+      expect(useAppStore.getState().voiceSyncEnabled).toBe(true);
+    });
+
+    // Clear key
+    const clearButton = screen.getByRole('button', { name: 'Clear' });
+    await user.click(clearButton);
+    expect(useAppStore.getState().speechmaticsApiKey).toBe('');
+    expect(screen.getByText('Missing key')).toBeTruthy();
+  });
+
+  it('shows error feedback when Speechmatics API key validation fails', async () => {
+    const user = userEvent.setup();
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      text: async () => '401 Authorization Required'
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(<SettingsView />);
+
+    const keyInput = screen.getByLabelText('Speechmatics API Key');
+    await user.type(keyInput, 'invalid-key');
+
+    const saveKeyButton = screen.getByRole('button', { name: 'Save key' });
+    await user.click(saveKeyButton);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy();
+      expect(screen.getByText(/Invalid Speechmatics API key/i)).toBeTruthy();
+      expect(screen.getByText('Invalid key')).toBeTruthy();
+      expect(useAppStore.getState().speechmaticsApiKey).toBe('');
+    });
+  });
 });
+

@@ -77,7 +77,7 @@ describe('High behavior: editor warning lifecycle', () => {
     useAppStore.setState({ persistActiveSession });
     render(<App />);
 
-    await user.click(screen.getByTitle('Scripts'));
+    await user.click(screen.getByRole('button', { name: /Session Editor/i }));
 
     await user.click(await screen.findByRole('button', { name: 'Launch Prompter' }));
     await waitFor(() => {
@@ -101,7 +101,7 @@ describe('High behavior: editor warning lifecycle', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByTitle('Scripts'));
+    await user.click(screen.getByRole('button', { name: /Session Editor/i }));
 
     const textarea = await screen.findByRole('textbox');
     await user.clear(textarea);
