@@ -281,21 +281,28 @@ export function createSpeechmaticsRealtimeClient(
         try {
           const nativeStatus = await requestMicrophonePermission();
           if (nativeStatus === 'denied') {
-            throw new Error('Microphone permission denied by system settings. Please enable microphone access in System Settings.');
+            // eslint-disable-next-line no-console
+            console.warn('[VoiceSync:Mic] ⚠️ Native permission returned "denied", attempting getUserMedia to check WebKit/system prompt...');
           }
         } catch (permErr) {
-          if (permErr instanceof Error && permErr.message.includes('permission denied')) {
-            throw permErr;
-          }
+          // eslint-disable-next-line no-console
+          console.warn('[VoiceSync:Mic] Native permission probe failed:', permErr);
           // Non-tauri or fallback environments continue to browser getUserMedia
         }
 
-        audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true
+            }
+          });
+        } catch (mediaErr) {
+          if (mediaErr instanceof DOMException && (mediaErr.name === 'NotAllowedError' || mediaErr.name === 'PermissionDeniedError' || mediaErr.name === 'SecurityError')) {
+            throw new Error('Microphone permission denied by system settings. Click to open System Settings.');
           }
-        });
+          throw mediaErr;
+        }
         const trackLabel = typeof audioStream?.getAudioTracks === 'function'
           ? audioStream.getAudioTracks()[0]?.label
           : (typeof audioStream?.getTracks === 'function' ? audioStream.getTracks()[0]?.label : undefined);

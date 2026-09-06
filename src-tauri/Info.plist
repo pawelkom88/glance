@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Glance needs microphone access for Voice Activity Detection to automatically pause and resume the prompter.</string>
+	<string>Glance needs microphone access for Voice-Synced Scrolling and Voice Activity Detection to follow your speech and automatically control the prompter.</string>
 </dict>
 </plist>

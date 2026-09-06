@@ -19,6 +19,7 @@ import {
   listenForShortcutEvents,
   listenForVadChanged,
   listenForVoiceSyncChanged,
+  openMicrophoneSettings,
   quitApp,
   recoverOverlayFocus,
   saveOverlayBoundsForMonitor,
@@ -1366,6 +1367,13 @@ export function OverlayPrompter() {
       ? `Voice Sync Error: ${voiceSync.errorMessage}`
       : voiceSyncStatusAriaLabel;
 
+    const isMicPermissionError = isError && Boolean(
+      voiceSync.errorMessage &&
+      (voiceSync.errorMessage.toLowerCase().includes('microphone') ||
+       voiceSync.errorMessage.toLowerCase().includes('permission') ||
+       voiceSync.errorMessage.toLowerCase().includes('system settings'))
+    );
+
     return (
       <div
         className={`overlay-voice-status overlay-voice-status--${stateClass} ${className} ${isError ? 'has-error' : ''}`.trim()}
@@ -1375,7 +1383,12 @@ export function OverlayPrompter() {
         title={tooltipText}
         onClick={() => {
           if (isError && voiceSync.errorMessage) {
-            showToast(voiceSync.errorMessage, 'error');
+            if (isMicPermissionError) {
+              void openMicrophoneSettings();
+              showToast('Opening Microphone Settings...', 'info');
+            } else {
+              showToast(voiceSync.errorMessage, 'error');
+            }
           }
         }}
       >
@@ -1574,8 +1587,24 @@ export function OverlayPrompter() {
         <footer className={`${className} overlay-footer--voice-sync`}>
           <div className="overlay-voice-sync-footer-bar">
             <div
-              className={`overlay-voice-sync-pulse-indicator is-state-${voiceSync.voiceSyncState}`}
+              className={`overlay-voice-sync-pulse-indicator is-state-${voiceSync.voiceSyncState} ${voiceSync.voiceSyncState === 'error' ? 'has-error' : ''}`}
               title={voiceSync.errorMessage ?? undefined}
+              role={voiceSync.voiceSyncState === 'error' ? 'button' : undefined}
+              tabIndex={voiceSync.voiceSyncState === 'error' ? 0 : undefined}
+              onClick={() => {
+                if (voiceSync.voiceSyncState === 'error' && voiceSync.errorMessage) {
+                  const isPermError =
+                    voiceSync.errorMessage.toLowerCase().includes('microphone') ||
+                    voiceSync.errorMessage.toLowerCase().includes('permission') ||
+                    voiceSync.errorMessage.toLowerCase().includes('system settings');
+                  if (isPermError) {
+                    void openMicrophoneSettings();
+                    showToast('Opening Microphone Settings...', 'info');
+                  } else {
+                    showToast(voiceSync.errorMessage, 'error');
+                  }
+                }
+              }}
             >
               <span className="overlay-voice-pulse-dot" />
               <span className="overlay-voice-sync-label">{voiceLabel}</span>

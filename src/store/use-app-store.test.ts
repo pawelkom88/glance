@@ -21,6 +21,7 @@ vi.mock('../lib/tauri', () => ({
   emitThemeChanged: vi.fn().mockResolvedValue(undefined),
   emitVadChanged: vi.fn().mockResolvedValue(undefined),
   emitVoiceSyncChanged: vi.fn().mockResolvedValue(undefined),
+  emitFontChanged: vi.fn().mockResolvedValue(undefined),
   exportSessionToPath: vi.fn(),
   getLastActiveSessionId: vi.fn(),
   listFolders: vi.fn(),

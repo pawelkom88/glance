@@ -276,6 +276,7 @@ fn main() {
             commands::register_shortcuts,
             commands::register_default_shortcuts,
             macos_permissions::request_microphone_permission,
+            macos_permissions::open_microphone_settings,
             commands::set_overlay_always_on_top,
             commands::list_monitors,
             commands::get_monitors,

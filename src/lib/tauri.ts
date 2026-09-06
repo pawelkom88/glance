@@ -676,6 +676,14 @@ export async function requestMicrophonePermission(): Promise<NativeMicrophonePer
   return invoke<NativeMicrophonePermissionStatus>('request_microphone_permission');
 }
 
+export async function openMicrophoneSettings(): Promise<void> {
+  if (!inTauri()) {
+    return;
+  }
+
+  await invoke('open_microphone_settings');
+}
+
 export async function registerShortcuts(bindings: readonly ShortcutBinding[]): Promise<void> {
   await invoke('register_shortcuts', { bindings });
 }
