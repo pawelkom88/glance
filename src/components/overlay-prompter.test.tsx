@@ -139,6 +139,8 @@ function resetStore(): void {
     showReadingRuler: true,
     vadEnabled: true,
     voicePauseDelayMs: 1500,
+    voiceSyncEnabled: false,
+    speechmaticsApiKey: '',
     toastMessage: null
   });
 }
@@ -980,6 +982,78 @@ describe('OverlayPrompter behavior', () => {
     expect(paddingTop).toBeGreaterThanOrEqual(20);
 
     clientHeightSpy.mockRestore();
+  });
+
+  it('toggles playback and prevents default when Space is pressed in webview without closing overlay', async () => {
+    render(<OverlayPrompter />);
+    expect(useAppStore.getState().playbackState).toBe('paused');
+
+    act(() => {
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+    });
+
+    expect(useAppStore.getState().playbackState).toBe('running');
+    expect(tauriMocks.closeOverlayWindow).not.toHaveBeenCalled();
+
+    // Second space press pauses playback
+    act(() => {
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+    });
+    expect(useAppStore.getState().playbackState).toBe('paused');
+    expect(tauriMocks.closeOverlayWindow).not.toHaveBeenCalled();
+  });
+
+  it('jumps to section when Cmd/Ctrl+digit is pressed in webview', async () => {
+    act(() => {
+      useAppStore.setState({
+        markdown: '# Section One\nLine 1\n# Section Two\nLine 2',
+        scrollPosition: 100
+      });
+    });
+    render(<OverlayPrompter />);
+
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb: FrameRequestCallback) => {
+      cb(performance.now() + 600);
+      return 1;
+    });
+
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    const modProps = isMac ? { metaKey: true } : { ctrlKey: true };
+
+    act(() => {
+      fireEvent.keyDown(window, {
+        key: '1',
+        code: 'Digit1',
+        ...modProps
+      });
+    });
+
+    expect(useAppStore.getState().scrollPosition).toBe(0);
+    rafSpy.mockRestore();
+  });
+
+  it('deduplicates simultaneous DOM keydown and Tauri shortcut-event for the same action', async () => {
+    let shortcutCallback: (payload: { action: string }) => void = () => { };
+    tauriMocks.listenForShortcutEvents.mockImplementation(async (cb: (payload: { action: string }) => void) => {
+      shortcutCallback = cb;
+      return () => { };
+    });
+
+    render(<OverlayPrompter />);
+    await waitFor(() => {
+      expect(tauriMocks.listenForShortcutEvents).toHaveBeenCalledTimes(1);
+    });
+
+    expect(useAppStore.getState().playbackState).toBe('paused');
+
+    // Simulate both DOM keydown and Tauri shortcut-event firing in rapid succession (<80ms)
+    await act(async () => {
+      fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+      shortcutCallback({ action: 'toggle-play' });
+    });
+
+    // Should be toggled only ONCE (paused -> running), not toggled and immediately reverted to paused
+    expect(useAppStore.getState().playbackState).toBe('running');
   });
 });
 

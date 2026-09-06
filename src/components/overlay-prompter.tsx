@@ -28,7 +28,7 @@ import {
   setLastOverlayMonitorName,
   showMainWindow
 } from '../lib/tauri';
-import { loadShortcutConfig } from '../lib/shortcuts';
+import { eventMatchesAccelerator, loadShortcutConfig, type ShortcutActionId } from '../lib/shortcuts';
 import { ScrollEngine } from '../lib/scroll-engine';
 import { useAppStore } from '../store/use-app-store';
 import { useI18n } from '../i18n/use-i18n';
@@ -1197,8 +1197,12 @@ export function OverlayPrompter() {
       </div>
       <button
         type="button"
+        tabIndex={-1}
         className={`overlay-top-action overlay-collapse-toggle ${isControlsCollapsed ? 'is-collapsed' : ''}`}
-        onClick={toggleControls}
+        onClick={(e) => {
+          e.currentTarget.blur();
+          toggleControls();
+        }}
         title={t('overlay.toggleControls')}
         aria-label={t('overlay.toggleControls')}
         aria-expanded={!isControlsCollapsed}
@@ -1208,8 +1212,12 @@ export function OverlayPrompter() {
       </button>
       <button
         type="button"
+        tabIndex={-1}
         className="overlay-close-button"
-        onClick={requestCloseOverlay}
+        onClick={(e) => {
+          e.currentTarget.blur();
+          requestCloseOverlay();
+        }}
         aria-label={t('overlay.close')}
         title={t('overlay.close')}
       >
@@ -1813,8 +1821,10 @@ export function OverlayPrompter() {
   }, [commitFontScale]);
 
   useEffect(() => {
+    overlayRootRef.current?.focus({ preventScroll: true });
     const timeoutId = window.setTimeout(() => {
       setIsOpening(false);
+      overlayRootRef.current?.focus({ preventScroll: true });
     }, 8);
 
     return () => {
@@ -2051,6 +2061,17 @@ export function OverlayPrompter() {
     triggerSpeedIconAnimation
   ]);
 
+  const lastDispatchedRef = useRef<{ action: string; source: 'dom' | 'tauri'; time: number } | null>(null);
+  const dispatchAction = useCallback((action: string, source: 'dom' | 'tauri', handler: () => void) => {
+    const now = Date.now();
+    const last = lastDispatchedRef.current;
+    if (last && last.action === action && last.source !== source && now - last.time < 80) {
+      return;
+    }
+    lastDispatchedRef.current = { action, source, time: now };
+    handler();
+  }, []);
+
   useEffect(() => {
     let isDisposed = false;
     let unlisten: (() => void) | null = null;
@@ -2059,40 +2080,46 @@ export function OverlayPrompter() {
       const handlers = shortcutHandlersRef.current;
 
       if (payload.action === 'toggle-play') {
-        handlers.togglePlayback();
+        dispatchAction('toggle-play', 'tauri', () => handlers.togglePlayback());
         return;
       }
 
       if (payload.action === 'snap-to-center') {
-        void handlers.handleSnapToCentre();
+        dispatchAction('snap-to-center', 'tauri', () => void handlers.handleSnapToCentre());
         return;
       }
 
       if (payload.action === 'toggle-controls') {
-        void handlers.toggleControls();
+        dispatchAction('toggle-controls', 'tauri', () => void handlers.toggleControls());
         return;
       }
 
       if (payload.action === 'jump-section' && typeof payload.index === 'number') {
-        handlers.jumpToSection(payload.index);
+        const index = payload.index;
+        dispatchAction(`jump-${index + 1}`, 'tauri', () => handlers.jumpToSection(index));
         return;
       }
 
       if (payload.action === 'speed-change' && typeof payload.delta === 'number') {
-        handlers.changeScrollSpeedBy(payload.delta);
-        handlers.revealSpeedBubble();
-        if (payload.delta < 0) {
-          handlers.triggerSpeedIconAnimation('slow');
-        } else if (payload.delta > 0) {
-          handlers.triggerSpeedIconAnimation('fast');
-        }
+        const delta = payload.delta;
+        dispatchAction(delta > 0 ? 'speed-up' : 'speed-down', 'tauri', () => {
+          handlers.changeScrollSpeedBy(delta);
+          handlers.revealSpeedBubble();
+          if (delta < 0) {
+            handlers.triggerSpeedIconAnimation('slow');
+          } else if (delta > 0) {
+            handlers.triggerSpeedIconAnimation('fast');
+          }
+        });
         return;
       }
 
       if (payload.action === 'start-over') {
-        handlers.setPlaybackState('paused');
-        handlers.setScrollPosition(0);
-        handlers.resetPresentationTimer();
+        dispatchAction('start-over', 'tauri', () => {
+          handlers.setPlaybackState('paused');
+          handlers.setScrollPosition(0);
+          handlers.resetPresentationTimer();
+        });
         return;
       }
 
@@ -2134,7 +2161,7 @@ export function OverlayPrompter() {
       isDisposed = true;
       unlisten?.();
     };
-  }, []);
+  }, [dispatchAction]);
 
   useEffect(() => {
     let unlistenSync: (() => void) | null = null;
@@ -2221,7 +2248,9 @@ export function OverlayPrompter() {
 
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const isTextLikeTarget = isTypingTarget(target);
+      if (isTypingTarget(target)) {
+        return;
+      }
 
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -2241,42 +2270,149 @@ export function OverlayPrompter() {
         return;
       }
 
+      if (isJumpMenuOpen || isFontMenuOpen || isTimerMenuOpen) {
+        return;
+      }
+
+      const shortcutConfig = loadShortcutConfig();
       const withModifier = event.metaKey || event.ctrlKey;
 
-      if (!withModifier && !isTextLikeTarget && !tauriRuntime) {
-        const isSpaceKey = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+      const isSpaceKey = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+      if (
+        (isSpaceKey && !withModifier && !event.altKey) ||
+        eventMatchesAccelerator(event, shortcutConfig['toggle-play'])
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchAction('toggle-play', 'dom', togglePlayback);
+        return;
+      }
 
-        if (isSpaceKey) {
-          event.preventDefault();
-          event.stopPropagation();
-          togglePlayback();
-          return;
-        }
-
-        if (event.key.toLowerCase() === 'r') {
-          event.preventDefault();
-          event.stopPropagation();
+      if (
+        (event.key.toLowerCase() === 'r' && !withModifier && !event.altKey && !event.shiftKey) ||
+        eventMatchesAccelerator(event, shortcutConfig['start-over'])
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchAction('start-over', 'dom', () => {
           setPlaybackState('paused');
           setScrollPosition(0);
           resetPresentationTimer();
-          return;
-        }
-      }
-
-      if (!withModifier) {
+        });
         return;
       }
 
-      if (event.shiftKey && event.key.toLowerCase() === 'l') {
-        if (tauriRuntime) {
+      for (let i = 1; i <= 9; i++) {
+        const actionId = `jump-${i}` as ShortcutActionId;
+        const configuredAcc = shortcutConfig[actionId];
+        const isDefaultJump =
+          withModifier &&
+          !event.shiftKey &&
+          !event.altKey &&
+          (event.key === String(i) ||
+            event.code === `Digit${i}` ||
+            event.code === `Numpad${i}`);
+
+        if (isDefaultJump || eventMatchesAccelerator(event, configuredAcc)) {
+          event.preventDefault();
+          event.stopPropagation();
+          dispatchAction(actionId, 'dom', () => jumpToSection(i - 1));
           return;
         }
+      }
+
+      if (
+        (withModifier && !event.shiftKey && (event.key === 'ArrowUp' || event.code === 'ArrowUp')) ||
+        eventMatchesAccelerator(event, shortcutConfig['speed-up'])
+      ) {
         event.preventDefault();
-        void handleSnapToCentre();
+        event.stopPropagation();
+        dispatchAction('speed-up', 'dom', () => {
+          changeScrollSpeedBy(1);
+          revealSpeedBubble();
+          triggerSpeedIconAnimation('fast');
+        });
         return;
       }
 
-      if (event.key.toLowerCase() === 'w') {
+      if (
+        (withModifier && !event.shiftKey && (event.key === 'ArrowDown' || event.code === 'ArrowDown')) ||
+        eventMatchesAccelerator(event, shortcutConfig['speed-down'])
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchAction('speed-down', 'dom', () => {
+          changeScrollSpeedBy(-1);
+          revealSpeedBubble();
+          triggerSpeedIconAnimation('slow');
+        });
+        return;
+      }
+
+      if (
+        (withModifier && event.shiftKey && event.key.toLowerCase() === 'l') ||
+        eventMatchesAccelerator(event, shortcutConfig['snap-to-center'])
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchAction('snap-to-center', 'dom', () => {
+          void handleSnapToCentre();
+        });
+        return;
+      }
+
+      if (
+        (withModifier && !event.shiftKey && event.key.toLowerCase() === 'j') ||
+        eventMatchesAccelerator(event, shortcutConfig['toggle-controls'])
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchAction('toggle-controls', 'dom', () => {
+          void toggleControls();
+        });
+        return;
+      }
+
+      if (event.shiftKey && (event.key === 'ArrowUp' || event.code === 'ArrowUp')) {
+        event.preventDefault();
+        setDimLevel(Math.min(100, useAppStore.getState().dimLevel + 5));
+        return;
+      }
+
+      if (event.shiftKey && (event.key === 'ArrowDown' || event.code === 'ArrowDown')) {
+        event.preventDefault();
+        setDimLevel(Math.max(0, useAppStore.getState().dimLevel - 5));
+        return;
+      }
+
+      if (
+        withModifier &&
+        (event.key === '=' || event.key === '+' || event.code === 'Equal' || event.code === 'NumpadAdd')
+      ) {
+        event.preventDefault();
+        changeFontScaleBy(1);
+        return;
+      }
+
+      if (
+        withModifier &&
+        (event.key === '-' || event.key === '_' || event.code === 'Minus' || event.code === 'NumpadSubtract')
+      ) {
+        event.preventDefault();
+        changeFontScaleBy(-1);
+        return;
+      }
+
+      if (
+        withModifier &&
+        (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0')
+      ) {
+        event.preventDefault();
+        commitFontScale(1);
+        return;
+      }
+
+      if (withModifier && event.key.toLowerCase() === 'w') {
         event.preventDefault();
         if (tauriRuntime) {
           requestQuitApp();
@@ -2285,77 +2421,6 @@ export function OverlayPrompter() {
         requestCloseOverlay();
         return;
       }
-
-      if (event.key === '=' || event.key === '+') {
-        if (tauriRuntime) {
-          return;
-        }
-        event.preventDefault();
-        changeFontScaleBy(1);
-        return;
-      }
-
-      if (event.key === '-' || event.key === '_') {
-        if (tauriRuntime) {
-          return;
-        }
-        event.preventDefault();
-        changeFontScaleBy(-1);
-        return;
-      }
-
-      if (event.key === '0') {
-        if (tauriRuntime) {
-          return;
-        }
-        event.preventDefault();
-        commitFontScale(1);
-        return;
-      }
-
-      if (event.key === 'ArrowUp' && !event.shiftKey) {
-        if (tauriRuntime) {
-          return;
-        }
-        event.preventDefault();
-        changeScrollSpeedBy(1);
-        revealSpeedBubble();
-        triggerSpeedIconAnimation('fast');
-        return;
-      }
-
-      if (event.key === 'ArrowUp' && event.shiftKey) {
-        event.preventDefault();
-        setDimLevel(Math.min(100, useAppStore.getState().dimLevel + 5));
-        return;
-      }
-
-      if (event.key === 'ArrowDown' && !event.shiftKey) {
-        if (tauriRuntime) {
-          return;
-        }
-        event.preventDefault();
-        changeScrollSpeedBy(-1);
-        revealSpeedBubble();
-        triggerSpeedIconAnimation('slow');
-        return;
-      }
-
-      if (event.key === 'ArrowDown' && event.shiftKey) {
-        event.preventDefault();
-        setDimLevel(Math.max(0, useAppStore.getState().dimLevel - 5));
-        return;
-      }
-
-      // Cmd+1..9 for section jumps
-      const numKey = parseInt(event.key, 10);
-      if (numKey >= 1 && numKey <= 9) {
-        if (tauriRuntime) {
-          return;
-        }
-        event.preventDefault();
-        jumpToSection(numKey - 1);
-      }
     };
 
     window.addEventListener('keydown', onKeyDown, { capture: true });
@@ -2363,22 +2428,27 @@ export function OverlayPrompter() {
       window.removeEventListener('keydown', onKeyDown, { capture: true });
     };
   }, [
+    changeFontScaleBy,
     changeScrollSpeedBy,
     closeFontMenu,
     closeJumpMenu,
     closeTimerMenu,
-    changeFontScaleBy,
     commitFontScale,
+    dispatchAction,
+    handleSnapToCentre,
     isFontMenuOpen,
     isJumpMenuOpen,
     isTimerMenuOpen,
+    jumpToSection,
     requestCloseOverlay,
     requestQuitApp,
     resetPresentationTimer,
+    revealSpeedBubble,
     setPlaybackState,
     setScrollPosition,
+    toggleControls,
     togglePlayback,
-    handleSnapToCentre
+    triggerSpeedIconAnimation
   ]);
 
   useEffect(() => {

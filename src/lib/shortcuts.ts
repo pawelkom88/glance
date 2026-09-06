@@ -150,3 +150,131 @@ export function validateShortcutConfig(config: ShortcutConfig): string | null {
 
   return null;
 }
+
+export function isMacPlatform(): boolean {
+  return typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
+}
+
+export function eventMatchesAccelerator(
+  event: Pick<KeyboardEvent, 'key' | 'code' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>,
+  accelerator: string
+): boolean {
+  if (!accelerator || !accelerator.trim()) {
+    return false;
+  }
+
+  const parts = accelerator.split('+').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) {
+    return false;
+  }
+
+  const isMac = isMacPlatform();
+  let expectedCtrl = false;
+  let expectedMeta = false;
+  let expectedAlt = false;
+  let expectedShift = false;
+  let keyToken: string | null = null;
+
+  for (const part of parts) {
+    const lower = part.toLowerCase();
+    if (lower === 'cmdorctrl' || lower === 'commandorcontrol') {
+      if (isMac) {
+        expectedMeta = true;
+      } else {
+        expectedCtrl = true;
+      }
+    } else if (lower === 'cmd' || lower === 'command') {
+      expectedMeta = true;
+    } else if (lower === 'ctrl' || lower === 'control') {
+      expectedCtrl = true;
+    } else if (lower === 'alt' || lower === 'option') {
+      expectedAlt = true;
+    } else if (lower === 'shift') {
+      expectedShift = true;
+    } else {
+      keyToken = lower;
+    }
+  }
+
+  if (!keyToken) {
+    return false;
+  }
+
+  const actualCtrl = Boolean(event.ctrlKey);
+  const actualMeta = Boolean(event.metaKey);
+  const actualAlt = Boolean(event.altKey);
+  const actualShift = Boolean(event.shiftKey);
+
+  if (
+    actualCtrl !== expectedCtrl ||
+    actualMeta !== expectedMeta ||
+    actualAlt !== expectedAlt ||
+    actualShift !== expectedShift
+  ) {
+    return false;
+  }
+
+  const eventKey = (event.key || '').toLowerCase();
+  const eventCode = (event.code || '').toLowerCase();
+
+  // Space
+  if (keyToken === 'space' || keyToken === 'spacebar') {
+    return eventCode === 'space' || eventKey === ' ' || eventKey === 'space' || eventKey === 'spacebar';
+  }
+
+  // Arrow keys
+  if (keyToken === 'up' || keyToken === 'arrowup') {
+    return eventKey === 'arrowup' || eventCode === 'arrowup';
+  }
+  if (keyToken === 'down' || keyToken === 'arrowdown') {
+    return eventKey === 'arrowdown' || eventCode === 'arrowdown';
+  }
+  if (keyToken === 'left' || keyToken === 'arrowleft') {
+    return eventKey === 'arrowleft' || eventCode === 'arrowleft';
+  }
+  if (keyToken === 'right' || keyToken === 'arrowright') {
+    return eventKey === 'arrowright' || eventCode === 'arrowright';
+  }
+
+  // Escape
+  if (keyToken === 'escape' || keyToken === 'esc') {
+    return eventKey === 'escape' || eventCode === 'escape';
+  }
+
+  // Return / Enter
+  if (keyToken === 'enter' || keyToken === 'return') {
+    return eventKey === 'enter' || eventCode === 'enter' || eventCode === 'numpadenter';
+  }
+
+  // Digits 0-9
+  if (/^[0-9]$/.test(keyToken)) {
+    return (
+      eventKey === keyToken ||
+      eventCode === `digit${keyToken}` ||
+      eventCode === `numpad${keyToken}`
+    );
+  }
+
+  // Plus / Equal
+  if (keyToken === '+' || keyToken === 'plus' || keyToken === '=') {
+    return eventKey === '+' || eventKey === '=' || eventCode === 'equal' || eventCode === 'numpadadd';
+  }
+
+  // Minus / Underscore
+  if (keyToken === '-' || keyToken === 'minus' || keyToken === '_') {
+    return eventKey === '-' || eventKey === '_' || eventCode === 'minus' || eventCode === 'numpadsubtract';
+  }
+
+  // Standard characters (letters, symbols)
+  if (eventKey === keyToken) {
+    return true;
+  }
+
+  // Check code format for keys: KeyA -> keytoken 'a'
+  if (eventCode === `key${keyToken}`) {
+    return true;
+  }
+
+  return false;
+}
+

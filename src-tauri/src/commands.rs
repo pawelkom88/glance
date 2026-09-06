@@ -127,12 +127,19 @@ pub fn apply_bindings(
         let shortcut = Shortcut::from_str(&binding.accelerator)
             .map_err(|error| format!("Invalid shortcut for {}: {}", binding.action, error))?;
 
-        manager.register(shortcut.clone()).map_err(|error| {
-            format!(
-                "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
-                binding.action, binding.accelerator, error
-            )
-        })?;
+        if binding.action == HIDE_OVERLAY_ACTION || binding.action == LEGACY_TOGGLE_OVERLAY_ACTION {
+            manager.register(shortcut.clone()).map_err(|error| {
+                format!(
+                    "Shortcut registration conflict for '{}' ({}) - {}. Choose a different combination.",
+                    binding.action, binding.accelerator, error
+                )
+            })?;
+        } else {
+            // Overlay-scoped shortcuts (e.g. Space, R, Ctrl+1..9) may not be valid
+            // global OS hotkeys on all platforms (e.g., Win32 RegisterHotKey rejects keys
+            // without modifiers). Register them best-effort so they don't block mapping.
+            let _ = manager.register(shortcut.clone());
+        }
 
         let mapped = binding_to_shortcut_action(&binding.action)?;
         action_map.insert(normalize_shortcut_text(&shortcut.to_string()), mapped);
