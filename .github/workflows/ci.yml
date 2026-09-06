@@ -172,6 +172,68 @@ jobs:
         env:
           VITE_GLANCE_BUILD_CHANNEL: ${{ env.VITE_GLANCE_BUILD_CHANNEL }}
 
+      - name: Inspect macOS signing certificate
+        if: runner.os == 'macOS'
+        id: macos_signing
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -uo pipefail
+
+          # Tauri derives the signing identity from APPLE_CERTIFICATE itself and fails with an
+          # opaque "failed to resolve signing identity" when the .p12 yields no code-signing
+          # identity. Import it here first so the log shows what the secret actually contains.
+          fail_or_warn() {
+            if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+              echo "::error::$1"
+              exit 1
+            fi
+            echo "::warning::$1 Building unsigned (--no-sign) because this is not a tag release."
+            echo "mode=unsigned" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          if [ -z "${APPLE_CERTIFICATE:-}" ]; then
+            fail_or_warn "APPLE_CERTIFICATE secret is empty."
+          fi
+
+          work=$(mktemp -d)
+          kc="$work/preflight.keychain-db"
+          trap 'security delete-keychain "$kc" 2>/dev/null || true; rm -rf "$work"' EXIT
+
+          if ! printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$work/cert.p12" 2>/dev/null; then
+            fail_or_warn "APPLE_CERTIFICATE is not valid base64."
+          fi
+
+          pw=$(uuidgen)
+          security create-keychain -p "$pw" "$kc"
+          security unlock-keychain -p "$pw" "$kc"
+          if ! security import "$work/cert.p12" -P "${APPLE_CERTIFICATE_PASSWORD:-}" \
+               -T /usr/bin/codesign -k "$kc" 2>&1; then
+            fail_or_warn "Could not import APPLE_CERTIFICATE (wrong APPLE_CERTIFICATE_PASSWORD, or corrupt .p12)."
+          fi
+
+          echo "--- code-signing identities inside APPLE_CERTIFICATE ---"
+          identities=$(security find-identity -v -p codesigning "$kc" 2>/dev/null || true)
+          echo "${identities:-<none>}"
+
+          devid=$(printf '%s\n' "$identities" \
+            | sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' | head -1)
+          if [ -n "$devid" ]; then
+            echo "mode=developer-id" >> "$GITHUB_OUTPUT"
+            echo "Signing + notarizing with: $devid"
+            exit 0
+          fi
+
+          other=$(printf '%s\n' "$identities" | sed -n 's/.*"\([^"]*\)".*/\1/p' | head -1)
+          if [ -z "$other" ]; then
+            fail_or_warn "APPLE_CERTIFICATE imported but contains NO code-signing identity. Re-export the .p12 by selecting the *certificate* row in Keychain Access (it nests its private key) - not the private-key row alone."
+          else
+            fail_or_warn "APPLE_CERTIFICATE contains '$other', which is not a 'Developer ID Application' certificate. Apple will not notarize it and Gatekeeper will reject the DMG."
+          fi
+
       - name: Build Tauri (non-Windows)
         if: runner.os != 'Windows'
         uses: tauri-apps/tauri-action@v0
@@ -184,16 +246,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
           MACOSX_DEPLOYMENT_TARGET: "12.0"
         with:
-          args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          args: --config ${{ env.TAURI_CONFIG_PATH }} --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}${{ steps.macos_signing.outputs.mode == 'developer-id' && '' || ' --no-sign' }}
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: ${{ env.RELEASE_NAME }}
           releaseBody: ${{ env.RELEASE_BODY }}
