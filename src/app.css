@@ -7606,7 +7606,7 @@ body.is-session-dragging * {
 
 .voice-word.is-voice-spoken {
   color: var(--overlay-lane-text, #121212);
-  opacity: 0.45;
+  opacity: 0.15;
   background-color: transparent;
   box-shadow: none;
   text-shadow: none;
