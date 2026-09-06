@@ -17,7 +17,7 @@ Glance operates entirely locally. Your scripts never leave your device, and we n
 
 1. Download the `.dmg` installer.
 2. Drag **Glance** to your Applications folder.
-3. Open the app, then go to **System Settings** → **Privacy & Security** and confirm under Security.
+3. Open the app and click **Open** when prompted (Glance is verified & notarized by Apple).
 
 ### Windows
 

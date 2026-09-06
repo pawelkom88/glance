@@ -91,7 +91,7 @@ Glance is designed for private notes. It runs locally, and after a one-time lice
 
 ## Cross-platform
 
-- **macOS:** Download the `.dmg`, drag to Applications, approve in Privacy & Security.  
+- **macOS:** Download the `.dmg`, drag to Applications, and launch (Apple notarized).  
 - **Windows:** Available via the **Microsoft Store** for a clean install.
 
 ---
