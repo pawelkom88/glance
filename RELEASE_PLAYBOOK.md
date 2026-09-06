@@ -24,7 +24,7 @@ Glance has **three completely independent release channels**. Understanding how 
 │                                        │  │                                        │
 │  Controls:                             │  │  Controls:                             │
 │  - New buyers on checkout (docs.html)  │  │  - Existing users who downloaded        │
-│  - Trial download buttons (index.html) │  │    weeks or months ago                  │
+│  - Download buttons & docs             │  │    weeks or months ago                  │
 └────────────────────────────────────────┘  └────────────────────────────────────────┘
 ```
 
@@ -35,7 +35,7 @@ Glance has **three completely independent release channels**. Understanding how 
 Here is the exact lifecycle:
 1. When a user clicks **"Buy"**, they are routed through Stripe via the Cloudflare payment worker (`glance-payments`).
 2. Once the payment succeeds, Stripe redirects the buyer to `https://atglance.app/docs.html` (the setup & thank-you page).
-3. The download button on `docs.html` (and on `index.html` for trials) reads the download URLs directly from [`landing-page/assets/release-config.js`](./landing-page/assets/release-config.js):
+3. The download button on `docs.html` reads the download URLs directly from [`landing-page/assets/release-config.js`](./landing-page/assets/release-config.js):
    ```js
    window.__GLANCE_RELEASE__ = {
      version: 'v0.3.9',
@@ -140,7 +140,7 @@ At this stage, you provide the new version to **new website visitors and buyers 
    ```bash
    pnpm run deploy:landing
    ```
-   *At this point: Anyone buying or downloading the trial from `atglance.app` gets `v0.4.0`.*
+   *At this point: Anyone buying from `atglance.app` gets `v0.4.0`.*
    *Existing users from 5 months ago are STILL on `v0.3.9` and untouched.*
 
 4. **Monitor for 24–48 hours**:

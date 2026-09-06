@@ -55,11 +55,11 @@ In high-stakes video calls (especially when sharing slides or demoing software),
 Glance connects directly from your machine to Speechmatics—one of the world's most accurate real-time speech recognition engines—using your own private API key.
 
 ![Glance Settings showing Voice-Synced Scrolling toggle and API Key](/voice-sync-settings.webp)
-*Settings view in Glance: One toggle activates Voice-Synced Scrolling, with direct link to claim free trial credits.*
+*Settings view in Glance: One toggle activates Voice-Synced Scrolling, with direct link to claim free starter credits.*
 
 ### Quick 3-Minute Setup
 
-1. **Claim Free Trial Credits:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides up to $100 in free initial usage credits with no credit card required upfront.
+1. **Claim Free Starter Credits:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides up to $100 in free initial usage credits with no credit card required upfront.
 2. **Copy Your API Key:** From the Speechmatics portal dashboard, generate an API key and copy it to your clipboard.
 3. **Save in Glance:** Open Glance, navigate to **Settings** (gear icon), paste your key into the **Speechmatics API Key** field, and toggle **Voice-Synced Scrolling** ON.
 4. **Launch & Present:** Click **Launch Prompter**. The listener will arm automatically—just start reading!

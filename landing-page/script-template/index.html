@@ -121,6 +121,23 @@
             padding: 0 40px;
         }
 
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 20px;
+            background: #1d1d1f;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            text-decoration: none;
+        }
+
+        .skip-link:focus {
+            top: 12px;
+        }
+
         /* NAV */
         nav {
             position: fixed;
@@ -129,6 +146,7 @@
             height: 52px;
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
             z-index: 1000;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             display: flex;
@@ -175,6 +193,15 @@
 
         .nav-links a:hover,
         .nav-links a.active {
+            color: var(--text-1);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
             color: var(--text-1);
         }
 
@@ -479,6 +506,32 @@
         }
 
         @media (max-width: 768px) {
+            .nav-inner {
+                padding: 0 20px;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 52px;
+                left: 0;
+                width: 100%;
+                background: var(--bg);
+                flex-direction: column;
+                padding: 20px 40px;
+                gap: 20px;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
             .container {
                 padding: 0 20px;
             }
@@ -554,7 +607,7 @@
                         </div>
                         <div class="card-actions">
                             <button class="btn-action btn-copy">Copy Markdown</button>
-                            <a href="../?ref=product-hunt" class="btn-action btn-open">Try now 7 day trial →</a>
+                            <a href="../index.html" class="btn-action btn-open">Get Glance →</a>
                         </div>
                     </div>
                     <p class="card-desc">Designed for structured quarterly reviews, board updates, or internal project
@@ -600,7 +653,7 @@
                         </div>
                         <div class="card-actions">
                             <button class="btn-action btn-copy">Copy Markdown</button>
-                            <a href="../?ref=product-hunt" class="btn-action btn-open">Try now 7 day trial →</a>
+                            <a href="../index.html" class="btn-action btn-open">Get Glance →</a>
                         </div>
                     </div>
                     <p class="card-desc">Follows the SPICE framework. Focuses on discovery questions that uncover pain
@@ -643,7 +696,7 @@
                         </div>
                         <div class="card-actions">
                             <button class="btn-action btn-copy">Copy Markdown</button>
-                            <a href="../?ref=product-hunt" class="btn-action btn-open">Try now 7 day trial →</a>
+                            <a href="../index.html" class="btn-action btn-open">Get Glance →</a>
                         </div>
                     </div>
                     <p class="card-desc">High-energy opening for interview-style content. Keeps the flow tight and
@@ -683,7 +736,7 @@
                         </div>
                         <div class="card-actions">
                             <button class="btn-action btn-copy">Copy Markdown</button>
-                            <a href="../?ref=product-hunt" class="btn-action btn-open">Try now 7 day trial →</a>
+                            <a href="../index.html" class="btn-action btn-open">Get Glance →</a>
                         </div>
                     </div>
                     <p class="card-desc">Built to hold attention for 45+ minutes. Includes recurring engagement hooks
@@ -722,7 +775,7 @@
                         </div>
                         <div class="card-actions">
                             <button class="btn-action btn-copy">Copy Markdown</button>
-                            <a href="../?ref=product-hunt" class="btn-action btn-open">Try now 7 day trial →</a>
+                            <a href="../index.html" class="btn-action btn-open">Get Glance →</a>
                         </div>
                     </div>
                     <p class="card-desc">Avoid the "Feature Factory" trap. This script links every feature demo directly
@@ -772,8 +825,8 @@
         <div class="cta-strip">
             <h2 class="cta-headline">Nail the delivery, every time.</h2>
             <p class="cta-subhead">Stop looking at notes and start looking at your audience.</p>
-            <a href="../?ref=product-hunt" class="btn-primary">Try now 7 day trial →</a>
-            <p class="cta-note">No credit card · Works with Zoom, Meet, Teams</p>
+            <a href="../index.html" class="btn-primary">Get Glance →</a>
+            <p class="cta-note">One-time purchase · Lifetime access · Works with Zoom, Meet, Teams</p>
         </div>
     </main>
 
@@ -781,7 +834,7 @@
         <div class="container">
             <p>&copy; <span class="current-year"></span> Glance. Not affiliated with Zoom, Microsoft, or Google.</p>
             <div class="footer-links">
-                <a href="../?ref=product-hunt">Product</a>
+                <a href="../index.html">Product</a>
                 <a href="../docs.html">Docs</a>
                 <a href="index.html">Script Templates</a>
                 <a href="../privacy.html">Privacy Policy</a>

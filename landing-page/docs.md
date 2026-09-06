@@ -78,7 +78,7 @@ For truly hands-free delivery, Glance includes **Voice Sync** — an intelligent
 - **How it works:** Spoken words are matched against your script using real-time speech recognition. An adaptive lookahead window matches both exact words and close pronunciations, gracefully handling stumbles, pauses, and skipped phrases.
 - **Visual Progress:** The currently spoken word is highlighted cleanly with a pill accent, while past words fade slightly to keep your focus sharp. Smooth spring physics keep the current line anchored in the upper third of the window.
 - **Getting Started in 3 Steps:**
-  1. **Get an API key:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides free trial credits with no credit card required upfront, letting you test and present immediately.
+  1. **Get an API key:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides free starter credits with no credit card required upfront, letting you test and present immediately.
   2. **Add key in Glance:** Open Glance **Settings** (gear icon) and paste your key into the **Speechmatics API Key** input.
   3. **Activate Voice Sync:** Open the Prompter overlay and toggle **Voice Sync** on. Read at your own pace!
 - **Privacy & Security:** Glance uses direct client-to-cloud encrypted WebSockets for the audio stream using your private key. Audio never routes through Glance servers and is never saved or recorded.

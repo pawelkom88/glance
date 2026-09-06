@@ -36,7 +36,7 @@ Privacy is non-negotiable for client calls, sales demos, and confidential briefi
 **Tweet 4 (Free to try with Speechmatics)**  
 Voice Sync uses Speechmatics for ultra-accurate speech recognition.
 
-You can grab a free API key at portal.speechmatics.com — Speechmatics offers free trial credits with no credit card required upfront.
+You can grab a free API key at portal.speechmatics.com — Speechmatics offers free starter credits with no credit card required upfront.
 
 Setup takes under 60 seconds.
 
@@ -71,7 +71,7 @@ Now, your teleprompter script actively listens to your voice:
 ✅ **Discreet webcam overlay:** Positioned directly under your camera lens so you maintain 100% natural eye contact.  
 ✅ **Zero cloud middleman:** Audio streams directly from your machine to Speechmatics over encrypted WebSockets with your own API key. Glance servers never touch your audio or scripts.
 
-You can test Voice Sync immediately — Speechmatics offers free trial credits upon sign-up (no credit card required upfront) at portal.speechmatics.com.
+You can test Voice Sync immediately — Speechmatics offers free starter credits upon sign-up (no credit card required upfront) at portal.speechmatics.com.
 
 Download Glance for macOS and Windows: https://atglance.app
 
@@ -99,7 +99,7 @@ We just added **Voice Sync**, and it completely changes the dynamic:
 - You don’t have to touch a scroll wheel or pedal mid-pitch.
 - It's a local-first desktop app: your scripts never leave your machine.
 
-For speech recognition, you plug in your own Speechmatics API key (they offer free trial credits at portal.speechmatics.com with no credit card upfront, so it costs nothing to test). Audio connects directly from your machine with no third-party relay.
+For speech recognition, you plug in your own Speechmatics API key (they offer free starter credits at portal.speechmatics.com with no credit card upfront, so it costs nothing to test). Audio connects directly from your machine with no third-party relay.
 
 Would love feedback from anyone doing high-volume demos: https://atglance.app
 
@@ -121,7 +121,7 @@ In our latest update, we’ve introduced **Real-Time Voice Sync**:
 - **Spring-damped scrolling:** Uses spring physics so text moves smoothly line-by-line rather than jittering or snapping.
 - **Tolerant matching:** Handles natural speech disfluencies, filler words, and small improvisations gracefully.
 
-Speechmatics gives free trial credits upon registration (no credit card required upfront) at portal.speechmatics.com.
+Speechmatics gives free starter credits upon registration (no credit card required upfront) at portal.speechmatics.com.
 
 Check it out: https://atglance.app
 
@@ -150,7 +150,7 @@ We built Glance to make presenting on video calls feel effortless. With **Voice 
 4. If you pause, deviate, or improvise, Glance waits patiently.
 
 **Architecture & Privacy:**  
-Glance is built with Tauri v2 (Rust + React). We believe in local-first software: your scripts and notes remain 100% on your device. For Voice Sync, you bring your own Speechmatics API key (they offer free trial credits without needing a credit card at portal.speechmatics.com). Audio streams directly from your client machine to Speechmatics over encrypted WebSockets — zero Glance relay.
+Glance is built with Tauri v2 (Rust + React). We believe in local-first software: your scripts and notes remain 100% on your device. For Voice Sync, you bring your own Speechmatics API key (they offer free starter credits without needing a credit card at portal.speechmatics.com). Audio streams directly from your client machine to Speechmatics over encrypted WebSockets — zero Glance relay.
 
 We’d love your feedback!
 
@@ -181,7 +181,7 @@ Glance now listens to your voice as you present, automatically highlighting your
 
 **How to try it today:**
 1. Update Glance to the latest version.
-2. Get a free API key with trial credits from [portal.speechmatics.com](https://portal.speechmatics.com) (no credit card required upfront).
+2. Get a free API key with starter credits from [portal.speechmatics.com](https://portal.speechmatics.com) (no credit card required upfront).
 3. Paste the key into Glance **Settings** (gear icon) and toggle **Voice Sync** on!
 
 [Download the Update →](https://atglance.app)

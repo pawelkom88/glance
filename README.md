@@ -29,7 +29,7 @@ Glance is a minimalist, local-only transparent teleprompter designed for macOS a
 
 Glance features real-time voice-tracked scrolling powered by speech recognition via Speechmatics.
 
-1. **Get an API Key:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides free trial credits upon account creation with no credit card required upfront.
+1. **Get an API Key:** Sign up at [portal.speechmatics.com](https://portal.speechmatics.com). Speechmatics provides free starter credits upon account creation with no credit card required upfront.
 2. **Add to Glance:** Open Glance **Settings** (gear icon) and paste your key into the **Speechmatics API Key** field.
 3. **Turn on Voice Sync:** In the overlay controls, toggle **Voice Sync** on. Read naturally—Glance follows your pacing, handling stumbles and pauses seamlessly.
 

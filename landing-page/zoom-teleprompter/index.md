@@ -73,7 +73,7 @@ Presenting on Zoom while navigating slide decks or live demos leaves no hands fr
 Glance's **Voice Sync** follows your voice as you talk and automatically scrolls your notes in real time:
 - **Never touch a mouse or scroll wheel:** Focus entirely on your audience and your shared screen.
 - **Adapts to your speaking pace:** If you pause for audience questions or talk faster through intro slides, the prompter matches your tempo instantly.
-- **Direct & private:** Connects directly from your device to Speechmatics speech recognition with your own API key. (Speechmatics provides free trial credits on [portal.speechmatics.com](https://portal.speechmatics.com), no credit card required upfront). No voice or script data ever passes through Glance servers.
+- **Direct & private:** Connects directly from your device to Speechmatics speech recognition with your own API key. (Speechmatics provides free starter credits on [portal.speechmatics.com](https://portal.speechmatics.com), no credit card required upfront). No voice or script data ever passes through Glance servers.
 - *Disclaimer: Glance is an independent local-first application and is not affiliated with Speechmatics Ltd.*
 
 ---
@@ -117,7 +117,7 @@ Yes. You can adjust speed and font size on the fly.
 Yes. Turn on **Auto-Pause with Voice** and Glance will pause after a short silence delay, then resume when you start speaking again. Audio is analysed locally on your device and never recorded.
 
 ### Can Glance automatically scroll as I speak on Zoom?
-Yes! Glance's **Voice Sync** connects to Speechmatics speech recognition to match your spoken words against your script in real time, moving the text smoothly as you talk. You can get a free API key with trial credits from [portal.speechmatics.com](https://portal.speechmatics.com) (no credit card required upfront) and paste it into Glance settings. Audio is streamed directly and securely from your computer without routing through Glance servers. *(Disclaimer: Glance is an independent local-first application and is not affiliated with Speechmatics Ltd.)*
+Yes! Glance's **Voice Sync** connects to Speechmatics speech recognition to match your spoken words against your script in real time, moving the text smoothly as you talk. You can get a free API key with starter credits from [portal.speechmatics.com](https://portal.speechmatics.com) (no credit card required upfront) and paste it into Glance settings. Audio is streamed directly and securely from your computer without routing through Glance servers. *(Disclaimer: Glance is an independent local-first application and is not affiliated with Speechmatics Ltd.)*
 
 ### Do I need an account?
 No account required.

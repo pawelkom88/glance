@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Choosing the Best Font Size and Opacity for Teleprompters | Glance Guide</title>
+    <meta name="description" content="Optimize font size, line spacing, background opacity, and screen contrast for your teleprompter overlay to prevent squinting and glare on video calls." />
+    <link rel="canonical" href="https://atglance.app/guides/teleprompter-font-size/" />
+
+    <meta property="og:title" content="Choosing the Best Font Size and Opacity for Teleprompters | Glance Guide" />
+    <meta property="og:description" content="Optimize font size, line spacing, background opacity, and screen contrast for your teleprompter overlay." />
+    <meta property="og:url" content="https://atglance.app/guides/teleprompter-font-size/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="icon" type="image/png" href="../../favicon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@id": "https://atglance.app/#organization",
+          "@type": "Organization",
+          "name": "Glance",
+          "url": "https://atglance.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://atglance.app/favicon.png"
+          }
+        },
+        {
+          "@type": "TechArticle",
+          "headline": "Choosing the Best Font Size and Opacity for Teleprompters",
+          "description": "Optimize font size, line spacing, background opacity, and screen contrast for your teleprompter overlay to prevent squinting and glare on video calls.",
+          "image": "https://atglance.app/OG.webp",
+          "author": { "@id": "https://atglance.app/#organization" },
+          "publisher": { "@id": "https://atglance.app/#organization" },
+          "url": "https://atglance.app/guides/teleprompter-font-size/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://atglance.app/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Guides",
+              "item": "https://atglance.app/guides/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Choosing the Best Font Size and Opacity for Teleprompters",
+              "item": "https://atglance.app/guides/teleprompter-font-size/"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <style>
+        :root { --bg: #ffffff; --surface: #f5f5f7; --text-1: #1d1d1f; --text-2: #424245; --accent: #007AFF; --border: rgba(0, 0, 0, 0.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+        body { background: var(--bg); color: var(--text-1); font-family: "Inter", sans-serif; line-height: 1.6; font-weight: 300; }
+        .skip-link { position: absolute; top: -100px; left: 20px; background: #1d1d1f; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 2000; text-decoration: none; }
+        .skip-link:focus { top: 12px; }
+        nav { position: fixed; top: 0; width: 100%; height: 52px; background: rgba(255, 255, 255, 0.75); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); z-index: 1000; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+        .nav-inner { width: 100%; max-width: 1100px; display: flex; justify-content: space-between; align-items: center; padding: 0 40px; }
+        .logo { font-weight: 600; font-size: 17px; color: var(--text-1); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .logo img { width: 32px; height: 32px; border-radius: 6px; }
+        .nav-links { display: flex; gap: 24px; }
+        .nav-links a { color: var(--text-2); font-size: 14px; font-weight: 500; text-decoration: none; transition: color 0.2s ease; }
+        .nav-links a:hover, .nav-links a.active { color: var(--text-1); }
+        .mobile-menu-toggle { display: none; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-1); }
+        main { max-width: 760px; margin: 0 auto; padding: 108px 32px 80px; }
+        h1 { font-family: 'Commissioner', sans-serif; font-size: clamp(28px, 4vw, 38px); font-weight: 700; line-height: 1.15; margin-bottom: 16px; }
+        .subtitle { font-size: 18px; color: var(--text-2); margin-bottom: 40px; }
+        article h2 { font-family: 'Commissioner', sans-serif; font-size: 22px; font-weight: 700; margin-top: 36px; margin-bottom: 14px; }
+        article h3 { font-family: 'Commissioner', sans-serif; font-size: 18px; font-weight: 600; margin-top: 24px; margin-bottom: 10px; }
+        article p { font-size: 16px; margin-bottom: 20px; line-height: 1.7; }
+        article ul, article ol { margin-bottom: 24px; padding-left: 20px; }
+        article li { font-size: 16px; margin-bottom: 10px; line-height: 1.6; }
+        article strong { font-weight: 600; color: var(--text-1); }
+        article a { color: var(--accent); text-decoration: none; }
+        article a:hover { text-decoration: underline; }
+        .callout { background: var(--surface); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0; font-size: 15px; }
+        .callout p:last-child { margin-bottom: 0; }
+        table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; }
+        th, td { border: 1px solid var(--border); padding: 12px 16px; text-align: left; }
+        th { background: var(--surface); font-weight: 600; }
+        hr { border: 0; height: 1px; background: var(--border); margin: 40px 0; }
+        .cta-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; text-align: center; margin-top: 48px; }
+        .cta-box h3 { font-family: 'Commissioner', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .cta-box p { font-size: 15px; color: var(--text-2); margin-bottom: 20px; }
+        .btn-primary { display: inline-block; background: var(--accent); color: #ffffff !important; padding: 12px 24px; border-radius: 980px; font-weight: 600; font-size: 14px; text-decoration: none !important; transition: opacity 0.2s; }
+        .btn-primary:hover { opacity: 0.9; }
+        footer { padding: 60px 0; border-top: 1px solid var(--border); text-align: center; }
+        footer .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+        footer p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; }
+        .footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+        .footer-links a { color: var(--text-2); text-decoration: none; font-size: 14px; }
+        @media (max-width: 768px) {
+            .mobile-menu-toggle { display: block; }
+            .nav-links { display: none; position: absolute; top: 52px; left: 0; width: 100%; background: var(--bg); flex-direction: column; padding: 20px 40px; gap: 20px; border-bottom: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+            .nav-links.active { display: flex; }
+            main { padding-left: 20px; padding-right: 20px; }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <nav>
+        <div class="nav-inner">
+            <a href="/index.html" class="logo">
+                <img width="32" height="32" src="../../icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links" id="primary-navigation">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Scripts</a>
+                <a href="/guides/" class="active">Guides</a>
+                <a href="/privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <h1>Choosing the Best Font Size and Opacity for Teleprompters</h1>
+        <p class="subtitle">Optimize contrast, line height, and window transparency so you can glance at your script effortlessly without squinting on camera.</p>
+
+        <article>
+            <p>Nothing gives away that you are reading on a video call faster than squinting. When font sizes are too small or the contrast is poor, your facial expression tenses up, your eyes narrow, and your body leans closer to the screen. Conversely, if your teleprompter window is completely opaque, you lose sight of participant body language and non-verbal cues.</p>
+
+            <p>Finding the right combination of text scale, line height, and background opacity creates effortless reading that looks like spontaneous speech.</p>
+
+            <hr />
+
+            <h2>Font Size vs. Viewing Distance</h2>
+            <p>The correct teleprompter font size depends directly on how far your eyes sit from your physical screen:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Viewing Distance</th>
+                        <th>Typical Setup</th>
+                        <th>Recommended Font Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>16 – 20 inches (40–50 cm)</strong></td>
+                        <td>Laptop on desk / close typing distance</td>
+                        <td>18px – 22px</td>
+                    </tr>
+                    <tr>
+                        <td><strong>22 – 28 inches (55–70 cm)</strong></td>
+                        <td>External 24"–27" desktop monitor</td>
+                        <td>22px – 28px</td>
+                    </tr>
+                    <tr>
+                        <td><strong>30+ inches (75+ cm)</strong></td>
+                        <td>Ultrawide monitor or standing desk</td>
+                        <td>28px – 36px</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="callout">
+                <p><strong>The Squint Test:</strong> Sit back naturally in your chair with proper posture. If you need to lean forward or strain your eyebrows to read the text, increase the font size by 4 pixels immediately.</p>
+            </div>
+
+            <hr />
+
+            <h2>Line Height and Word Density</h2>
+            <p>Dense blocks of text are difficult for the human eye to track when glancing up and down between the camera lens and screen. Configure your script layout with these typography rules:</p>
+            <ul>
+                <li><strong>Line Height (1.6 to 1.8):</strong> Generous vertical spacing prevents your eyes from accidentally skipping lines.</li>
+                <li><strong>Narrow Column Width (320px – 420px):</strong> Short lines contain 6 to 9 words per line, allowing you to absorb an entire thought in a single micro-glance.</li>
+                <li><strong>High-Contrast Sans-Serif Font:</strong> Fonts like <em>Inter</em>, <em>SF Pro</em>, or <em>Arial</em> provide clear letterform distinction even at high transparency levels.</li>
+            </ul>
+
+            <hr />
+
+            <h2>Balancing Window Opacity</h2>
+            <p>A transparent teleprompter overlay allows you to see your meeting participants, slides, or chat while having your script right in front of you:</p>
+            <ul>
+                <li><strong>70% – 85% Opacity (Recommended Sweet Spot):</strong> Provides sharp text contrast while still revealing facial expressions, nods, and hand raises in the video call beneath.</li>
+                <li><strong>95% – 100% Opacity (High Focus Mode):</strong> Best for formal speeches or scripted presentations where background visual distractions should be minimized.</li>
+                <li><strong>Under 50% Opacity (Ghost Mode):</strong> Text becomes washed out unless against a pitch-black background. Generally causes eye strain.</li>
+            </ul>
+
+            <hr />
+
+            <h2>Preventing Screen Reflection on Eyeglasses</h2>
+            <p>If you wear glasses, bright white backgrounds on your monitor create visible reflection rectangles in your webcam video feed. To eliminate this:</p>
+            <ul>
+                <li>Use <strong>Dark Mode</strong> in your prompter overlay (light text on a dark translucent background).</li>
+                <li>Reduce monitor brightness slightly and increase front-facing key light on your face.</li>
+            </ul>
+
+            <div class="cta-box">
+                <h3>Dial in your perfect reading settings in Glance</h3>
+                <p>Glance gives you instant sliders for font size, window width, and background transparency so you can customize your teleprompter for any lighting or monitor setup.</p>
+                <a href="/index.html" class="btn-primary">Get Glance →</a>
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Script Templates</a>
+                <a href="/guides/">Guides</a>
+                <a href="/privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../../assets/js/navigation.js"></script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => { el.textContent = year; });
+    </script>
+</body>
+
+</html>

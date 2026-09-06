@@ -76,7 +76,7 @@ Never fiddle with a scroll wheel or pedal again. Glance listens to your voice vi
 
 ### How to Enable Voice Sync
 
-1. Get an API key at [portal.speechmatics.com](https://portal.speechmatics.com) (Speechmatics provides free trial credits with no credit card required upfront).
+1. Get an API key at [portal.speechmatics.com](https://portal.speechmatics.com) (Speechmatics provides free starter credits with no credit card required upfront).
 2. Open Glance **Settings** (gear icon) → paste your API key into the Speechmatics Key field.
 3. Turn on **Voice Sync** in the overlay controls and read naturally!
 
@@ -123,7 +123,7 @@ Yes. You can adjust speed and font size on the fly.
 Yes. Turn on **Auto-Pause with Voice** and Glance will pause after a short silence delay, then resume when you start speaking again. Audio is analysed locally on your device and never recorded.
 
 ### How does Voice Sync work, and do I need an API key?
-Voice Sync uses speech recognition to match spoken words to your script in real time, automatically scrolling line-by-line as you talk. It connects directly from your device to Speechmatics using your own API key. You can get an API key with free trial credits (no credit card required upfront) at [portal.speechmatics.com](https://portal.speechmatics.com). Audio streams directly from your device over encrypted WebSockets—Glance servers never see or store your voice. *(Note: Glance is independent and not affiliated with or endorsed by Speechmatics Ltd.)*
+Voice Sync uses speech recognition to match spoken words to your script in real time, automatically scrolling line-by-line as you talk. It connects directly from your device to Speechmatics using your own API key. You can get an API key with free starter credits (no credit card required upfront) at [portal.speechmatics.com](https://portal.speechmatics.com). Audio streams directly from your device over encrypted WebSockets—Glance servers never see or store your voice. *(Note: Glance is independent and not affiliated with or endorsed by Speechmatics Ltd.)*
 
 ### Do I need an account?
 No account required.
