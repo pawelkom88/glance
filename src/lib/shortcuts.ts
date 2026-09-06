@@ -155,8 +155,17 @@ export function isMacPlatform(): boolean {
   return typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
 }
 
+export interface ShortcutKeyboardEvent {
+  key?: string;
+  code?: string;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  altKey?: boolean;
+  shiftKey?: boolean;
+}
+
 export function eventMatchesAccelerator(
-  event: Pick<KeyboardEvent, 'key' | 'code' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>,
+  event: ShortcutKeyboardEvent,
   accelerator: string
 ): boolean {
   if (!accelerator || !accelerator.trim()) {
