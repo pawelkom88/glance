@@ -12,9 +12,9 @@ import assert from 'node:assert/strict';
 
 // ─── Constants matching release-config.js ────────────────────────────────────
 
-const WINDOWS_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.3.9/Glance_0.3.9_x64-setup.exe';
-const MAC_ARM_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.3.9/Glance_0.3.9_aarch64.dmg';
-const MAC_INTEL_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.3.9/Glance_0.3.9_x64.dmg';
+const WINDOWS_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_0.4.0_x64-setup.exe';
+const MAC_ARM_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_0.4.0_aarch64.dmg';
+const MAC_INTEL_URL = 'https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_0.4.0_x64.dmg';
 
 // ─── Extracted getDownloadUrl logic (mirrors docs.html) ──────────────────────
 //

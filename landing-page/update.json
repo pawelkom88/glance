@@ -1,15 +1,35 @@
 {
-  "version": "0.3.9",
-  "notes": "SEO improvements and video best practices.",
-  "pub_date": "2026-03-04T10:35:00Z",
+  "version": "0.4.0",
+  "notes": "Glance v0.4.0: Added Voice-Synced Scrolling, dynamic font controls, Windows shortcuts fix, and stability improvements.",
+  "pub_date": "2026-09-06T13:05:44.761Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "REPLACE_WITH_MAC_AARCH64_SIG_CONTENT",
-      "url": "https://atglance.app/downloads/Glance_0.3.9_aarch64.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeU96M1F0STNJZlYyTllvUlMvcGNrc1ViTjlOdHIvb2pOSDdueW9yMnA2aGVFRGdVYUMyUll6ZkozSGI1MHVSd3pqZWcvL254dEh6MmQyNXk0MGNtZUFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5Nzg3CWZpbGU6R2xhbmNlLmFwcC50YXIuZ3oKbU5wTDBET3k4OXFyOVZ1WnFaK1RRNU9sWEZPZ3cvRXVqVXA5eWUzMC9NOW5KZ1pCajYxVUd5Z2lTaWtIczJUZkIreUlpRlBCNVNiVmExZFgyRWJ1QVE9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_aarch64.app.tar.gz"
+    },
+    "darwin-aarch64-app": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeU96M1F0STNJZlYyTllvUlMvcGNrc1ViTjlOdHIvb2pOSDdueW9yMnA2aGVFRGdVYUMyUll6ZkozSGI1MHVSd3pqZWcvL254dEh6MmQyNXk0MGNtZUFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5Nzg3CWZpbGU6R2xhbmNlLmFwcC50YXIuZ3oKbU5wTDBET3k4OXFyOVZ1WnFaK1RRNU9sWEZPZ3cvRXVqVXA5eWUzMC9NOW5KZ1pCajYxVUd5Z2lTaWtIczJUZkIreUlpRlBCNVNiVmExZFgyRWJ1QVE9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_aarch64.app.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeUY2aUUzQ2tEUEJHZG1zSk5IektmWFBWcXhZZEJLdmxEMHV6L1FhakVFUnM5YjZ2WmVjZnp6eXRhc0dlQWhyNDhxeVdrZHJLbTYwN1hkeHRYbHcydEFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5ODc5CWZpbGU6R2xhbmNlLmFwcC50YXIuZ3oKcUwyYnEvSVplcUt0aUpwOGtBMzliSk1JWmxzYllsRHJ5R0FVREpVMUtsMzladHA4WjNJTUlMR05hdXptTCs2OUVScFRFY0F0dXlNTHdJZFhFU3JkQ2c9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_x64.app.tar.gz"
+    },
+    "darwin-x86_64-app": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeUY2aUUzQ2tEUEJHZG1zSk5IektmWFBWcXhZZEJLdmxEMHV6L1FhakVFUnM5YjZ2WmVjZnp6eXRhc0dlQWhyNDhxeVdrZHJLbTYwN1hkeHRYbHcydEFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5ODc5CWZpbGU6R2xhbmNlLmFwcC50YXIuZ3oKcUwyYnEvSVplcUt0aUpwOGtBMzliSk1JWmxzYllsRHJ5R0FVREpVMUtsMzladHA4WjNJTUlMR05hdXptTCs2OUVScFRFY0F0dXlNTHdJZFhFU3JkQ2c9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_x64.app.tar.gz"
     },
     "windows-x86_64": {
-      "signature": "REPLACE_WITH_WIN_X64_SIG_CONTENT",
-      "url": "https://atglance.app/downloads/Glance_0.3.9_x64_en-US.msi.zip"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeU5mMkZaYjhkZEhORGppRU5jMVlTSlkyVXBvUHJQd1J6bkdPb3QyaEdrSVBjMU9yVXFFVjVSK2J5Qks5cURzSGFDeE84R2dtUXpjN2dLNEtmclU4NFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5OTQwCWZpbGU6R2xhbmNlXzAuNC4wX3g2NF9lbi1VUy5tc2kKUm9TRUhSd0YwM0x4LzJ1UmU0OWg4dHpvU0J4MW9KQndwSXJwaG9XYVY4TWN3ck96T1M1RVR5aUNXTi92ajYxaTVKWGlSZ0Fac0dVREdQWm1keU5OQVE9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_0.4.0_x64_en-US.msi"
+    },
+    "windows-x86_64-msi": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeU5mMkZaYjhkZEhORGppRU5jMVlTSlkyVXBvUHJQd1J6bkdPb3QyaEdrSVBjMU9yVXFFVjVSK2J5Qks5cURzSGFDeE84R2dtUXpjN2dLNEtmclU4NFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5OTQwCWZpbGU6R2xhbmNlXzAuNC4wX3g2NF9lbi1VUy5tc2kKUm9TRUhSd0YwM0x4LzJ1UmU0OWg4dHpvU0J4MW9KQndwSXJwaG9XYVY4TWN3ck96T1M1RVR5aUNXTi92ajYxaTVKWGlSZ0Fac0dVREdQWm1keU5OQVE9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_0.4.0_x64_en-US.msi"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYmZldXlsOWRGeUR1SnBFYTZOc0FyYWFDS3A1M2JLcENsQmdoZ3ArRGxZZGxLQlpZUnN6eE9tOHdqK3d3ZWplcW1lM01YcldCcmJ5T0owSXg4Ry9wdmpLTmVhN2Z3ZEFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4Njk5OTQwCWZpbGU6R2xhbmNlXzAuNC4wX3g2NC1zZXR1cC5leGUKNFV4UTArd1lLaXNIcDFQRmxUSi9nRENnemdSTHFLcUxsYnZmRWVUdUR1T1JiMERvK2JmbkFxS05tQjJQQ1VPWmVGdXNkbGhFcklyTzdNNnB5Y080Qnc9PQo=",
+      "url": "https://github.com/pawelkom88/glance/releases/download/v0.4.0-rc.9/Glance_0.4.0_x64-setup.exe"
     }
   }
 }
