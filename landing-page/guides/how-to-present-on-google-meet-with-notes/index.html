@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to Present on Google Meet with Notes (Without Looking Away) | Glance Guide</title>
+    <meta name="description" content="Step-by-step tutorial on presenting Google Slides and decks on Google Meet while keeping private teleprompter notes right under your webcam on a single screen." />
+    <link rel="canonical" href="https://atglance.app/guides/how-to-present-on-google-meet-with-notes/" />
+
+    <meta property="og:title" content="How to Present on Google Meet with Notes (Without Looking Away) | Glance Guide" />
+    <meta property="og:description" content="Step-by-step tutorial on presenting Google Slides on Google Meet while keeping private speaker notes right under your webcam." />
+    <meta property="og:url" content="https://atglance.app/guides/how-to-present-on-google-meet-with-notes/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://atglance.app/OG.webp" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="icon" type="image/png" href="../../favicon.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@id": "https://atglance.app/#organization",
+          "@type": "Organization",
+          "name": "Glance",
+          "url": "https://atglance.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://atglance.app/favicon.png"
+          }
+        },
+        {
+          "@type": "TechArticle",
+          "headline": "How to Present on Google Meet with Notes (Without Looking Away)",
+          "description": "Step-by-step tutorial on presenting Google Slides and decks on Google Meet while keeping private teleprompter notes right under your webcam on a single screen.",
+          "image": "https://atglance.app/OG.webp",
+          "author": { "@id": "https://atglance.app/#organization" },
+          "publisher": { "@id": "https://atglance.app/#organization" },
+          "url": "https://atglance.app/guides/how-to-present-on-google-meet-with-notes/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://atglance.app/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Guides",
+              "item": "https://atglance.app/guides/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "How to Present on Google Meet with Notes",
+              "item": "https://atglance.app/guides/how-to-present-on-google-meet-with-notes/"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <style>
+        :root { --bg: #ffffff; --surface: #f5f5f7; --text-1: #1d1d1f; --text-2: #424245; --accent: #007AFF; --border: rgba(0, 0, 0, 0.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+        body { background: var(--bg); color: var(--text-1); font-family: "Inter", sans-serif; line-height: 1.6; font-weight: 300; }
+        .skip-link { position: absolute; top: -100px; left: 20px; background: #1d1d1f; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 2000; text-decoration: none; }
+        .skip-link:focus { top: 12px; }
+        nav { position: fixed; top: 0; width: 100%; height: 52px; background: rgba(255, 255, 255, 0.75); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); z-index: 1000; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+        .nav-inner { width: 100%; max-width: 1100px; display: flex; justify-content: space-between; align-items: center; padding: 0 40px; }
+        .logo { font-weight: 600; font-size: 17px; color: var(--text-1); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .logo img { width: 32px; height: 32px; border-radius: 6px; }
+        .nav-links { display: flex; gap: 24px; }
+        .nav-links a { color: var(--text-2); font-size: 14px; font-weight: 500; text-decoration: none; transition: color 0.2s ease; }
+        .nav-links a:hover, .nav-links a.active { color: var(--text-1); }
+        .mobile-menu-toggle { display: none; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-1); }
+        main { max-width: 760px; margin: 0 auto; padding: 108px 32px 80px; }
+        h1 { font-family: 'Commissioner', sans-serif; font-size: clamp(28px, 4vw, 38px); font-weight: 700; line-height: 1.15; margin-bottom: 16px; }
+        .subtitle { font-size: 18px; color: var(--text-2); margin-bottom: 40px; }
+        article h2 { font-family: 'Commissioner', sans-serif; font-size: 22px; font-weight: 700; margin-top: 36px; margin-bottom: 14px; }
+        article h3 { font-family: 'Commissioner', sans-serif; font-size: 18px; font-weight: 600; margin-top: 24px; margin-bottom: 10px; }
+        article p { font-size: 16px; margin-bottom: 20px; line-height: 1.7; }
+        article ul, article ol { margin-bottom: 24px; padding-left: 20px; }
+        article li { font-size: 16px; margin-bottom: 10px; line-height: 1.6; }
+        article strong { font-weight: 600; color: var(--text-1); }
+        article a { color: var(--accent); text-decoration: none; }
+        article a:hover { text-decoration: underline; }
+        .callout { background: var(--surface); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0; font-size: 15px; }
+        .callout p:last-child { margin-bottom: 0; }
+        table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; }
+        th, td { border: 1px solid var(--border); padding: 12px 16px; text-align: left; }
+        th { background: var(--surface); font-weight: 600; }
+        hr { border: 0; height: 1px; background: var(--border); margin: 40px 0; }
+        .cta-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; text-align: center; margin-top: 48px; }
+        .cta-box h3 { font-family: 'Commissioner', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .cta-box p { font-size: 15px; color: var(--text-2); margin-bottom: 20px; }
+        .btn-primary { display: inline-block; background: var(--accent); color: #ffffff !important; padding: 12px 24px; border-radius: 980px; font-weight: 600; font-size: 14px; text-decoration: none !important; transition: opacity 0.2s; }
+        .btn-primary:hover { opacity: 0.9; }
+        footer { padding: 60px 0; border-top: 1px solid var(--border); text-align: center; }
+        footer .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+        footer p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; }
+        .footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+        .footer-links a { color: var(--text-2); text-decoration: none; font-size: 14px; }
+        @media (max-width: 768px) {
+            .mobile-menu-toggle { display: block; }
+            .nav-links { display: none; position: absolute; top: 52px; left: 0; width: 100%; background: var(--bg); flex-direction: column; padding: 20px 40px; gap: 20px; border-bottom: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+            .nav-links.active { display: flex; }
+            main { padding-left: 20px; padding-right: 20px; }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <nav>
+        <div class="nav-inner">
+            <a href="/index.html" class="logo">
+                <img width="32" height="32" src="../../icon.png" alt="Glance Logo">
+                Glance
+            </a>
+            <button class="mobile-menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links" id="primary-navigation">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Scripts</a>
+                <a href="/guides/" class="active">Guides</a>
+                <a href="/privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <h1>How to Present on Google Meet with Notes (Without Looking Away)</h1>
+        <p class="subtitle">A step-by-step guide to presenting Google Slides or pitch decks on Google Meet on a single monitor while keeping your private notes anchored right below your camera.</p>
+
+        <article>
+            <p>Presenting on Google Meet presents a notorious single-monitor dilemma. If you click <em>Present</em> on Google Slides, full screen takes over your entire display—cutting off your view of attendee video tiles, the chat window, and your speaking notes.</p>
+
+            <p>If you open Google Slides' built-in <em>Presenter View</em>, it launches a separate floating popup window. To read your speaker notes, your eyes must constantly drift down to the corner of your screen or off to a secondary monitor. To everyone on the Google Meet call, it looks like you are distracted, unconfident, or reading off a cheat sheet.</p>
+
+            <p>Here is how to set up an ergonomic, professional presenter layout on Google Meet so your notes stay completely private, floating directly below your webcam lens, while keeping full visibility of your audience.</p>
+
+            <hr />
+
+            <h2>The Core Rule: Share a Chrome Tab or Window, Never "Entire Screen"</h2>
+            <p>When you click <strong>Present now</strong> in Google Meet, you are offered three distinct capture methods:</p>
+            <ul>
+                <li><strong>A Chrome tab (Best for video &amp; animation):</strong> Captures only the DOM elements inside a specific browser tab. It delivers the highest frame rate (up to 60fps) and cleanest audio pass-through.</li>
+                <li><strong>A Window:</strong> Captures everything inside a single chosen application window (e.g. Chrome, PowerPoint, or Keynote).</li>
+                <li><strong>Entire Screen:</strong> Broadcasts every single pixel on that monitor, including system notifications, background app windows, and private messages.</li>
+            </ul>
+
+            <div class="callout">
+                <p><strong>Privacy Guarantee:</strong> When you share <em>A Chrome tab</em> or <em>A Window</em>, native desktop overlays like <a href="/google-meet-teleprompter/">Glance</a> remain completely invisible to everyone on Google Meet, even when positioned directly over your slides.</p>
+            </div>
+
+            <hr />
+
+            <h2>Step-by-Step Setup Guide for Google Slides</h2>
+
+            <h3>1. Prepare Your Script or Talking Points in Glance</h3>
+            <p>Load your script, bullet points, or customer data points into Glance. Adjust font size and opacity so text is effortless to read without squinting. Keep each bullet short and conversational.</p>
+
+            <h3>2. Anchor Your Teleprompter Directly Below Your Webcam</h3>
+            <p>Drag the Glance overlay to the top center of your display, sitting directly below your physical camera or built-in laptop lens. By placing your notes within 1–2 inches of the camera aperture, reading your script creates the natural illusion of looking directly into your colleagues' eyes.</p>
+
+            <h3>3. Present Google Slides Without Losing Your Window Layout</h3>
+            <p>Instead of clicking the default full-screen <em>Slideshow</em> button in Google Slides:</p>
+            <ol>
+                <li>Click the small down-arrow next to <strong>Slideshow</strong>.</li>
+                <li>Select <strong>Presenter view</strong> (or use keyboard shortcut <code>Cmd + Shift + Return</code> on Mac, <code>Ctrl + Shift + Enter</code> on Windows).</li>
+                <li>Minimize or close the separate notes popup window—you won't need it because Glance is already handling your notes right beside your camera.</li>
+                <li>Keep the presentation tab inside your standard browser window.</li>
+            </ol>
+
+            <h3>4. Start the Share in Google Meet</h3>
+            <p>In Google Meet, click <strong>Present now</strong> → <strong>A Chrome tab</strong>, and select your Google Slides tab. A blue sharing banner will appear at the top of the tab confirming that only this tab is being broadcast.</p>
+
+            <h3>5. Keep Attendee Reactions in View</h3>
+            <p>Position your Google Meet meeting tab or window directly beneath your Glance overlay. This lets you read your talking points while simultaneously noticing head nods, confused glances, or hands raised in the meeting room.</p>
+
+            <hr />
+
+            <h2>Hands-Free Pacing with Voice Sync</h2>
+            <p>Fiddling with a mouse, trackpad, or arrow keys while delivering a product demo or board update looks unnatural and breaks conversational flow. The moment an executive interrupts with a question, a constant-speed auto-scroller leaves you stranded.</p>
+
+            <p>With <a href="/guides/voice-sync-teleprompter/">Voice Sync speech tracking</a>, Glance uses real-time local speech recognition to follow your vocal rhythm:</p>
+            <ul>
+                <li><strong>Dynamic tracking:</strong> The active reading pill moves across your words as you speak them.</li>
+                <li><strong>Auto-pause on questions:</strong> When an attendee interjects, stop talking. Glance stops scrolling immediately. When you resume, it picks up right where you left off.</li>
+                <li><strong>Local-first privacy:</strong> Your voice is never recorded or stored on Glance servers, ensuring compliance with strict enterprise confidentiality standards.</li>
+            </ul>
+
+            <hr />
+
+            <h2>Single Monitor Layout Comparison</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Eye Contact</th>
+                        <th>Audience Visibility</th>
+                        <th>Risk of Leaking Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Default Slideshow (Full Screen)</strong></td>
+                        <td>Poor (Looking down at paper/phone)</td>
+                        <td>Zero (Full screen hides Meet)</td>
+                        <td>Low</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Presenter View Popup</strong></td>
+                        <td>Poor (Eyes dart to side/bottom)</td>
+                        <td>Partial</td>
+                        <td>High (if Entire Screen is shared)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Glance Overlay + Tab Share</strong></td>
+                        <td>Natural &amp; Direct (Anchored at camera)</td>
+                        <td>Full (Meet tiles visible beneath)</td>
+                        <td>Zero (Overlay is invisible to tab capture)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="cta-box">
+                <h3>Deliver your next Google Meet presentation with confidence</h3>
+                <p>Glance floats seamlessly above Google Meet and Chrome, keeping you composed, on-script, and looking straight at your audience.</p>
+                <a href="/index.html" class="btn-primary">Download Glance →</a>
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span class="current-year"></span> Glance. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="/index.html">Product</a>
+                <a href="/docs.html">Docs</a>
+                <a href="/script-template/">Script Templates</a>
+                <a href="/guides/">Guides</a>
+                <a href="/privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../../assets/js/navigation.js"></script>
+    <script>
+        const year = new Date().getFullYear();
+        document.querySelectorAll(".current-year").forEach((el) => { el.textContent = year; });
+    </script>
+</body>
+
+</html>
